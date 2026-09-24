@@ -1,0 +1,20 @@
+{
+  "name": "@jamzo/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Central product/brand registry, env schemas, settings registry, hierarchical config resolution, feature flags, semver.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./apps": "./src/apps.js",
+    "./semver": "./src/semver.js",
+    "./settings-registry": "./src/settings-registry.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@jamzo/shared-types": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}

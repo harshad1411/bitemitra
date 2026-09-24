@@ -1,0 +1,17 @@
+node_modules
+pnpm-lock.yaml
+*.md
+.next
+.expo
+dist
+coverage
+var
+assets
+apps/*/android
+apps/*/ios
+apps/*/dist
+packages/database/prisma/migrations
+packages/database/prisma/schema.prisma
+packages/database/prisma/constraints.active.sql
+playwright-report
+test-results

@@ -1,17 +1,26 @@
 # Security & privacy
 
-Status: **Phase 0 design.** Authentication, RBAC, validation, logging redaction, rate limiting and
-secure headers are Phase 1; payment security Phase 7; hardening/pen-test Phase 10.
+Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
 
 Covers MASTER_SPEC §48, §49, §50, §52.
 
 ## 1. Authentication
 
-| App | Method |
+Provider-based (OD-13, D-20): each login method is an `auth_identities` row. Methods are enabled per app
+by the setting `auth.methods`:
+
+| Provider | Phase 1 status |
 |---|---|
-| Customer, Rider | Phone + OTP (email architecture present, off by default) |
-| Restaurant | Phone + OTP; optional email + password for web/desktop use later |
-| Admin | Email + password (argon2id) **+ mandatory TOTP 2FA** (proposal — confirm), SSO later |
+| `PHONE_OTP` | **implemented**; SMS sent through `SmsProvider` — **console provider only** until a DLT provider is chosen (Q-6) |
+| `EMAIL_OTP` | **implemented**; `EmailProvider` — **console provider only** (Q-6) |
+| `GOOGLE`, `APPLE` | **slots only**: configuration + routes exist, return `AUTH_METHOD_UNAVAILABLE`; ID-token verification needs client ids (Q-6b) |
+| `PASSWORD` | **implemented for admin** (argon2id) with lockout |
+
+Defaults: customer, restaurant and rider apps → phone OTP (email OTP available, off); admin → password.
+**Admin 2FA is deferred** (CH-8, Q-15): Admin must not be exposed to the public internet until it ships.
+
+Authentication never implies approval: restaurant/rider features additionally require an approved
+membership/profile ([RBAC.md §4](RBAC.md#4-non-admin-actors)).
 
 **OTP**: 6 digits from a CSPRNG; stored as HMAC-SHA256 with a server pepper; 5-minute expiry; max 5
 verify attempts per challenge; resend cooldown 30 s; per-phone (5/hour) and per-IP limits; constant-time
@@ -21,9 +30,10 @@ startup in staging/production.
 **Tokens**: access token = signed JWT (EdDSA or HS256 with rotated keys), 15-minute lifetime, claims
 `sub`, `app`, `sid`, `perm` version. Refresh token = opaque 256-bit random, stored as SHA-256, 30-day
 sliding expiry, **rotated on every use**; reuse of a rotated token revokes the whole session family
-(theft detection). Mobile stores refresh tokens in Keychain/Keystore (`expo-secure-store`); admin
-keeps the access token in memory and the refresh token in an httpOnly, Secure, SameSite=Strict cookie
-with a CSRF token for cookie-authenticated requests.
+(theft detection). Mobile stores refresh tokens in Keychain/Keystore (`expo-secure-store`). Admin
+keeps the access token in memory and the refresh token in an httpOnly, `SameSite=Strict` cookie (Secure
+outside local development) scoped to `/api/v1/admin/auth`, served same-origin through the Next.js proxy;
+refresh additionally requires the `x-app-id: ADMIN` header, which cross-site forms cannot send (D-22).
 
 **Brute force**: progressive delays and account lock (`admin_users.lockedUntil`) after repeated
 failures; alerts on spikes.
@@ -70,7 +80,7 @@ environment (development, test, staging, production).
 - **Data export**: async job produces a JSON/CSV archive of the user's data, delivered via signed URL.
 - **Consent records** (`consent_records`) for terms, privacy policy and marketing channels, versioned.
 - **Notification preferences** per channel and topic; transactional messages always sent.
-- Compliance target: India's DPDP Act 2023 obligations — to be confirmed with counsel (**⚠ [Q12](DECISIONS.md#q12-legal-entity-compliance-and-policies)**).
+- Compliance target: India's DPDP Act 2023 obligations — to be confirmed with counsel (**⚠ [Q-12](DECISIONS.md#5-questions)**).
 
 ## 8. Supply chain & operations
 

@@ -1,7 +1,6 @@
 # Configuration, feature flags, remote config & app versions
 
-Status: **Phase 0 design.** Implemented in Phase 1 (`packages/config`, `config` API module, admin
-Configuration section). Covers MASTER_SPEC §2, §51, §63, §64, §65, §72, §73.
+Status: **Phase 1 implements** the settings registry, hierarchical resolution, settings API + history, feature flags, app version policies and remote config (`packages/config`, API `configuration` module, Admin → Settings). Covers MASTER_SPEC §2, §51, §63, §64, §65, §72, §73.
 
 ## 1. Three kinds of configuration
 
@@ -16,7 +15,7 @@ editable in Admin.
 
 ## 2. Settings registry
 
-Every setting key is declared once in `packages/config/src/settings-registry.js`:
+Every setting key is declared once in `packages/config/src/settings-registry.js` (JavaScript, OD-1):
 
 ```js
 {
@@ -35,28 +34,33 @@ admin settings UI (sections + search, §64), the "Using global setting / Custom 
 inherited value" display (§32), and documentation generation.
 
 Resolution uses the same hierarchy and ranking as pricing rules ([PRICING.md §2](PRICING.md#2-rule-precedence)).
-Resolved settings are cached in Redis per scope chain with invalidation on write.
+Resolution reads settings from PostgreSQL with a short in-process cache (per API instance, invalidated on write in that instance, ≤ 30 s staleness elsewhere). **No Redis in Phase 1** (D-9); a shared cache is introduced only if measurements show it is needed.
 
 ## 3. Initial setting keys (defaults; all admin-editable)
 
 | Section | Key | Default |
 |---|---|---|
 | General | `support.phone`, `support.email`, `support.whatsapp` | — |
+| Auth | `auth.methods` (per app: PHONE_OTP, EMAIL_OTP, GOOGLE, APPLE, PASSWORD) | customer/restaurant/rider: PHONE_OTP · admin: PASSWORD |
+| Auth | `auth.otp.ttlSec`, `auth.otp.maxAttempts`, `auth.otp.resendCooldownSec` | 300, 5, 30 |
 | General | `maintenance.enabled` / `maintenance.message` (per app) | false |
 | Orders | `orders.restaurantAcceptance.timeoutSec` / `.fallback` / `.escalationGraceSec` | 180 / ESCALATE_TO_OPS / 120 |
 | Orders | `orders.minOrderPaise` | 0 |
 | Orders | `orders.maxPrepTimeMinutes` | 60 |
-| Delivery | `delivery.maxDistanceM`, `delivery.roadFactor` | 7000, 1.3 |
+| Delivery | `delivery.maxDistanceM`, `delivery.distance.fallback`, `delivery.distance.roadFactor` | 7000, HAVERSINE_FACTOR, 1.3 (OD-14) |
 | Dispatch | `dispatch.startAt`, `.offerTimeoutSec`, `.maxOffers`, `.noRiderEscalationSec`, `.maxActiveOrders`, weights | ON_ACCEPT, 30, 5, 600, 1 |
-| Payments | `payments.expirySec`, `payments.enabledMethods` | 900, [UPI, CARD, NETBANKING, COD] |
+| Payments | `payments.expirySec` | 900 |
 | COD | `cod.enabled`, `cod.maxOrderValuePaise`, `cod.riderLimitPaise`, `cod.maxRefusedOrders`, `cod.netAgainstEarnings` | true, 100000, 500000, 2, true |
-| Pricing | `pricing.finalRounding`, `pricing.surcharges.maxTotalPaise`, `pricing.promotionStacking` | NEAREST_1, 5000, ONE_PROMO_ONE_COUPON |
+| Pricing | `pricing.finalRounding.mode` / `.direction`, `pricing.surcharges.maxTotalPaise`, `pricing.promotionStacking` | NEAREST_1 / HALF_UP, 5000, ONE_PROMO_ONE_COUPON (OD-16) |
+| Pricing | `pricing.markup.disclosure` | NONE — pending legal (OD-8, Q-4) |
+| Tips | `tips.riderShareBps` | 10000 = 100% to delivery partner (OD-15) |
+| Payments | `payments.enabledMethods` per city/zone | UPI, CARD, NETBANKING, WALLET, COD |
 | Refunds | `refunds.approvalThresholdPaise` | 100000 |
 | Settlements | `settlements.defaultSchedule`, `.weeklyRunDay`, `.minPayoutPaise`, `.reservePercentBps` | WEEKLY, MONDAY, 10000, 0 |
 | Riders | `riders.settlementSchedule`, `rider.locationIntervalSec` | WEEKLY, 10 |
 | Customer | `customer.guestBrowsing` | true |
 
-(All money defaults are placeholders for the owner to set before launch.)
+(All money defaults are **placeholders** for the owner to set before launch — A-16. Keys whose phase has not started are registered now so the admin can show them, but nothing reads them yet.)
 
 ## 4. Feature flags (§51)
 
@@ -83,14 +87,14 @@ only for UI.
 }
 ```
 
-Home-page content is served by its own CMS endpoint (Phase 3) so it can be cached separately.
+Home-page content is served by its own CMS endpoint (Phase 3). Phase 1 also returns `auth.methods` for the calling app so login screens show only enabled methods.
 
 ## 6. App version policy (§72)
 
 `app_version_policies` per (app, platform): `minSupportedVersion`, `recommendedVersion`, `forceUpdate`,
 `storeUrl`. Status rules: `version < min` or `forceUpdate && version < recommended` → UPDATE_REQUIRED
 (blocking screen, API returns 426); `version < recommended` → UPDATE_RECOMMENDED (dismissible). Semver
-comparison is shared code with tests. Changing policy is audit-logged.
+comparison is shared code with tests. Changing policy is audit-logged. A client that sends no version (or an unparsable one) is treated as UPDATE_REQUIRED for mobile apps.
 
 ## 7. Change safety
 

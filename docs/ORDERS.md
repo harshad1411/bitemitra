@@ -1,6 +1,6 @@
 # Orders — state machine
 
-Status: **Phase 0 design.** Implemented as a pure module in `packages/order-engine` (Phase 5) with
+Status: **Design (updated for OD-17).** Implemented as a pure module in `packages/order-engine` (Phase 5) with
 exhaustive transition tests. End-to-end narrative: [ORDER_FLOW.md](ORDER_FLOW.md).
 
 Covers MASTER_SPEC §17, §18, §20, §35, §40, §56, §68, §69.
@@ -12,7 +12,7 @@ Covers MASTER_SPEC §17, §18, §20, §35, §40, §56, §68, §69.
 2. **Every transition** writes an `order_status_history` row (from, to, actor type + id, reason,
    metadata, timestamp) and an `outbox_events` row, in the same transaction as the state change.
 3. **Optimistic concurrency**: `UPDATE orders … WHERE id = $1 AND version = $2`; a lost race returns
-   409 and the client re-fetches. Combined with DB constraints ([DATABASE.md §5](DATABASE.md#5-concurrency-guarantees)).
+   409 and the client re-fetches. Combined with DB constraints ([DATABASE.md §5](DATABASE.md#5-concurrency-and-invariant-guarantees)).
 4. The engine is pure: `transition(order, event, actor, now) → { order', history, events } | error`.
 
 ## 2. Two tracks, one derived status
@@ -23,7 +23,7 @@ status cannot represent "PREPARING *and* RIDER_ACCEPTED", and the admin orders t
 
 | Field | Values | Driven by |
 |---|---|---|
-| `restaurantStatus` (kitchen track) | PENDING, NOTIFIED, ACCEPTED, REJECTED, PREPARING, READY, HANDED_OVER, CANCELLED | restaurant app, system |
+| `restaurantStatus` (kitchen track) | **NEW, ACCEPTED, PREPARING, READY_FOR_PICKUP, COMPLETED**, REJECTED, CANCELLED (owner vocabulary, OD-17) + `restaurantNotifiedAt` timestamp | restaurant app, system |
 | `deliveryStatus` (delivery track) | NOT_STARTED, SEARCHING, ASSIGNED, ACCEPTED, AT_RESTAURANT, PICKED_UP, ON_THE_WAY, ARRIVED, DELIVERED, NO_RIDER_FOUND, CANCELLED | dispatch, rider app |
 | `status` (overall, **spec §18 values**) | derived — see §4 | never set directly |
 | `financialStatus` | NONE, REFUND_PENDING, PARTIALLY_REFUNDED, REFUNDED | refunds module |
@@ -49,13 +49,13 @@ triggers an automatic refund ([PAYMENTS.md §3](PAYMENTS.md#3-online-payment-flo
 
 | From | Event | To | Actor / guard |
 |---|---|---|---|
-| PENDING | alert delivered to a restaurant device (socket ack or push receipt) | NOTIFIED | system |
-| PENDING, NOTIFIED | accept (with prep time, bounded by settings) | ACCEPTED | restaurant user · or system if `autoAccept` |
-| PENDING, NOTIFIED | reject (reason required) | REJECTED | restaurant user · or system on timeout when fallback = AUTO_REJECT |
+| NEW | alert acknowledged by a restaurant device (socket ack or push receipt) | NEW (sets `restaurantNotifiedAt`) | system |
+| NEW | accept (with prep time, bounded by settings) | ACCEPTED | restaurant user · or system if `autoAccept` |
+| NEW | reject (reason required) | REJECTED | restaurant user · or system on timeout when fallback = AUTO_REJECT |
 | ACCEPTED | start preparing | PREPARING | restaurant user · or automatic on accept (setting) |
-| ACCEPTED, PREPARING | mark ready | READY | restaurant user |
-| READY | rider confirms pickup | HANDED_OVER | rider (guard: delivery track AT_RESTAURANT) |
-| ACCEPTED, PREPARING, READY | order cancelled (§5) | CANCELLED | via cancellation |
+| ACCEPTED, PREPARING | mark ready | READY_FOR_PICKUP | restaurant user |
+| READY_FOR_PICKUP | rider confirms pickup | COMPLETED | rider (guard: delivery track AT_RESTAURANT) |
+| ACCEPTED, PREPARING, READY_FOR_PICKUP | order cancelled (§5) | CANCELLED | via cancellation |
 
 Prep-time adjustments while ACCEPTED/PREPARING are events that update `prepTimeMinutes` (history row,
 no status change).
@@ -69,13 +69,13 @@ re-checks state before acting (idempotent).
 
 | From | Event | To | Actor / guard |
 |---|---|---|---|
-| NOT_STARTED | dispatch trigger (setting `dispatch.startAt` = ON_ACCEPT (default) \| PREP_TIME_MINUS_LEAD) | SEARCHING | system |
+| NOT_STARTED | dispatch trigger (setting `dispatch.startAt` = ON_ACCEPT (default) \| PREP_TIME_MINUS_LEAD) — **does not wait for the food to be ready** (OD-17) | SEARCHING | system |
 | SEARCHING | offer sent to a rider · or manual admin assignment | ASSIGNED | system / admin |
 | ASSIGNED | rider accepts (DB guarantees single winner) | ACCEPTED | rider |
 | ASSIGNED | rider rejects / offer times out | SEARCHING | rider / system |
 | ACCEPTED, AT_RESTAURANT | rider unassigns (reason) · admin reassigns | SEARCHING | rider / admin |
 | ACCEPTED | arrived at restaurant (geofence advisory) | AT_RESTAURANT | rider |
-| AT_RESTAURANT | pickup confirmed (order number verified; guard: kitchen READY) | PICKED_UP | rider |
+| AT_RESTAURANT | pickup confirmed (order number verified; guard: kitchen READY_FOR_PICKUP) | PICKED_UP | rider |
 | PICKED_UP | start trip (automatic) | ON_THE_WAY | system |
 | ON_THE_WAY | arrived at customer | ARRIVED | rider |
 | ARRIVED | delivered (guards: delivery OTP if flag on; COD collection confirmed if COD; proof photo if flag on) | DELIVERED | rider |
@@ -99,14 +99,14 @@ deriveStatus(order):
   if order is terminal/cancelled/failed        → that state
   if payment phase (CREATED/PAYMENT_*)          → that state
   if deliveryStatus ∈ {PICKED_UP, ON_THE_WAY, ARRIVED, DELIVERED} → same-named status
-  if restaurantStatus ∈ {READY, HANDED_OVER}:
+    if restaurantStatus ∈ {READY_FOR_PICKUP, COMPLETED}:
        NOT_STARTED                   → READY_FOR_PICKUP
        SEARCHING | NO_RIDER_FOUND    → RIDER_SEARCHING
        ASSIGNED                      → RIDER_ASSIGNED
        ACCEPTED                      → RIDER_ACCEPTED
        AT_RESTAURANT                 → RIDER_AT_RESTAURANT
-  kitchen: PENDING→PLACED, NOTIFIED→RESTAURANT_NOTIFIED, ACCEPTED→RESTAURANT_ACCEPTED,
-           PREPARING→PREPARING, REJECTED→RESTAURANT_REJECTED
+    kitchen: NEW (not yet notified)→PLACED, NEW (restaurantNotifiedAt set)→RESTAURANT_NOTIFIED,
+           ACCEPTED→RESTAURANT_ACCEPTED, PREPARING→PREPARING, REJECTED→RESTAURANT_REJECTED
 ```
 
 Before the food is ready, overall status follows the kitchen (what the customer cares about); rider
@@ -118,9 +118,9 @@ Stage is computed from the tracks at the moment of cancellation:
 
 | Stage | Condition | Who may cancel (default) |
 |---|---|---|
-| BEFORE_ACCEPT | kitchen PENDING/NOTIFIED | customer (free), restaurant (= reject), admin |
+| BEFORE_ACCEPT | kitchen NEW | customer (free), restaurant (= reject), admin |
 | AFTER_ACCEPT | kitchen ACCEPTED | customer (fee per rule), restaurant (penalty per rule), admin |
-| AFTER_PREPARING | kitchen PREPARING/READY, not picked up | customer only if rule allows; restaurant; admin |
+| AFTER_PREPARING | kitchen PREPARING/READY_FOR_PICKUP, not picked up | customer only if rule allows; restaurant; admin |
 | AFTER_PICKUP | delivery PICKED_UP or later | admin / support only (→ ADMIN_CANCELLED or RIDER_ISSUE) |
 
 `cancellation_rules.params` per (stage, actor): customer fee (fixed/% of food), refund policy

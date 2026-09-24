@@ -1,13 +1,17 @@
 # Delivery: service areas, dispatch, rider earnings, location
 
-Status: **Phase 0 design.** Geo/serviceability in Phase 1, dispatch + rider app in Phase 6.
+Status: **Design (updated for OD-6, OD-14, OD-18).** Phase 1 implements geography, zones, zone service areas and the serviceability check; branch delivery areas arrive in Phase 2, dispatch in Phase 6.
 Package: `packages/delivery-engine` (this is MASTER_SPEC Part A's "dispatch-engine").
 
 Covers MASTER_SPEC §14, §16, §21, §22, §23, §37, B3, B8.
 
 ## 1. Service areas (§37)
 
-`Country → State → City → Zone → ServiceArea`. Nothing about Unjha is hard-coded: Unjha is seed data.
+Owner hierarchy (OD-6): **Country → State → City → Service Zone → Restaurant → Restaurant Branch →
+Delivery Area.** Tables: `countries → states → cities → zones` (service zones) `→ service_areas`
+(platform-serviceable areas inside a zone); `restaurants → restaurant_branches → branch_delivery_areas`
+(each branch's own reach, D-19). Nothing about Unjha is hard-coded: Unjha is seed data, and a new city
+(Mehsana, Ahmedabad, Surat…) is created in Admin with its own zones and configuration.
 
 - **City**: `isActive` = accepting orders; timezone; centre point.
 - **Zone**: GeoJSON polygon + bbox; operational unit for riders, surge, fees, targeting.
@@ -20,10 +24,12 @@ tests cover vertices, edges, holes and MultiPolygons.
 
 ## 2. Distance
 
-Distance feeds customer delivery fees and rider pay, so its source is a money decision
-(**⚠ [Q9](DECISIONS.md#q9-distance-used-for-pricing)**). Design: a `MapsProvider.routeDistance(a, b)`
-adapter with cache (rounded coordinates, 24 h TTL) and a deterministic fallback of
-`haversine × roadFactor` (setting `delivery.roadFactor`, default 1.3) when the provider is down. The
+**Route/road distance is the normal billing source** for customer delivery fees and rider distance
+(OD-14). `MapsProvider.routeDistance(a, b)` is an interface (Google Maps or another provider — Q-14) with
+a short-lived cache keyed by rounded coordinates. If a route cannot be obtained, the configurable
+fallback `delivery.distance.fallback` applies: `HAVERSINE_FACTOR` (straight line ×
+`delivery.distance.roadFactor`, default 1.3, order flagged `FALLBACK`) or `REJECT` (quote refused).
+Straight-line distance is never the normal calculation. The
 distance **used** and its source are stored in the snapshot, so the customer is charged exactly what was quoted.
 
 ## 3. Dispatch (§22)
@@ -59,14 +65,14 @@ Independent from the customer delivery fee. `rider_earning_rules.params`:
 
 - **Estimate** at order placement (snapshot) for margin visibility; **final** at DELIVERED with actual distances and waiting time (arrived-at-restaurant → picked-up minus free minutes) → `rider_earnings` (breakdown JSON + rule id) → rider ledger entries.
 - Bonuses and manual adjustments are separate ledger entries with reason + audit.
-- Tips pass through 100% (**⚠ Q10**).
+- Tips: share per `tips.riderShareBps` (default 100%, OD-15), always a separate ledger line.
 
 ## 5. Rider location
 
 - Rider app sends location every `rider.locationIntervalSec` (default 10 s while on a trip, 30 s online-idle; distance filter 25 m) via REST batch (`POST /v1/rider/locations`, up to 50 points) — batches survive reconnects; sockets are only for live fan-out to customer tracking.
 - Latest point → `rider_availability` (hot row); breadcrumbs → `rider_locations` (partitioned/TTL later).
 - Customer tracking receives rider location only between ACCEPTED and DELIVERED, rounded, and never the rider's personal details beyond name/photo/vehicle (privacy §49).
-- Background location is required while online so offers and tracking work with the app backgrounded — platform specifics in [MOBILE.md §5](MOBILE.md#5-rider-app-platform-specifics).
+- Background location is required while online so offers and tracking work with the app backgrounded — platform specifics in [MOBILE.md §5](MOBILE.md#5-rider-app-platform-specifics-phase-6--declared-in-config-now).
 
 ## 6. Contact abstraction
 

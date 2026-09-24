@@ -1,7 +1,8 @@
 # Payments & COD
 
-Status: **Phase 0 design.** Online payments are implemented in Phase 7; COD capture in Phase 6;
-COD reconciliation and ledgers in Phase 8. Gateway choice: **⚠ [Q5](DECISIONS.md#q5-payment-gateway)**.
+Status: **Design (updated for OD-11, OD-12).** Nothing in this document is implemented in Phase 1.
+Online payments: Phase 7 (**Razorpay is the first adapter**); COD capture: Phase 6; COD reconciliation and
+ledgers: Phase 8. Payout rails: Q-5b.
 
 Covers MASTER_SPEC §23, §24, §36, §48, §56, §68, §69, §82.
 
@@ -15,7 +16,8 @@ Covers MASTER_SPEC §23, §24, §36, §48, §56, §68, §69, §82.
 3. **Amount check**: captured amount and currency must equal `payments.amountPaise`/INR; a mismatch is
    flagged for finance and never auto-confirms the order.
 4. **No card data** ever touches our servers; checkout uses the provider's SDK / hosted page (§48).
-5. **Business logic knows only the interface**, never the gateway.
+5. **Business logic knows only the interface**, never the gateway. Razorpay is the first adapter (OD-11); adding a provider means a new adapter, not changes to Orders.
+6. **Payments and orders are separate records.** An order references its payment attempts; payment state never lives in order fields, and order state changes only through the order state machine reacting to verified payment events.
 
 ## 2. Provider abstraction
 
@@ -28,7 +30,7 @@ createRefund({ providerPaymentId, amountPaise, idempotencyKey })       // → { 
 fetchRefund(providerRefundId)
 ```
 
-Adapters: the chosen gateway (Phase 7) and a **fake provider** used in dev/tests that signs webhooks with
+Adapters: **Razorpay** (Phase 7; orders API + checkout SDK, webhook signature over the raw body, refunds API; UPI/cards/net banking/wallets as Razorpay supports) and a **fake provider** used in dev/tests that signs webhooks with
 a test secret and can simulate success, failure, delay, duplicates and out-of-order delivery. Production
 refuses to start with test keys, and dev/staging refuse live keys (key-prefix + env check, §52).
 
@@ -88,6 +90,15 @@ Finance verifies (receipt / bank statement) → VERIFIED → rider ledger `COD_S
 (`codHeldPaise −= amount`) and deposit amounts are allocated FIFO to that rider's collected COD
 payments (`payments.codReconciledAt`, `codSettlementRef`). Only then is the cash counted as platform cash.
 Rejected deposits need a reason and are audit-logged.
+
+**Shortage / excess (OD-12):** each verified deposit records `expectedPaise` (cash due for the orders it
+settles) and `variancePaise`. A shortage posts `COD_SHORTAGE` (rider still owes it); an excess posts
+`COD_EXCESS` (platform owes the rider). Both need a reason and are audit-logged.
+
+**Admin COD view (Phase 8):** COD collected · COD pending deposit · rider cash liability (per rider,
+ageing) · deposits (pending/verified/rejected) · adjustments · shortages/excess · reconciliation history.
+COD is never represented as a simple "paid" flag: the payment row shows collection, the ledgers show who
+holds the cash, and reconciliation shows when it became platform cash.
 
 **Netting** (default ON, setting `cod.netAgainstEarnings`): at rider settlement, COD held can be
 deducted from earnings owed ([SETTLEMENTS.md §3](SETTLEMENTS.md#3-rider-ledger--settlement)).

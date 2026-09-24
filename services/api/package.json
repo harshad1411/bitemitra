@@ -1,0 +1,38 @@
+{
+  "name": "@jamzo/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Jamzo HTTP API — modular monolith (Fastify, Prisma 6, PostgreSQL).",
+  "type": "module",
+  "main": "src/server.js",
+  "exports": {
+    "./app": "./src/app.js",
+    "./media-storage": "./src/modules/media/storage.js"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/multipart": "^10.1.2",
+    "@fastify/rate-limit": "^11.2.0",
+    "@jamzo/auth": "workspace:*",
+    "@jamzo/config": "workspace:*",
+    "@jamzo/database": "workspace:*",
+    "@jamzo/delivery-engine": "workspace:*",
+    "@jamzo/logger": "workspace:*",
+    "@jamzo/notifications": "workspace:*",
+    "@jamzo/shared-types": "workspace:*",
+    "@jamzo/validation": "workspace:*",
+    "fastify": "^5.12.5",
+    "fastify-plugin": "^6.0.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "pino-pretty": "^13.1.3"
+  }
+}

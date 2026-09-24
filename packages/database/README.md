@@ -1,4 +1,4 @@
-# @bitemitra/database
+# @jamzo/database
 
 PostgreSQL schema (Prisma 6, `prisma-client-js`), hand-written constraints, and (from Phase 1) migrations, client export and deterministic seed data.
 

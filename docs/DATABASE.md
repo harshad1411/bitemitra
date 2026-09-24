@@ -1,158 +1,142 @@
 # Database
 
-Status: **Phase 0 design — schema written and verified; no migrations generated yet.**
+Status: **Phase 1.** 27 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, OD-20, OD-21.
 
-- Schema: [`packages/database/prisma/schema.prisma`](../packages/database/prisma/schema.prisma) (96 tables)
-- Extra constraints: [`packages/database/prisma/constraints.sql`](../packages/database/prisma/constraints.sql)
-- Verification: `pnpm verify:schema` ([`scripts/verify-schema.mjs`](../scripts/verify-schema.mjs))
+| File | Purpose |
+|---|---|
+| [`prisma/design/schema.design.prisma`](../packages/database/prisma/design/schema.design.prisma) | Full long-term design — 98 tables. Edit models **here**. |
+| [`prisma/active-models.json`](../packages/database/prisma/active-models.json) | Which models are active in the current phase. |
+| [`prisma/schema.prisma`](../packages/database/prisma/schema.prisma) | **Generated** active schema (what Prisma migrates and the client uses). |
+| [`prisma/constraints.sql`](../packages/database/prisma/constraints.sql) | Partial unique indexes + CHECK constraints Prisma cannot express (all tables). |
+| `prisma/constraints.active.sql` | Generated subset for active tables, applied as a migration. |
+| `prisma/migrations/` | Migrations (Phase 1: init + constraints). |
+
+`pnpm --filter @jamzo/database schema:generate` regenerates the active files; `pnpm verify:schema` fails if they
+are stale, validates both schemas, applies both to PostgreSQL and exercises the constraints.
 
 ## 1. Technology
 
-| | Choice | Why |
-|---|---|---|
-| Database | PostgreSQL (16+; verified on 18.3) | Transactions, partial indexes, CHECK constraints, JSONB, full-text search, PostGIS path. |
-| ORM | **Prisma 6.x** with the `prisma-client-js` generator | Readable schema DSL doubles as design documentation; mature migrations; JS client is generated inside `node_modules`, so no TypeScript enters project source. Prisma 7's new generator emits TypeScript source files, so we stay on 6.x until that is re-evaluated (Phase 10, [DECISIONS D6](DECISIONS.md#d6-prisma-6-pinned)). |
-| Raw SQL | `constraints.sql` migration + `$queryRaw` (tagged, parameterised) for hot/report queries | Partial unique indexes and CHECKs are not expressible in Prisma. |
-| Local/CI Postgres | Docker Postgres for development; **PGlite** (Postgres-in-WASM) for fast isolated tests; Postgres service container in CI | No system install required to run tests. |
+PostgreSQL (verified on 18.3 via PGlite; production ≥ 16) · Prisma 6 `prisma-client-js` (D-6) ·
+raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 2. Conventions
 
 | Rule | Detail |
 |---|---|
-| Identifiers | UUIDv7 (`@default(uuid(7))`) — unguessable yet time-ordered, so B-tree inserts stay local. Human references (`orderNumber`, `ticketNumber`, invoice `number`) are separate unique columns. |
-| Money | **Integer paise** in `*Paise` columns (`Int`). Ledger balances and settlement totals are `BigInt` paise. **No floats anywhere.** JSON APIs send paise as integers; `BigInt` is serialised as a JSON number after a safe-integer check (limit ≈ ₹90 trillion). |
-| Rates | Integer basis points (`*Bps`): 5% = 500, 12.5% = 1250. |
-| Distance / time | Integer metres (`*M`); minutes/seconds named explicitly. |
-| Coordinates | `Decimal(9,6)` (~0.1 m). |
-| Timestamps | `timestamptz` in UTC; business-time logic uses the city timezone. |
-| Naming | Prisma models PascalCase, tables snake_case plural (`@@map`), columns camelCase. |
-| Deletes | Business records are never hard-deleted: soft delete (`deletedAt`) or status. Account deletion scrubs PII in place (§49) so financial history keeps referential integrity. |
-| Append-only tables | `order_status_history`, `*_ledger_entries`, `payment_events`, `audit_logs`, `setting_history`, rule tables (versioned), `order_pricing_snapshots`. Corrections are new rows. |
+| Identifiers | UUIDv7 — unguessable, time-ordered. Human references (`orderNumber`, invoice `number`) are separate unique columns. |
+| Money | **Integer paise** (`*Paise`, `Int`); ledger balances/settlement totals `BigInt`. **No floats.** BigInt is sent to clients as a JSON number after a safe-integer check. |
+| Percentages | Integer basis points (`*Bps`): 5% = 500. |
+| Distance / time | Integer metres (`*M`); named seconds/minutes. Coordinates `Decimal(9,6)`. |
+| Time | `timestamptz` UTC; business rules evaluated in `cities.timezone`. |
+| Naming | Models PascalCase, tables snake_case plural, columns camelCase. |
+| Deletes | No hard deletes of business records: soft delete or status; account deletion scrubs PII in place. |
+| Append-only | status history, ledger entries, payment events, audit logs, setting history, versioned rule tables, pricing snapshots. Corrections are new rows (REVERSAL / ADJUSTMENT). |
 
-## 3. Domain map
+## 3. Table classification
 
-| Domain | Tables |
+**CORE** = active in Phase 1 (migrated now). **LATER PHASE** = designed, migrated in the named phase.
+**FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
+
+### 3.1 CORE — Phase 1 (27 tables)
+
+| Table | Why it exists |
 |---|---|
-| Identity & access | users, otp_challenges, sessions, devices, admin_users, roles, permissions, role_permissions, admin_user_roles, consent_records, notification_preferences |
-| Geography | countries, states, cities, zones, service_areas |
-| Customers | customers, customer_addresses, favorite_restaurants |
-| Restaurants | restaurants, restaurant_branches, restaurant_business_hours, restaurant_users, restaurant_documents, restaurant_bank_accounts, restaurant_settings, restaurant_zones |
-| Catalog | categories (platform taxonomy), menu_categories (per restaurant), products, product_variants, product_addon_groups, product_addons, product_images, product_availability, product_schedules |
-| Riders | riders, rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, rider_payouts, rider_cod_deposits |
-| Commercial rules (versioned) | markup_rules, commission_rules, tax_rules, platform_fee_rules, delivery_pricing_rules, rider_earning_rules, surge_rules, cancellation_rules |
-| Operational config | settings, setting_history, feature_flags, app_version_policies |
-| Promotions | coupons, coupon_usages, promotions |
-| Orders | orders, order_items, order_item_addons, order_status_history, order_pricing_snapshots, order_addresses, order_notes, order_assignments, order_cancellations |
-| Payments | payments, payment_attempts, payment_events, refunds |
-| Ledgers & settlements | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, platform_ledger_entries, invoices, invoice_sequences |
-| Engagement | reviews, support_tickets, support_ticket_messages, notifications, notification_templates |
-| CMS & media | media, cms_pages, home_sections, banners |
-| Platform plumbing | audit_logs, idempotency_records, outbox_events, admin_saved_views, search_queries |
+| users | One identity per person across all apps |
+| auth_identities | Provider-based login methods (phone OTP, email OTP, Google, Apple, password) per user (D-20) |
+| otp_challenges | Hashed OTPs with attempts/expiry for phone and email OTP |
+| sessions | Refresh-token rotation per app, theft detection via token families |
+| devices | Push tokens per app/platform (registration in Phase 1; sending later) |
+| admin_users | Admin profile, lockout state |
+| roles, permissions, role_permissions, admin_user_roles | Server-side RBAC; city-scoped grants for City Managers |
+| audit_logs | Who changed what, old → new, for admin/financial/config actions |
+| countries, states, cities, zones, service_areas | Multi-city geography and serviceability (OD-6) |
+| settings, setting_history | Hierarchical operational configuration with history (OD-7) |
+| feature_flags | Controlled rollout |
+| app_version_policies | Min/recommended/force-update per app and platform |
+| media | Central media library (admin uploads; renditions by worker) |
+| outbox_events | Reliable post-commit side effects and delayed jobs (D-9) |
+| idempotency_records | API-level Idempotency-Key replay/conflict detection |
+| customers | Customer profile created at first customer-app login |
+| restaurants, restaurant_users | Needed now only for the **approval gate**: logging into the restaurant app must not imply being an approved restaurant member (OD-13). Full restaurant management is Phase 2. |
+| riders | Needed now only for the rider **approval gate** (onboarding status). Onboarding flows are Phase 6. |
 
-Every entity named in MASTER_SPEC §5 is present. Additions beyond §5, and why:
+### 3.2 LATER PHASE (70 tables)
 
-| Added | Reason |
+| Phase | Tables | Why |
+|---|---|---|
+| 2 — Restaurants & menu | restaurant_branches, restaurant_business_hours, restaurant_documents, restaurant_bank_accounts, restaurant_settings, restaurant_zones, branch_delivery_areas, categories, menu_categories, products, product_variants, product_addon_groups, product_addons, product_images, product_availability, product_schedules | Branch-level operations and reach (OD-6), onboarding documents/bank details, full catalog with variants, add-ons, availability and schedules |
+| 3 — Customer discovery | customer_addresses, favorite_restaurants, consent_records, home_sections, banners, cms_pages | Saved addresses, favourites, legal consents, CMS-driven home page |
+| 4 — Pricing | markup_rules, commission_rules, tax_rules, platform_fee_rules, delivery_pricing_rules, surge_rules, coupons, promotions | Versioned commercial rules and promotions (OD-7..OD-10) |
+| 5 — Orders | orders, order_items, order_item_addons, order_status_history, order_pricing_snapshots, order_addresses, order_notes, order_cancellations, cancellation_rules, coupon_usages, notifications, notification_templates, notification_preferences, reviews | Order lifecycle, frozen financial snapshot, cancellations, notifications, ratings |
+| 6 — Riders & dispatch | rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, rider_earning_rules, order_assignments | KYC, live availability/location, offers & single-winner assignment, earnings |
+| 7 — Payments | payments, payment_attempts, payment_events, refunds | Provider-agnostic payments (Razorpay first), idempotent webhooks, refunds |
+| 8 — Financials | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, rider_payouts, rider_cod_deposits, platform_ledger_entries, invoices, invoice_sequences | Append-only ledgers, COD reconciliation, settlements, statements, invoices |
+| 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views | Support with full order context, saved table views |
+
+### 3.3 FUTURE (1 table)
+
+| Table | Why kept |
 |---|---|
-| `sessions`, `otp_challenges`, `devices` | Refresh-token rotation, OTP security, push targets (§48). |
-| `restaurantStatus` / `deliveryStatus` columns on orders | Kitchen and delivery progress run in parallel; see [ORDERS.md](ORDERS.md#2-two-tracks-one-derived-status). |
-| `PAYMENT_FAILED` order status | §56 requires a "payment fails" path; §18's list has no terminal state for it. |
-| `order_cancellations`, `cancellation_rules` | §35 needs who/why/refund/compensation/platform-loss per cancellation. |
-| `rider_cod_deposits` | §23 "cash submitted" + "settlement reference" need a record of their own. |
-| `invoices`, `invoice_sequences` | §12 invoices; GST invoice numbers must be gap-free per series/financial year. |
-| `outbox_events`, `idempotency_records` | Reliability (§40, §68, §69). |
-| `admin_saved_views`, `search_queries` | §29 saved views, §38 popular searches. |
-| `support_ticket_messages` | Conversation thread per ticket (§47). |
-| `app_version_policies`, `setting_history` | §72 version policy, §63 configuration history. |
+| search_queries | Search analytics ("popular searches", relevance tuning). Phase 3 search can start with recent searches on-device; server-side logging is activated when there is enough traffic to matter. |
+
+Other future capabilities (pickup orders, scheduled delivery, multi-branch chains, wallet, multi-currency)
+are represented by columns/enum values in the design (`OrderType.PICKUP`, `orders.scheduledFor`,
+`countries.currencyCode`), not by extra tables.
 
 ## 4. Key modelling decisions
 
-### 4.1 Identity: one `users` row, many profiles
-A person can be a customer *and* a restaurant manager *and* an admin. `users` holds identity and auth;
-`customers`, `riders`, `restaurant_users`, `admin_users` are profiles. Sessions record `appId`, so a
-rider token is useless in the admin app and vice versa.
+- **One `users` row, many profiles** (customer, restaurant member, rider, admin); sessions are bound to an `appId`.
+- **Approval ≠ authentication** (OD-13): `restaurant_users` (+ `restaurants.onboardingStatus`) and `riders.onboardingStatus` decide what a signed-in person may do in the partner apps.
+- **Versioned commercial rules** — an edit closes the current row (`effectiveTo`) and inserts a new one (`supersedesId`); that chain *is* the configuration history; point-in-time evaluation for replays.
+- **Operational settings** — one row per (key, scope, target) + `setting_history` with reason; a partial unique index guarantees a single unscoped default per key (NULL-distinct pitfall).
+- **Immutable order snapshot** (Phase 4–5) with every applied value, including commission basis, distance source, tip allocation, markup disclosure mode and withholdings (OD-8..OD-16).
+- **Geometry** — GeoJSON + bbox columns, exact tests in `delivery-engine`; PostGIS later without API change. Zone `service_areas` (platform reach) and `branch_delivery_areas` (restaurant reach), D-19.
+- **Ledgers** — append-only with deterministic idempotency keys; cached balances recomputable; REVERSAL entries for corrections (OD-21).
+- **Sensitive fields** — bank/KYC numbers encrypted at the application layer; OTPs and refresh tokens stored only as hashes.
 
-### 4.2 Versioned commercial rules = configuration history
-Each rule table row is immutable. "Editing" a rule closes the current row (`effectiveTo = now`) and
-inserts a new row with `supersedesId` → old row, in one transaction with an audit log entry. This gives:
-- full history with who/when/why (`createdById`, `changeNote`) for §63 without a separate history table;
-- **point-in-time evaluation** — the engine can answer "what rule applied at 21:14 on 3 Sept?";
-- future-dated changes (`effectiveFrom` in the future) and scheduled platform fees (§13).
+## 5. Concurrency and invariant guarantees
 
-A partial unique index guarantees at most one *open* version per (scope, target, qualifier, priority).
-Rule `params` are JSON validated by zod schemas in `pricing-engine` both on write (API) and on read (engine).
+Enforced by PostgreSQL and exercised by `pnpm verify:schema` (each must fail with the expected SQLSTATE):
 
-### 4.3 Immutable order snapshot (§27, §82)
-`order_pricing_snapshots` (1:1 with orders) + per-line columns on `order_items`/`order_item_addons`
-store every amount, rate, rule id and rule `params` used. They are written once, in the order-creation
-transaction, and never updated. Refunds, cancellations and ledger postings are separate rows that
-*reference* the order. Reconstructing any rupee requires no current configuration.
+| Guarantee | Guard | Active from |
+|---|---|---|
+| One unscoped default per setting key | partial unique `settings(key, scope) WHERE scopeRefId IS NULL` | Phase 1 |
+| GLOBAL settings have no target; scoped ones must | CHECK `settings_scope_ref_present` | Phase 1 |
+| Valid geography / bbox / media size / OTP attempts | CHECKs | Phase 1 |
+| Two riders cannot both own an order | partial unique `order_assignments(orderId) WHERE status IN (ACCEPTED, COMPLETED)` | Phase 6 |
+| Double-tap creates one order | unique `orders(customerId, idempotencyKey)` | Phase 5 |
+| Duplicate payment webhook | unique `payment_events(provider, providerEventId)` | Phase 7 |
+| One successful payment per order; refund ≤ capture; duplicate refund | partial unique + CHECK + unique key | Phase 7 |
+| Same ledger posting twice; non-positive amounts | unique idempotency key + CHECK | Phase 8 |
+| Duplicate settlement | unique `(restaurant|rider, periodStart, periodEnd)` | Phase 8 |
+| Two open versions of one rule | partial unique on open versions | Phase 4 |
 
-### 4.4 Geometry without PostGIS (for now)
-Zones and polygon service areas store GeoJSON plus a bounding box (`minLat…maxLng`, indexed). Lookup =
-bbox pre-filter in SQL → exact point-in-polygon in `delivery-engine`. With few zones per city this is
-fast; PostGIS can replace it later without an API change. (PGlite, used in tests, does not ship PostGIS.)
-
-### 4.5 Ledgers
-Three sub-ledgers (restaurant, rider, platform), append-only entries with a positive `amountPaise` and a
-`direction`. Every posting has a deterministic `idempotencyKey` such as `order:<id>:COMMISSION`, making
-re-runs harmless. Cached balances on `restaurant_ledgers` / `rider_ledgers` are updated in the same
-transaction under a row lock and can always be recomputed from entries. Details: [SETTLEMENTS.md](SETTLEMENTS.md).
-
-### 4.6 Sensitive fields
-Bank account numbers and rider/KYC document numbers are encrypted at the application layer
-(AES-256-GCM, key from env / KMS) with a `last4` column for display. OTPs and refresh tokens are stored
-only as hashes. No card data is ever stored (§48).
-
-## 5. Concurrency guarantees
-
-These are enforced **by the database**, not only by application code, and are exercised by
-`pnpm verify:schema`, which inserts conflicting rows and asserts PostgreSQL rejects each one with the
-expected SQLSTATE:
-
-| Race / error (§69) | Guard |
-|---|---|
-| Two riders accept the same order | partial unique index `order_assignments(orderId) WHERE status IN (ACCEPTED, COMPLETED)` |
-| Double-tap creates two orders | unique `orders(customerId, idempotencyKey)` |
-| Duplicate payment webhook | unique `payment_events(provider, providerEventId)` |
-| Two successful payments recorded for one order | partial unique `payments(orderId) WHERE status = SUCCEEDED` |
-| Refund exceeds capture | CHECK `refundedPaise <= capturedPaise` |
-| Duplicate refund request | unique `refunds.idempotencyKey` |
-| Same ledger posting twice | unique `*_ledger_entries.idempotencyKey` |
-| Duplicate settlement | unique `(restaurantId|riderId, periodStart, periodEnd)` |
-| Two live versions of a rule | partial unique index on open versions |
-| Invalid money values | CHECKs: non-negative prices/totals, positive ledger amounts, COD ≤ total, coupon % ≤ 100 |
-
-Application-level complements: `SELECT … FOR UPDATE` on ledger rows and invoice sequences; conditional
-updates (`UPDATE … WHERE status = 'PENDING'`) for payment state; optimistic `orders.version` for transitions;
-atomic `UPDATE coupons SET usedCount = usedCount + 1 WHERE usedCount < usageLimit` for coupon limits and
-stock-tracked products.
+Application complements: `SELECT … FOR UPDATE` for ledgers/sequences, conditional updates for state
+changes, optimistic `version` columns, atomic counters for limits.
 
 ## 6. Indexing strategy
 
-Indexes are declared for every foreign key used in lookups and for the main list screens:
-orders by (restaurant, status, time), (city, zone, time), (status, time), (customer, time), (deliveryStatus, time);
-products by (restaurant, status, availability) and (menu category, sort); rules by (scope, target, effectiveFrom).
-Phase 3 adds `pg_trgm` + `tsvector` GIN indexes for search; Phase 9 adds indexes driven by admin
-filter usage measured under the seed-data load test.
+Every lookup foreign key and every admin list's default sort is indexed. Phase 1 lists (admin users,
+audit logs, cities, zones, media, settings) use keyset (cursor) pagination on `(createdAt, id)` or name,
+backed by indexes. Later phases add indexes driven by measured admin filter usage on seed-scale data.
 
-## 7. Migrations & environments
+## 7. Migrations
 
-- Phase 1 generates the first migration from this schema, followed by a hand-written migration that applies `constraints.sql`.
-- Migrations are forward-only in production; destructive changes use expand → migrate data → contract across releases so older mobile app versions keep working (§72, B10).
-- `prisma migrate deploy` runs in CI/CD before the new API version receives traffic.
+- Phase 1: `…_phase1_init` (generated from the active schema) and `…_phase1_constraints` (from `constraints.active.sql`).
+- Activating a table = add it to `active-models.json`, regenerate, `prisma migrate dev`, plus a constraints migration if new statements apply.
+- Production: forward-only, expand → migrate → contract across releases so older mobile versions keep working.
 
-## 8. Seed data (Phase 1–2)
+## 8. Seed data
 
-Per §53: Unjha (Gujarat) with ≥3 zones, ≥10 restaurants across cuisines, ≥100 products with variants
-and add-ons, ≥20 customers, ≥10 riders, orders in every status (COD/online, cancelled, refunded,
-settled/unsettled). Seeds are deterministic (fixed random seed) so tests can rely on them. Seed orders
-are produced **through the pricing and order engines**, not hand-typed totals, so seed data is financially consistent.
+Phase 1 seed (idempotent, deterministic): India → Gujarat → **Unjha** (first city, `isActive = true`) with
+3 zones and service areas; **Mehsana** (inactive, proves multi-city); permissions and system roles;
+settings defaults from the settings registry; feature flags; app version policies for 3 apps × 2 platforms;
+a development Super Admin (credentials from env, never committed); demo restaurant + restaurant member and
+demo rider (both approved) plus a pending rider, so the partner-app approval gates can be exercised.
+Seed geography polygons are **approximate development shapes, not surveyed boundaries**.
+The spec §53 volume dataset (restaurants, 100+ products, orders…) arrives with Phases 2–5.
 
-## 9. Data retention (proposal — confirm legal requirements)
+## 9. Data retention (proposal — confirm with counsel)
 
-| Data | Retention |
-|---|---|
-| Orders, payments, ledgers, invoices | ≥ 8 years (Indian tax record-keeping; confirm with CA) |
-| Rider location breadcrumbs | 90 days raw, then aggregated |
-| OTP challenges, expired sessions, idempotency records | 30 days |
-| Audit logs | ≥ 8 years for financial actions |
+Orders, payments, ledgers, invoices ≥ 8 years · rider breadcrumbs 90 days raw · OTP challenges, expired
+sessions, idempotency records 30 days · financial audit logs ≥ 8 years.

@@ -1,14 +1,34 @@
 {
-  "name": "@bitemitra/database",
-  "version": "0.0.0",
+  "name": "@jamzo/database",
+  "version": "0.1.0",
   "private": true,
-  "description": "Prisma schema, migrations, client and seed data. Phase 0: schema design only.",
+  "description": "Prisma schema (active + design), migrations, constraints, client, seed and test-database helper.",
   "type": "module",
-  "scripts": {
-    "db:validate": "prisma validate",
-    "db:format": "prisma format"
+  "exports": {
+    ".": "./src/index.js",
+    "./testing": "./src/testing.js",
+    "./seed": "./src/seed/index.js",
+    "./test-global-setup": "./src/test-global-setup.js",
+    "./postgres-server": "./src/postgres-server.js"
   },
-  "devDependencies": {
+  "scripts": {
+    "postinstall": "prisma generate",
+    "schema:generate": "node scripts/generate-active-schema.mjs && prisma generate",
+    "schema:check": "node scripts/generate-active-schema.mjs --check",
+    "db:generate": "prisma generate",
+    "db:deploy": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy",
+    "db:seed": "node --env-file-if-exists=../../.env src/seed/cli.js",
+    "dev:db": "node scripts/dev-db.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jamzo/auth": "workspace:*",
+    "@jamzo/config": "workspace:*",
+    "@jamzo/delivery-engine": "workspace:*",
+    "@jamzo/shared-types": "workspace:*",
+    "@prisma/client": "~6.19.3",
+    "embedded-postgres": "18.4.0-beta.17",
+    "pg": "^8.23.0",
     "prisma": "~6.19.3"
   }
 }

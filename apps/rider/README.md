@@ -1,8 +1,8 @@
-# Rider app (`@bitemitra/rider`)
+# Rider app (`@jamzo/rider`)
 
 Expo (React Native, **JavaScript**) app for delivery partners — Android + iOS.
 
-- Identifiers (proposed): `com.bitemitra.rider` · scheme `bitemitra-rider://`
+- Identifiers (proposed): `in.jamzo.rider` · scheme `jamzo-rider://`
 - Own version, icon (leaf green), splash, push, **foreground + background location** configuration, EAS project, release tag `rider@x.y.z`
 - Online/offline, offers, navigation hand-off, pickup/delivery, COD, earnings, payouts
 

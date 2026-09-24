@@ -1,0 +1,13 @@
+{
+  "name": "@jamzo/pricing-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure pricing domain. Phase 1: integer money math only.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  }
+}

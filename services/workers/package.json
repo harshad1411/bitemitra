@@ -1,0 +1,20 @@
+{
+  "name": "@jamzo/workers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Separately runnable background worker: transactional-outbox relay and job handlers.",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/main.js",
+    "start": "node src/main.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jamzo/api": "workspace:*",
+    "@jamzo/config": "workspace:*",
+    "@jamzo/database": "workspace:*",
+    "@jamzo/logger": "workspace:*",
+    "sharp": "^0.35.4"
+  }
+}

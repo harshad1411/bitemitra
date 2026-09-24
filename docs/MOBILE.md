@@ -1,95 +1,99 @@
 # Mobile applications
 
-Status: **Phase 0 design.** App projects are created in Phase 1 (shells: auth, remote config, version
-gate, push registration, deep links); features arrive in Phases 3 (customer), 5 (restaurant), 6 (rider).
-
-Covers MASTER_SPEC Part B (B1–B3, B7–B10), §6, §19–§21, §39, §40, §59–§61.
+Status: **Phase 1 builds the three application shells and shared foundations** (OD-4, OD-26). Product
+features arrive in Phase 3 (customer), 2/5 (restaurant), 6 (rider). Nothing in the shells pretends to be a
+finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
+the next functionality.
 
 ## 1. Three independent products
 
-| | Customer | Restaurant | Rider |
+All identifiers come from **`packages/config/src/apps.js`** (D-15) — never typed anywhere else.
+
+| | Customer | Restaurant Partner | Delivery Partner |
 |---|---|---|---|
-| Folder | `apps/customer` | `apps/restaurant` | `apps/rider` |
-| Store name (proposal) | BiteMitra | BiteMitra Partner | BiteMitra Rider |
-| Android package / iOS bundle id (**⚠ Q8 — irreversible once published**) | `com.bitemitra.customer` | `com.bitemitra.restaurant` | `com.bitemitra.rider` |
-| URL scheme | `bitemitra://` | `bitemitra-partner://` | `bitemitra-rider://` |
-| Universal / App links | `https://<domain>/…` (needs owner domain) | — | — |
-| Icon background (from `assets/brand`) | Orange `#F37321` | Charcoal `#25282B` | Leaf green `#3E9B37` |
-| Splash | vertical logo + tagline on orange | on charcoal | on green |
-| Push | own FCM sender + APNs topic | own; high-priority order alert channel | own; offer alert channel |
-| Special permissions | location (when in use), notifications, camera (reviews) | notifications (loud alerts), optional camera (menu photos) | **foreground + background location**, notifications, camera (proof of delivery), phone (call bridge) |
-| Release tag | `customer@1.5.0` | `restaurant@1.2.0` | `rider@1.3.0` |
+| Folder / package | `apps/customer` · `@jamzo/customer` | `apps/restaurant` · `@jamzo/restaurant` | `apps/rider` · `@jamzo/rider` |
+| Display name (proposal A-20) | Jamzo | Jamzo Restaurant Partner | Jamzo Delivery Partner |
+| Android package / iOS bundle id (OD-3) | `in.jamzo.customer` | `in.jamzo.restaurant` | `in.jamzo.rider` |
+| Variant suffixes | `.dev`, `.preview`, none for production | same | same |
+| URL scheme | `jamzo` | `jamzo-restaurant` | `jamzo-rider` |
+| Universal / App Links | `https://jamzo.in/...` (config ready; needs the `apple-app-site-association` / `assetlinks.json` files on jamzo.in before it works) | — | — |
+| Icon / splash | **placeholder** "J" monogram, plum `#5B2A86` (D-16) | **placeholder**, teal `#0F766E` | **placeholder**, saffron `#F2A516` |
+| Push | own Expo project → own FCM/APNs credentials | own; high-priority order channel (Phase 5) | own; offer channel (Phase 6) |
+| Permissions declared now | notifications | notifications | notifications, **foreground + background location** (declared for Phase 6; not requested yet) |
+| Version | own `package.json` `version` (1.0.0 dev) | own | own |
+| Release tag | `customer@x.y.z` | `restaurant@x.y.z` | `rider@x.y.z` |
 
-Each app has its own `package.json` (own semver `version`), `app.json` + `app.config.js`, `eas.json`,
-EAS project id, store listings, signing credentials and CI workflow triggered only by changes to that
-app or the packages it depends on. **Releasing one app never requires releasing another** (B10).
-
-Build variants per app: `development` (`.dev` id suffix), `preview` (`.preview`), `production` — so all
-three variants of all three apps can be installed side by side on one test device.
+Each app has its own `package.json`, `app.config.js` (reads the registry + env), `eas.json`, EAS project
+id (created by the owner's Expo account — not created during development), signing credentials and
+release workflow. **No store publication happens during development** (OD-3).
 
 ## 2. Stack (JavaScript only)
 
 | Concern | Choice |
 |---|---|
-| Framework | Expo SDK 57 (React Native 0.86), created from the **JavaScript** template — no `.ts/.tsx` |
-| Navigation | Expo Router (file-based, `src/app/`) — deep links for free |
-| Server state | TanStack Query (cache, retries, offline pause/resume, request de-duplication) |
-| Local state | Zustand (cart draft, UI state) — kept small |
-| Storage | `expo-secure-store` (tokens), MMKV (cache) |
-| Lists | FlashList (large menus, order lists) |
-| Images | `expo-image` (memory/disk cache, blurhash placeholders); API returns sized renditions |
-| Networking | `@bitemitra/api-client` (version headers, timeouts, retry with backoff for idempotent calls, Idempotency-Key on mutations, token refresh) |
-| Builds / releases | EAS Build, EAS Submit, EAS Update (OTA JS updates) with `runtimeVersion: { policy: "appVersion" }` so an OTA update only reaches binaries it is compatible with |
-| Monitoring | Sentry React Native (proposal, **⚠ Q11**) |
+| Framework | Expo SDK 57 (React Native 0.86), JavaScript — `.js`/`.jsx` only |
+| Navigation / deep links | Expo Router (`src/app/`) |
+| Server state | TanStack Query |
+| Tokens | `expo-secure-store` (Keychain / Android Keystore) |
+| Networking | `@jamzo/api-client` via `@jamzo/mobile-foundation` |
+| Network state | `@react-native-community/netinfo` |
+| Push registration | `expo-notifications` (token → `POST /v1/me/devices`) |
+| Builds / updates | EAS Build/Submit/Update with `runtimeVersion: { policy: "appVersion" }` (configured, not run) |
 
-## 3. What is shared, what is not (B9)
+## 3. Shared foundations — `@jamzo/mobile-foundation` (OD-26, D-11)
 
-Shared via `packages/`: `shared-types` (constants/JSDoc), `validation` (zod schemas for forms),
-`api-client`, `ui` (tokens), `mobile-ui` (low-level primitives: Button, Text, Screen, Skeleton,
-EmptyState, ErrorState, PriceText). **Not shared**: screens, navigation, app state, business flows.
-Each app remains a standalone product with role-appropriate UX: the customer app is a premium consumer
-experience; restaurant and rider apps optimise for speed, large touch targets and glanceability.
+| Concern | What the package provides |
+|---|---|
+| Environment | `getAppEnv()` from `expo-constants` `extra` (API URL, app variant) validated with zod |
+| Secure storage | token store on `expo-secure-store` |
+| API client | `@jamzo/api-client` bound to the app id, version and platform; automatic refresh; Idempotency-Key on mutations |
+| Authentication | `SessionProvider`: restore → sign in (OTP request/verify) → sign out; `useSession()` |
+| Version check / forced & optional update | `AppGate` decides from remote config: maintenance → force update → optional update banner |
+| Remote configuration | `RemoteConfigProvider` fetches `/v1/app-config`, refreshes on foreground |
+| Push registration | `registerForPush()` → permission → Expo push token → API; reports a clear status when it cannot (simulator, no EAS project id, denied) |
+| Deep linking | Expo Router scheme per app; `parseDeepLink()` helper |
+| Network / offline | `useNetwork()` + `OfflineBanner` |
+| Errors | `ErrorBoundary`, `ErrorState`, API error → user message mapping |
+| Loading | `LoadingState` / skeleton primitives from `@jamzo/mobile-ui` |
+| Lifecycle | `useAppLifecycle()` (foreground/background callbacks) |
+| Logging | `createLogger()` (console in dev; pluggable sink; redacts tokens/OTP/phone) |
+| Analytics | `analytics.track()` interface with a **no-op/console adapter** — no vendor chosen |
+
+Screens, navigation and flows are **not** shared; each app composes the foundations into its own shell.
 
 ## 4. Platform-specific code policy
 
-Platform differences live in `src/platform/` of the app that needs them, using React Native's
-`.ios.js` / `.android.js` file resolution, and each app has a `PLATFORM.md` listing every divergence
-and why. No `Platform.OS` checks scattered through screens.
+Platform differences live in `src/platform/` of the app that needs them (`.ios.js` / `.android.js`), and
+each app's `PLATFORM.md` lists every divergence and why. Phase 1 has none beyond Expo config (Info.plist
+strings and Android permissions for the rider app).
 
-## 5. Rider app platform specifics
+## 5. Rider app platform specifics (Phase 6 — declared in config now)
 
 | Topic | Android | iOS |
 |---|---|---|
-| Permission flow | foreground first, then background ("Allow all the time") with an in-app **prominent disclosure** screen before the system prompt (Play policy) | "When In Use" first, then upgrade to "Always"; `NSLocationWhenInUseUsageDescription` + `NSLocationAlwaysAndWhenInUseUsageDescription` strings |
-| Background execution | `expo-location` background task via `expo-task-manager` running as a **foreground service** (type `location`; `FOREGROUND_SERVICE_LOCATION` on Android 14+) with a persistent "You are online" notification | `UIBackgroundModes: location`; `showsBackgroundLocationIndicator` |
-| Store review | Play Console background-location declaration + demo video | App Review justification for "Always" location |
-| Battery | prompt to exclude from battery optimisation (OEM-specific guidance for Xiaomi/Oppo/Vivo etc.) | significant-change fallback when throttled |
-| Recovery | on boot/app restart, resume the task if the rider was online; queue points while offline and flush in batches | same |
+| Permission flow | foreground first, then background with an in-app prominent disclosure (Play policy) | When In Use → Always; `NSLocationWhenInUseUsageDescription`, `NSLocationAlwaysAndWhenInUseUsageDescription` |
+| Background execution | `expo-location` + `expo-task-manager` foreground service (type `location`, `FOREGROUND_SERVICE_LOCATION`) with a persistent "You are online" notification | `UIBackgroundModes: location` |
+| Store review | Play background-location declaration + video | App Review justification |
+| Recovery | resume tracking after restart if online; queue points offline, flush in batches | same |
 
-Only while the rider is **online** does background tracking run; going offline stops it.
+## 6. Restaurant app alert specifics (Phase 5)
 
-## 6. Restaurant app alert specifics
+High-importance Android channel with a long custom sound; iOS custom sound; looping in-app alert until
+acknowledged; iOS Critical Alerts only if Apple grants the entitlement.
 
-New orders must be hard to miss (§20): high-importance Android notification channel with a custom
-long sound; iOS custom sound (≤ 30 s). While the app is foregrounded, a looping in-app alert plays until
-the order is acknowledged, with optional keep-awake on a counter tablet. iOS *Critical Alerts* (bypass
-silent mode) need a special Apple entitlement — proposed as a later request, not assumed.
+## 7. Verification (B8) — what can and cannot be proven on the current machine
 
-## 7. Verification plan per app (B8)
+The development Mac currently has **no iOS simulator runtime, no CocoaPods, no Java and no Android SDK**.
+Native Android/iOS builds and on-device runs therefore cannot be executed here without installing
+multi-GB toolchains (not done without owner approval). Phase 1 verification per app:
 
-Automated in CI/local where possible, and each gap is listed explicitly in the phase report:
-
-| Check | How |
-|---|---|
-| Android build | `expo prebuild` + Gradle release build (CI Linux runner) and/or `eas build --local` |
-| iOS build/config | `expo prebuild` + `xcodebuild` for simulator (macOS runner); config validated with `expo config --type prebuild` and `expo-doctor` |
-| JS bundles for both platforms | `expo export --platform android,ios` |
-| Navigation, auth, API, loading/error states, keyboard, safe areas | Jest-Expo + React Native Testing Library component tests; Maestro flows on Android emulator **and** iOS simulator |
-| Deep links | Maestro `openLink` on both platforms |
-| Push configuration | config/plugin assertions + receiving a test push on a simulator/emulator (real device required for APNs production delivery) |
-| Permissions | Maestro permission-dialog flows; rider background location on emulator/simulator with simulated routes |
-| Screen sizes | Maestro on small (e.g. 360×640 dp), large phone and tablet profiles |
-| Rider network loss / background ↔ foreground | Maestro + emulator network toggles; background task tests with simulated locations |
-
-Real-device behaviour that emulators cannot prove (OEM battery killers, APNs production delivery,
-long-running background location) is listed as **owner-run device tests** with step-by-step scripts.
+| Check | Method | Runs here? |
+|---|---|---|
+| JS bundle for Android **and** iOS | `expo export --platform android --platform ios` | yes |
+| Native config (ids, schemes, permissions, plugins) | `expo config --type prebuild` + `expo prebuild --no-install` and inspection of generated `AndroidManifest.xml` / `Info.plist` | yes |
+| Dependency health | `expo-doctor` / `expo install --check` | yes |
+| Foundations logic (version gate, session, API refresh, deep-link parsing) | unit tests | yes |
+| Screens render (login, gates, shell) incl. loading/error states | Jest-Expo + React Native Testing Library | yes |
+| Android native build | Gradle via CI (`ubuntu`) or `eas build` | **no — CI/owner** |
+| iOS native build | `xcodebuild` on a Mac with a simulator runtime + CocoaPods, or `eas build` | **no — needs `xcodebuild -downloadPlatform iOS` + CocoaPods** |
+| Real push delivery, deep links from other apps, keyboard/safe areas on devices, screen sizes | Maestro flows on emulator/simulator, then device checks | **no — listed in the phase report with owner steps** |

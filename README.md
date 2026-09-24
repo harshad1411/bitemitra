@@ -60,5 +60,5 @@ refunds/ledger postings/settlements, money CHECKs).
 
 ## Brand
 
-Logo kit: [assets/brand/](assets/brand/) (see its `README.txt`). Colours: Orange `#F37321`,
+Previous BiteMitra logo kit (not used): [assets/legacy/](assets/legacy/). Jamzo brand assets are pending (DECISIONS Q-13).
 Charcoal `#25282B`, Leaf green `#3E9B37`.

@@ -1,0 +1,18 @@
+# Local PostgreSQL for development (optional — `pnpm dev:db` runs an embedded PGlite server instead).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: jamzo
+      POSTGRES_PASSWORD: jamzo
+      POSTGRES_DB: jamzo
+    ports:
+      - '5432:5432'
+    volumes:
+      - jamzo-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U jamzo -d jamzo']
+      interval: 5s
+      retries: 10
+volumes:
+  jamzo-postgres:

@@ -1,0 +1,13 @@
+{
+  "name": "@jamzo/notifications",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SMS/email/push provider interfaces and console providers.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  }
+}

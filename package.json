@@ -1,18 +1,45 @@
 {
-  "name": "bitemitra",
+  "name": "jamzo",
   "private": true,
-  "description": "BiteMitra food delivery platform — Customer, Restaurant and Rider mobile apps, Admin web, API, workers and shared business engines (JavaScript monorepo).",
+  "description": "Jamzo food delivery platform — Customer, Restaurant Partner and Delivery Partner apps, Jamzo Admin, API, workers and shared packages (JavaScript monorepo).",
   "type": "module",
   "packageManager": "pnpm@11.24.0",
   "engines": {
     "node": ">=22.12"
   },
   "scripts": {
+    "dev:db": "pnpm --filter @jamzo/database dev:db",
+    "db:migrate": "pnpm --filter @jamzo/database db:deploy",
+    "db:seed": "pnpm --filter @jamzo/database db:seed",
+    "dev:api": "pnpm --filter @jamzo/api dev",
+    "dev:workers": "pnpm --filter @jamzo/workers dev",
+    "dev:admin": "pnpm --filter @jamzo/admin dev",
+    "dev:customer": "pnpm --filter @jamzo/customer start",
+    "dev:restaurant": "pnpm --filter @jamzo/restaurant start",
+    "dev:rider": "pnpm --filter @jamzo/rider start",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.checkjs.json",
+    "test": "turbo run test",
+    "build": "turbo run build",
     "verify:schema": "node scripts/verify-schema.mjs",
     "check:docs": "node scripts/check-docs.mjs",
-    "verify": "pnpm verify:schema && pnpm check:docs"
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm test"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8"
+    "@electric-sql/pglite": "^0.5.8",
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.4",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsdoc": "^64.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "turbo": "^2.11.3",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
   }
 }

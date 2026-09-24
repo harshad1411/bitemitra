@@ -1,0 +1,13 @@
+{
+  "name": "@jamzo/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design tokens (provisional Jamzo palette).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  }
+}

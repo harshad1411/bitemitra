@@ -1,4 +1,4 @@
-# BiteMitra — Master Build Specification
+# Jamzo — Master Build Specification
 
 > This is the governing product/engineering specification supplied by the project owner.
 > It is stored verbatim (formatting normalised to Markdown). Where engineering documents in
@@ -813,3 +813,20 @@ These directives were issued by the owner after Parts A and B and **override** t
 7. Financial/business calculations must be authoritative on the backend.
 8. Do not claim functionality is working unless it has actually been tested.
 9. After Phase 0, report: what was created, architecture decisions, database approach, assumptions, critical questions requiring the owner's decision, and the recommended Phase 1 scope. **Do not begin Phase 1 until Phase 0 has been reviewed.**
+
+---
+
+# Part D — Owner decisions at Phase 0 approval (2026-09-24)
+
+Phase 0 was approved. The owner's 34 decisions for Phase 1 (JavaScript only; no Polaris unless licensing
+and maintenance are sound; brand **Jamzo** / jamzo.in with ids `in.jamzo.customer`, `in.jamzo.restaurant`,
+`in.jamzo.rider`; four independent frontends; modular monolith; mandatory multi-city hierarchy;
+configuration-first; restaurant markup + item override with configurable disclosure; configurable
+GST/TCS/TDS pending CA review; configurable commission basis; Razorpay-first payment abstraction; COD
+ledger and reconciliation; provider-based authentication independent of partner approval; road-distance
+pricing with fallback; tips 100% to riders by default; explicit rounding; kitchen/delivery tracks;
+dispatch module; outbox reliability; table classification; immutable ledgers; weekly settlements; rider
+payouts; RBAC roles; Phase 1 scope; documentation discipline; cloud-agnostic hosting; no premature
+distribution; **no fake completeness**; detailed Phase 1 report, then stop) are recorded individually as
+**OD-1 … OD-34 in [DECISIONS.md](DECISIONS.md)**, which is the authoritative record and overrides Parts
+A–C where they conflict. Deviations from this specification are listed there as CH-n.

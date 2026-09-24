@@ -1,7 +1,7 @@
 # Ledgers & settlements
 
-Status: **Phase 0 design.** Implemented in Phase 8 (`packages/settlement-engine` + `ledger` module).
-Payout rails (manual bank transfer vs payout API) — **⚠ [Q5](DECISIONS.md#q5-payment-gateway)**.
+Status: **Design (updated for OD-21..OD-23).** Implemented in Phase 8. **No real payouts are made before
+that, and none in Phase 1.** Payout rails: Q-5b. All commercial amounts are placeholders (A-16).
 
 Covers MASTER_SPEC §23, §25, §26, §27, §68, §69, §82.
 
@@ -15,7 +15,7 @@ Three sub-ledgers, all **append-only** with positive amounts and a direction:
 | Rider (one per rider) | `earningsBalancePaise` → platform owes rider; `codHeldPaise` → rider owes platform | rider_ledgers, rider_ledger_entries, rider_settlements, rider_cod_deposits, rider_payouts |
 | Platform | revenue, costs, liabilities by type | platform_ledger_entries |
 
-Every entry has a deterministic `idempotencyKey` (`order:<id>:<TYPE>`, `refund:<id>:<TYPE>`,
+Entries are **immutable**: a correction is a new `REVERSAL` or adjustment entry referencing the original, never an edit (OD-21). Financial truth is always the ledgers, never mutable order fields. Every entry has a deterministic `idempotencyKey` (`order:<id>:<TYPE>`, `refund:<id>:<TYPE>`,
 `settlement:<id>`, `manual:<uuid>`), so replaying a posting job can never double-post (DB-enforced).
 Posting functions in `settlement-engine` are pure: `(order snapshot | refund | cancellation) → entries[]`.
 The `ledger` module writes them in the triggering transaction, updating cached balances under
@@ -36,12 +36,14 @@ sales entries.
 | Refund attributed to restaurant (e.g. missing item) | REFUND debit (amount per refund breakdown) |
 | Admin adjustment | MANUAL_CREDIT / MANUAL_DEBIT (reason required, `ledgers.adjust` permission, audit log, maker-checker above threshold) |
 | Settlement paid | SETTLEMENT debit (= amount paid) |
-| Settlement payout failed | MANUAL_CREDIT reversal referencing the settlement |
+| Settlement payout failed | REVERSAL referencing the settlement entry |
+| TCS/TDS withheld (if enabled after CA review, Q-3) | WITHHOLDING debit |
+| Fee charged to restaurant (if configured) | RESTAURANT_FEE debit |
 
 The restaurant never sees markup, platform fee, delivery margin or platform-funded discounts (§19):
 its statement starts from **its own food prices**.
 
-### 2.2 Worked example (from [PRICING.md §6](PRICING.md#6-worked-example-illustrative-numbers-tax-treatment-pending--q3))
+### 2.2 Worked example (from [PRICING.md §6](PRICING.md#6-worked-example-illustrative-numbers-tax-treatment-pending--q-3))
 
 | Entry | Direction | Paise | Balance after |
 |---|---|---:|---:|
@@ -50,7 +52,7 @@ its statement starts from **its own food prices**.
 | COMMISSION (12%) | DEBIT | 4 536 | 34 264 |
 | COMMISSION_TAX (18%) | DEBIT | 816 | **33 448** = restaurant payable ✓ |
 
-### 2.3 Settlement schedules (§25)
+### 2.3 Settlement schedules (§25) — default **weekly** (OD-22)
 
 Per restaurant `restaurant_settings.settlementSchedule`; cut-offs in the city timezone:
 
@@ -67,7 +69,7 @@ Per restaurant `restaurant_settings.settlementSchedule`; cut-offs in the city ti
 1. For the period, select unsettled entries (`settlementId IS NULL`, `createdAt < cutoff`) under a ledger row lock.
 2. `net = opening carry-forward + credits − debits` (optional reserve/holdback % from setting `settlements.reservePercentBps` for refund exposure, default 0).
 3. `net ≤ 0` (or below `settlements.minPayoutPaise`) → nothing paid; balance carries forward.
-4. Otherwise create `restaurant_settlements` (DRAFT; unique per restaurant+period ⇒ no duplicate run), link entries, generate the statement (PDF/CSV to media), status PENDING.
+4. Otherwise create `restaurant_settlements` with the breakdown columns (previous balance, gross sales, commission, taxes, withholding, fees, restaurant-funded discounts, refunds, adjustments, COD information, final payable) (DRAFT; unique per restaurant+period ⇒ no duplicate run), link entries, generate the statement (PDF/CSV to media), status PENDING.
 5. Finance approves → PROCESSING → payout (manual reference or payout API) → PAID (SETTLEMENT debit posted) or FAILED (retry/reversal).
 
 ### 2.5 What the restaurant app shows (§25)
@@ -83,8 +85,10 @@ date and estimated amount · downloadable statements (per settlement, CSV + PDF)
 | Event | Entry | Effect |
 |---|---|---|
 | DELIVERED | DELIVERY_EARNING, DISTANCE_EARNING, WAITING_CHARGE, INCENTIVE (night/peak/rain), from `rider_earnings.breakdown` | earnings +|
-| Tip | TIP (100% of tip — **⚠ Q10**) | earnings + |
+| Tip | TIP (share per `tips.riderShareBps`, default 100% — OD-15); the platform side is `TIP_PASS_THROUGH`, a liability, never revenue | earnings + |
 | Bonus / adjustment | BONUS / ADJUSTMENT (credit or debit, reason, audit) | earnings ± |
+| Penalty (only where legally appropriate) | PENALTY (reason, audit) | earnings − |
+| COD shortage / excess on a verified deposit | COD_SHORTAGE / COD_EXCESS | codHeld ± |
 | COD collected | COD_COLLECTED | codHeld + |
 | COD deposit verified | COD_SUBMITTED | codHeld − |
 | Payout | PAYOUT | earnings − |
@@ -125,7 +129,7 @@ check is listed in the Finance alerts and blocks its restaurant's next settlemen
 
 Invoice documents and numbering (gap-free per series and financial year via `invoice_sequences` row
 lock) are generated from the snapshot. Which invoices exist and who issues them depends on
-**⚠ [Q3/Q12](DECISIONS.md#critical-questions)**. Credit notes accompany refunds that reverse taxed amounts.
+**⚠ [Q-3/Q-12](DECISIONS.md#5-questions)**. Credit notes accompany refunds that reverse taxed amounts.
 
 ## 7. Tests (Phase 8)
 

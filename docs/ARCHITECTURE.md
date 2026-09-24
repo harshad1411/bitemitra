@@ -1,7 +1,7 @@
 # Architecture
 
-Status: **Phase 0 — proposed, awaiting owner review.** Nothing here is implemented yet except the
-database schema design and its verification script.
+Status: **Phase 0 approved (2026-09-24); Phase 1 in progress.** Decisions referenced as OD-/D-/CH- are
+recorded in [DECISIONS.md](DECISIONS.md), which is authoritative.
 
 Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md) · [ORDER_FLOW](ORDER_FLOW.md) ·
 [PAYMENTS](PAYMENTS.md) · [SETTLEMENTS](SETTLEMENTS.md) · [DELIVERY](DELIVERY.md) · [RBAC](RBAC.md) ·
@@ -11,178 +11,167 @@ Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md)
 ## 1. System overview
 
 ```
- ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
- │ Customer app │ │Restaurant app│ │  Rider app   │ │ Admin (Next.js)  │
- │ Expo · RN    │ │ Expo · RN    │ │ Expo · RN    │ │ Polaris* · React │
- │ Android+iOS  │ │ Android+iOS  │ │ Android+iOS  │ │ desktop-first    │
- └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └────────┬─────────┘
-        │  HTTPS /v1 REST + Socket.IO (realtime) · x-app-id / x-app-version headers
-        └────────────────┴────────┬───────┴──────────────────┘
-                         ┌────────▼─────────┐        ┌─────────────────────┐
-                         │  services/api    │        │  services/workers   │
-                         │  modular monolith│◄──────►│  BullMQ consumers   │
-                         │  (Fastify, JS)   │ Redis  │  + schedulers       │
-                         └──┬─────┬─────┬───┘        └──┬──────┬───────────┘
-                            │     │     │               │      │
-                ┌───────────▼┐ ┌──▼──┐ ┌▼───────────┐ ┌─▼────┐ ▼ external providers (behind adapters)
-                │ PostgreSQL │ │Redis│ │ S3-compat. │ │ ...  │  payments · SMS/OTP · push (FCM/APNs)
-                │ (Prisma)   │ │     │ │ media      │ │      │  maps/geocoding · email
-                └────────────┘ └─────┘ └────────────┘ └──────┘
+ ┌──────────────┐ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
+ │ Jamzo        │ │ Jamzo Restaurant │ │ Jamzo Delivery   │ │ Jamzo Admin          │
+ │ (customer)   │ │ Partner          │ │ Partner (rider)  │ │ Next.js · Tailwind · │
+ │ Expo · RN    │ │ Expo · RN        │ │ Expo · RN        │ │ shadcn/ui (JSX)      │
+ │ Android+iOS  │ │ Android+iOS      │ │ Android+iOS      │ │ desktop-first web    │
+ └──────┬───────┘ └────────┬─────────┘ └────────┬─────────┘ └──────────┬───────────┘
+        │   HTTPS /v1 REST (+ Socket.IO from Phase 5) · x-app-id / x-app-version / x-platform
+        └──────────────────┴──────────┬──────────┴──────────────────────┘
+                           ┌──────────▼──────────┐       ┌────────────────────────┐
+                           │  services/api       │       │  services/workers      │
+                           │  modular monolith   │       │  outbox relay + jobs   │
+                           │  Fastify · Prisma 6 │       │  (polls PostgreSQL)    │
+                           └──────────┬──────────┘       └───────────┬────────────┘
+                                      │      ┌───────────────────────┘
+                              ┌───────▼──────▼───┐   ┌───────────────────┐   external providers
+                              │   PostgreSQL     │   │ object storage     │   (behind adapters):
+                              │ (truth + outbox) │   │ local FS → S3-API  │   Razorpay, SMS/email,
+                              └──────────────────┘   └───────────────────┘   push, maps
 ```
 
-\* Polaris usage is subject to the licence question in [DECISIONS.md](DECISIONS.md#q1-shopify-polaris-licence).
+Redis is **not** part of Phase 1 (D-9): the outbox and delayed jobs are polled from PostgreSQL. It is
+added when the documented triggers occur (multiple API instances, measured hot reads, queue throughput).
 
-**Four frontend products, one backend.** Every client talks to the same versioned API. No client
-computes an authoritative price, fee, tax, commission, earning or payable — clients only *display*
-numbers the API returns (MASTER_SPEC §9, §17, B5).
+**Four frontend products, one backend.** No client computes an authoritative price, fee, tax,
+commission, earning or payable; clients display what the API returns (spec §9, §17, B5).
 
-## 2. Language and toolchain (owner directive: JavaScript only)
+## 2. Language and toolchain (OD-1)
 
-| Concern | Choice | Notes |
-|---|---|---|
-| Language | Modern JavaScript (ES2023), **ESM** (`"type": "module"`) everywhere Node runs | No `.ts/.tsx` in source. Generated vendor code inside `node_modules` (e.g. Prisma client) is not project source. |
-| Types / contracts | **Zod schemas are the single source of truth** for every API request/response, config value and rule `params`. JSDoc `@typedef`s derived from them for editor help. | Runtime validation matters more than compile-time types for money. Whether JSDoc may be *checked* by the TypeScript compiler (no `.ts` files) is [question Q2](DECISIONS.md#q2-jsdoc-type-checking). |
-| Runtime | Node.js 22 LTS (≥ 22.12) | Matches the dev machine; move to Node 24 LTS in Phase 10. |
-| Package manager | pnpm workspaces | Strict, fast, good monorepo support; isolated `node_modules` keep each mobile app's native deps independent. |
-| Task runner | Turborepo | Cached `lint` / `test` / `build` per workspace; only affected apps rebuild. |
-| Lint / format | ESLint (flat config) + `eslint-plugin-jsdoc` + Prettier | No blanket rule disables (§58). |
-| Tests | Vitest (Node packages + API), Jest-Expo + React Native Testing Library (mobile components), Playwright (admin E2E), Maestro (mobile E2E on Android **and** iOS), k6 (load) | See [TESTING.md](TESTING.md). |
+| Concern | Choice |
+|---|---|
+| Language | JavaScript (ES2023), **ESM**; `.js` / `.jsx` / `.mjs` only — never `.ts`/`.tsx` |
+| Contracts | zod schemas in `@jamzo/validation` are the runtime source of truth; JSDoc `@typedef`s for editors |
+| Static checking | `tsc --noEmit` with `checkJs` over Node packages and services (checker only, D-1) |
+| Runtime | Node.js ≥ 22.12 (22 LTS today; 24 LTS in Phase 10) |
+| Monorepo | pnpm workspaces + Turborepo |
+| Lint / format | ESLint 9 flat config (+ react, react-hooks, jsdoc plugins) + Prettier |
+| Tests | Vitest (packages, API, admin components), PGlite/PostgreSQL for DB tests, Jest-Expo + React Native Testing Library (mobile), Playwright (admin E2E), Maestro (mobile E2E, when simulators are available), k6 (load, later) |
 
 ## 3. Repository layout
 
 ```
-bitemitra/
+jamzo/  (repository: bitemitra)
 ├── apps/
-│   ├── customer/          Expo app → com.bitemitra.customer   (Android + iOS)
-│   ├── restaurant/        Expo app → com.bitemitra.restaurant (Android + iOS)
-│   ├── rider/             Expo app → com.bitemitra.rider      (Android + iOS)
-│   └── admin/             Next.js web app (responsive, desktop-first)
+│   ├── customer/          Expo app — in.jamzo.customer    (Android + iOS)
+│   ├── restaurant/        Expo app — in.jamzo.restaurant  (Android + iOS)
+│   ├── rider/             Expo app — in.jamzo.rider       (Android + iOS)
+│   └── admin/             Next.js — Jamzo Admin (responsive, desktop-first)
 ├── services/
-│   ├── api/               HTTP + realtime API (modular monolith)
-│   └── workers/           queue consumers & schedulers (same domain modules, separate process)
+│   ├── api/               HTTP API (modular monolith)
+│   └── workers/           outbox relay + background jobs (separately runnable)
 ├── packages/
-│   ├── database/          Prisma schema, migrations, constraints.sql, client, seed
-│   ├── shared-types/      enums/constants + JSDoc typedefs shared by all apps (no TS)
+│   ├── database/          Prisma schema (active + design), migrations, constraints, seed, test DB helper
+│   ├── shared-types/      enums/constants + JSDoc typedefs
 │   ├── validation/        zod schemas shared by clients and API
-│   ├── config/            env schemas, settings registry, hierarchical resolution, app registry
-│   ├── auth/              RBAC catalogue, password/OTP/token primitives
+│   ├── config/            product/brand registry (single source of ids), env schemas, settings registry,
+│   │                      scope resolution, feature flags, semver
+│   ├── auth/              permission catalogue, roles, password/OTP/token primitives
 │   ├── logger/            pino with redaction
-│   ├── notifications/     events, templates, channel adapters (push/SMS/email/WhatsApp)
-│   ├── pricing-engine/    PURE: money math, rule precedence, cart/order pricing, snapshot builder
-│   ├── order-engine/      PURE: state machine, transition guards, derived status
-│   ├── delivery-engine/   PURE: geo, serviceability, dispatch scoring, rider earnings  (= spec's "dispatch-engine")
-│   ├── settlement-engine/ PURE: ledger posting rules, settlement periods, COD netting
-│   ├── ui/                design tokens (colour, type, spacing, radius, elevation, status)
-│   ├── mobile-ui/         shared React Native primitives built on tokens (optional sharing, B9)
-│   └── api-client/        fetch client: version headers, idempotency keys, retries, token refresh
-├── assets/brand/          owner-supplied BiteMitra logo kit (source of truth for icons/splash)
-├── scripts/               repo tooling (e.g. verify-schema.mjs)
-└── docs/                  this documentation set
+│   ├── notifications/     SMS/email/push provider interfaces (+ console providers)
+│   ├── pricing-engine/    PURE money math now; full pricing in Phase 4
+│   ├── order-engine/      PURE state machine (Phase 5)
+│   ├── delivery-engine/   PURE geo + serviceability now; dispatch/earnings in Phase 6
+│   ├── settlement-engine/ PURE ledger postings (Phase 8)
+│   ├── ui/                design tokens (provisional Jamzo palette, D-17)
+│   ├── mobile-ui/         React Native primitives on the tokens
+│   ├── mobile-foundation/ shared RN foundations: session, secure storage, API binding, version gate,
+│   │                      remote config, push registration, network state, errors, lifecycle, logging, analytics
+│   └── api-client/        fetch client: version headers, idempotency keys, retries, token refresh, errors
+├── assets/legacy/         previous BiteMitra logo kit — not used (D-16)
+├── scripts/               repo tooling (schema verification, docs check, asset generation)
+└── docs/
 ```
 
-Folder names follow MASTER_SPEC Part B. Part A §3 also lists `dispatch-engine`; dispatch lives in
-`delivery-engine` to satisfy Part B's mandated list without two overlapping packages.
-
-### Dependency rules (enforced by lint in Phase 1)
+### Dependency rules (checked by ESLint `no-restricted-imports`)
 
 ```
-apps/*  ──► api-client, validation, shared-types, config(public parts), ui, mobile-ui
-apps/*  ──✗ database, *-engine (never compute money on device)
-services/* ──► everything in packages/
-*-engine ──► shared-types only (pure: no DB, no network, no clock — time is passed in)
+apps/*        ──► api-client, validation, shared-types, config (registry/public parts), ui, mobile-ui, mobile-foundation
+apps/*        ──✗ database, *-engine, auth (server side), logger (node)   → never compute money on a device
+services/*    ──► any package
+*-engine      ──► shared-types only (pure: no DB, network or clock)
 ```
 
-The engines being **pure functions** is the key design choice: the same code prices a cart, builds
-the immutable snapshot, previews a config change in admin (§65) and replays historical orders in
-tests, deterministically.
+## 4. Backend: modular monolith (OD-5, D-3)
 
-## 4. Backend: modular monolith (§77)
+`services/api/src/modules/<module>/` each with `routes.js`, `service.js` (business logic, the only
+public surface for other modules) and tests. Request/response schemas come from `@jamzo/validation`.
 
-`services/api` is one deployable with strict internal module boundaries:
-
-| Module | Owns | Uses engine |
+| Module | Phase | Owns |
 |---|---|---|
-| `identity` | users, OTP, sessions, devices | auth |
-| `access` | admin users, roles, permissions, audit log | auth |
-| `geo` | countries → zones, service areas, serviceability | delivery-engine |
-| `config` | settings, feature flags, app version policy, remote config | config |
-| `catalog` | restaurants, branches, hours, menu, products, variants, add-ons, availability | — |
-| `cms` | media library, home sections, banners, pages | — |
-| `pricing` | commercial rules (versioned), cart quote, config preview | pricing-engine |
-| `promotions` | coupons, promotions, usage | pricing-engine |
-| `orders` | checkout, order creation, state transitions, cancellations | order-engine, pricing-engine |
-| `dispatch` | offers, assignment, reassignment, rider availability & location | delivery-engine |
-| `payments` | provider adapters, webhooks, refunds, reconciliation, COD | — |
-| `ledger` | restaurant/rider/platform ledgers, settlements, statements, invoices | settlement-engine |
-| `support` | tickets, messages | — |
-| `notifications` | templates, dispatching via outbox → queue | notifications |
-| `analytics` | read models / reports (never on the ordering hot path, §44) | — |
+| `auth` | 1 | users, auth identities, OTP challenges, sessions, devices |
+| `rbac` | 1 | admin users, roles, permissions, grants |
+| `audit` | 1 | audit log writing/reading |
+| `geography` | 1 | countries, states, cities, zones, service areas, serviceability |
+| `configuration` | 1 | settings (+ history), feature flags, app version policies, remote config |
+| `media` | 1 | media library, storage driver, renditions (worker) |
+| `customers` | 1 (profile) / 3 | customer profile, addresses |
+| `restaurants`, `branches` | 1 (approval status) / 2 | restaurants, branches, users, hours, documents |
+| `catalog`, `menus` | 2 | categories, menu categories, products, variants, add-ons, availability |
+| `cart`, `pricing`, `promotions` | 3–4 | quotes, rules, coupons |
+| `orders` | 5 | checkout, state machine, cancellations |
+| `riders`, `delivery`, `dispatch` | 1 (approval status) / 6 | riders, availability, locations, assignments |
+| `payments`, `refunds` | 7 | provider adapters (Razorpay first), webhooks, refunds, reconciliation, COD |
+| `ledger`, `settlements` | 8 | ledgers, settlements, invoices, statements |
+| `notifications`, `reviews`, `support`, `analytics` | 5–9 | |
 
-Rules: a module only touches its own tables directly; cross-module calls go through the other
-module's service functions (not its tables). This keeps each domain extractable later (§77).
+Cross-cutting API plumbing (`services/api/src/core/`): env config, Prisma client, request context
+(request id, actor), error mapping to the standard format, authentication, permission guard, idempotency,
+audit helper, outbox helper, pagination, rate limiting, security headers.
 
-**Workers** (`services/workers`) import the same modules and run: outbox relay, restaurant acceptance
-timeouts, dispatch offers/timeouts, payment expiry & reconciliation, notification sending, media
-renditions, settlement runs, COD reconciliation, analytics roll-ups.
+**Workers** (`services/workers`): outbox relay with a handler registry (Phase 1: `media.uploaded` →
+renditions), claiming rows with `FOR UPDATE SKIP LOCKED`; later restaurant timeouts, dispatch offers,
+payment expiry/reconciliation, notifications, settlement runs.
 
-### Reliability patterns
+### Reliability patterns (OD-19)
 
-- **Transactions** for every financial/order mutation (§68). One transaction = state change + history row + ledger postings + outbox event.
-- **Transactional outbox** (`outbox_events`): side effects (push, dispatch, webhooks-out) are triggered only from committed events → no "order placed but restaurant never notified".
-- **Idempotency** at three levels: HTTP `Idempotency-Key` (idempotency_records), business keys (`orders(customerId, idempotencyKey)`, `refunds.idempotencyKey`, ledger `idempotencyKey`), provider event ids (`payment_events(provider, providerEventId)`).
-- **Optimistic concurrency** on orders (`version` column) plus DB constraints for races (see [DATABASE.md](DATABASE.md#5-concurrency-guarantees)).
-- **Queues** (BullMQ on Redis) with retries + dead-letter; every job handler idempotent.
+- **Transactions** for every financial/order/config mutation: state change + history + audit + outbox in one commit.
+- **Transactional outbox**: side effects run only from committed events; handlers are idempotent; retries with backoff; poison events parked with the error.
+- **Idempotency** at three levels: `Idempotency-Key` records (API), business unique keys (orders, refunds, ledger postings), provider event ids (webhooks).
+- **Optimistic concurrency** (`version` columns) and database constraints for races (`constraints.sql`).
 
-## 5. Realtime
+## 5. Realtime (from Phase 5)
 
-Socket.IO on the API process (Redis adapter for horizontal scale). Rooms: `order:<id>`,
-`restaurant:<id>`, `rider:<id>`, `admin:ops:<cityId>`. Sockets carry **notifications of change
-only**; clients re-fetch authoritative state over REST, so a missed socket message is never data loss
-(important for restaurant/rider reconnects, §40). Push notifications are the fallback when the app is
-backgrounded; restaurant new-order alerts use a high-priority push + looping in-app sound.
+Socket.IO; rooms per order/restaurant/rider/ops-city. Sockets only notify; clients re-fetch over REST.
+Single API instance → in-memory adapter; Redis adapter at the D-9 trigger.
 
-## 6. External providers — all behind adapters
+## 6. External providers — all behind interfaces
 
-| Capability | Interface (Phase) | Default adapter proposal | Dev/test adapter |
+| Capability | Interface | First adapter | Phase 1 status |
 |---|---|---|---|
-| Payments | `PaymentProvider` (P7) | Razorpay **or** Cashfree — [Q5](DECISIONS.md#q5-payment-gateway) | fake provider with signed webhooks |
-| OTP/SMS | `SmsProvider` (P1) | MSG91 / Twilio — [Q6](DECISIONS.md#q6-sms--otp-provider) | console logger (blocked in production) |
-| Push | `PushProvider` (P1) | Expo Push Service (wraps FCM + APNs) | in-memory recorder |
-| Maps / distance | `MapsProvider` (P3/P6) | Google Maps Platform; Ola/Mappls alternative — [Q9](DECISIONS.md#q9-distance-used-for-pricing) | haversine × road factor |
-| Object storage | `Storage` (P1) | S3-compatible (AWS S3 / Cloudflare R2) | local filesystem / MinIO |
-| Email | `EmailProvider` | SES / Postmark | console |
-| Search | `SearchIndex` (P3) | PostgreSQL full-text + trigram | same |
-
-Business code depends only on the interface. Switching provider = new adapter + config, no domain change (§4, §24, §38).
+| Payments | `PaymentProvider` | Razorpay (OD-11) | not started (Phase 7) |
+| SMS OTP | `SmsProvider` | DLT provider (Q-6) | **console provider only** (dev/test) |
+| Email OTP | `EmailProvider` | TBD (Q-6) | **console provider only** |
+| Social login | `IdentityProvider` | Google, Apple | **slots only — returns AUTH_METHOD_UNAVAILABLE** |
+| Push | `PushProvider` | Expo Push (FCM/APNs) | device token registration only; sending in Phase 5 |
+| Maps / route distance | `MapsProvider` | Q-14 | not started (Phase 3/6) |
+| Object storage | `Storage` | S3-compatible | **local filesystem driver only** (D-23) |
 
 ## 7. Mobile applications
 
-Three **independent** Expo (React Native) projects — separate `package.json`, `app.json`/`app.config.js`,
-`eas.json`, identifiers, icons, splash, push credentials, version numbers and release pipelines.
-They share only libraries from `packages/` (never screens or navigation). Details: [MOBILE.md](MOBILE.md).
+Three independent Expo projects (OD-4) with ids and names from the central registry (D-15), sharing
+`mobile-foundation`, `mobile-ui`, `api-client`, `validation`, `ui`. See [MOBILE.md](MOBILE.md).
 
-## 8. Admin application
+## 8. Admin application (D-12, D-22)
 
-Next.js (Pages Router, JavaScript) served separately from the API. Polaris React 13 requires React 18,
-which is why the Pages Router is used (App Router needs React 19). All UI imports go through an
-internal `src/ui/` facade so the component library can be swapped without touching feature code —
-this hedges both the Polaris licence question and Polaris React being in maintenance.
-Admin authenticates against the API with short-lived access tokens held in memory + an httpOnly,
-`SameSite=Strict` refresh cookie; CSRF token on state-changing cookie requests (§48).
+Next.js App Router, JavaScript/JSX, Tailwind CSS 4, shadcn/ui components owned in-repo, TanStack Table.
+Jamzo Admin design system in `apps/admin/src/components/jamzo/`. Talks to the API through a same-origin
+`/api/*` rewrite; refresh token in an httpOnly `SameSite=Strict` cookie, access token in memory. Resource
+lists use server-side pagination, search and filters. Navigation already lists future modules as
+disabled entries labelled with their phase, so nothing appears finished that is not.
 
 ## 9. Cross-cutting
 
-- **Configuration hierarchy** GLOBAL → COUNTRY → STATE → CITY → ZONE → RESTAURANT → CATEGORY → PRODUCT (→ VARIANT for markup). One resolver in `packages/config`, used by every rule type. [CONFIGURATION.md](CONFIGURATION.md), [PRICING.md](PRICING.md#2-rule-precedence).
-- **Immutable snapshots**: orders copy every applied value and rule id at placement (§27).
-- **Audit log** for every admin/business mutation, written in the same transaction (§43).
-- **Observability**: pino JSON logs with `requestId`, `orderId`, `paymentId`, `restaurantId`, `riderId` bound as context; OpenTelemetry-compatible tracing hooks; error monitoring (Sentry proposed — [Q11](DECISIONS.md#q11-hosting-and-third-party-saas)).
-- **Money**: integer paise everywhere; percentages in basis points; one rounding function. [PRICING.md](PRICING.md#1-money-rules).
-- **Time**: stored UTC; business rules (night surcharge, hours, settlement cut-offs) evaluated in the city's timezone (`cities.timezone`, default Asia/Kolkata).
+- Configuration hierarchy GLOBAL → COUNTRY → STATE → CITY → ZONE → RESTAURANT → BRANCH → CATEGORY → PRODUCT (→ VARIANT for markup): one resolver in `@jamzo/config` ([CONFIGURATION.md](CONFIGURATION.md)).
+- Immutable order snapshots (Phase 4–5); append-only ledgers (Phase 8).
+- Audit log for admin/financial/configuration mutations in the same transaction.
+- Observability: pino JSON logs with `requestId` and domain ids; secrets/PII redacted.
+- Money in integer paise; rates in basis points; time stored UTC, evaluated in the city timezone.
 
-## 10. Scalability path (not built now)
+## 10. Scalability path (not built now — OD-32)
 
-Start: 1 API + 1 worker instance, managed Postgres (+ read replica later), managed Redis.
-Growth levers in order: horizontal API/worker scaling → Postgres read replicas for listing/analytics →
-partition `rider_locations`, `order_status_history`, `audit_logs` by month → move search to a dedicated
-engine behind `SearchIndex` → extract `dispatch` or `notifications` as separate services if (and only if)
-load demands it. PostGIS can replace JSON geometry + bbox pre-filter without API changes.
+1 API + 1 worker → horizontal API scaling (then Redis for rate limits/sockets) → read replicas for
+listings/analytics → partition high-volume append-only tables → dedicated search engine behind the
+search interface → extract a module (e.g. dispatch) only if load demands it. PostGIS can replace JSON
+geometry without API changes.

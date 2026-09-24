@@ -1,0 +1,17 @@
+{
+  "name": "@jamzo/validation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zod schemas shared by clients and the API.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@jamzo/shared-types": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}

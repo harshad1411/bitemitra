@@ -1,73 +1,49 @@
 # Testing strategy
 
-Status: **Phase 0.** The only executable check today is `pnpm verify:schema` (see §6). The toolchain
-below is installed in Phase 1.
+Covers MASTER_SPEC §53–§58, §81, B8 and OD-28, OD-33. **Rule:** nothing is reported as tested or
+working unless the automated check was actually executed; everything else is listed under "Not tested"
+with why and how the owner can test it.
 
-Covers MASTER_SPEC §53–§58, §81, B8. Rule: nothing is reported as working unless the relevant
-automated check was run, or it is listed under "Not tested" with why and how the owner can test it.
+## 1. Test layers
 
-## 1. Test pyramid
-
-| Layer | Tool | Scope | Runs |
+| Layer | Tool | Scope | Phase 1 |
 |---|---|---|---|
-| Unit (pure engines) | Vitest | pricing, order state machine, dispatch, earnings, settlement postings, config resolution, semver, money math | every commit |
-| Property-based | Vitest + fast-check | pricing/settlement invariants over random carts & rule sets (conservation, non-negativity, allocation sums) | every commit |
-| Integration (API + DB) | Vitest + Fastify `inject` + **PGlite** (real Postgres in-process, fresh schema per worker) | routes, transactions, constraints, RBAC matrix, idempotency, outbox | every commit |
-| Integration (CI parity) | same suite against a PostgreSQL service container | catches PGlite-vs-Postgres differences | CI |
-| Contract | recorded request/response fixtures per supported app version | backwards compatibility (§72) | CI |
-| Component (mobile) | Jest-Expo + React Native Testing Library | screens: loading/empty/error states, forms, keyboard, accessibility labels | every commit |
-| Component (admin) | Vitest + Testing Library | tables, filters, forms, permission-aware rendering | every commit |
-| E2E (API scenarios) | Vitest driving the real API with fake payment/SMS/push adapters | all §56 scenarios | CI |
-| E2E (admin) | Playwright (desktop + tablet + mobile viewports) | orders, config preview, refunds, settlements | CI |
-| E2E (mobile) | **Maestro** on Android emulator **and** iOS simulator | login, ordering, restaurant accept, rider trip, deep links, permissions | nightly + before release |
-| Load | k6 (JS) | quote, checkout, listing, admin orders at seed ×100 volume | Phase 10 + before launch |
-| Security | `pnpm audit`, ZAP baseline on staging, dependency review | | CI / Phase 10 |
+| Unit (pure logic) | Vitest | money math, geo, config resolution, semver, flags, permissions, OTP/token helpers, validation schemas | yes |
+| Database invariants | `pnpm verify:schema` (PGlite) | design + active schema apply cleanly; constraint behaviour with expected SQLSTATEs; active ⊆ design consistency; table classification complete | yes |
+| API integration | Vitest + Fastify `inject` + **PGlite** (fresh migrated database per test file via `@jamzo/database/testing`) | every Phase 1 route: auth, sessions, RBAC matrix, audit, idempotency, geography, serviceability, settings, flags, app versions, remote config, media, error format | yes |
+| Worker | Vitest + PGlite | outbox claim/lease/retry/park, media renditions | yes |
+| CI parity | same suites against a PostgreSQL 17 service container | PGlite-vs-Postgres differences | CI workflow (runs on GitHub) |
+| Static | ESLint 9, Prettier check, `tsc --checkJs` (Node packages/services), no-TS-file guard | | yes |
+| Mobile foundations & screens | Jest-Expo + React Native Testing Library | gates, login flow, shells, error/loading states | yes |
+| Mobile bundles / config | `expo export` (android + ios), `expo prebuild --no-install`, `expo-doctor` | | yes |
+| Admin components | Vitest + Testing Library (jsdom) | design-system components, permission-aware nav | yes |
+| Admin E2E | Playwright against real API + PGlite + Next build | login → cities/zones → settings → roles → audit | yes if browsers install |
+| Mobile E2E | Maestro (Android emulator **and** iOS simulator) | | **not possible on this machine yet** ([MOBILE.md §7](MOBILE.md#7-verification-b8--what-can-and-cannot-be-proven-on-the-current-machine)) |
+| Load | k6 | | Phase 10 |
 
-## 2. Highest-priority suites (§54)
+## 2. Highest-priority suites (§54) — by phase
 
-Pricing (full matrix in [PRICING.md §10](PRICING.md#10-test-matrix-phase-4--written-first)) ·
-commission · tax · delivery · surcharges · coupons · restaurant payable · rider payable · COD ·
-settlement · refund · cancellation · payment idempotency · order state transitions · permissions.
+Pricing/commission/tax/delivery/surcharges/coupons (Phase 4, matrix in [PRICING.md §10](PRICING.md#10-test-matrix-phase-4--written-first)) ·
+order state transitions (5) · dispatch races (6) · payment idempotency/webhooks (7) · settlement, COD,
+refund (8) · **permissions (Phase 1)**.
 
-**Golden tests**: the worked example in PRICING.md and its ledger postings in SETTLEMENTS.md are
-encoded exactly; they must never change silently.
+Golden tests: the PRICING.md worked example and its SETTLEMENTS.md postings are encoded exactly (Phase 4/8).
 
 ## 3. End-to-end scenarios (§56)
 
-Online happy path through settlement · restaurant rejects · restaurant timeout · rider rejects · no rider
-available · customer cancels before/after acceptance · payment fails · payment succeeds, callback
-delayed · duplicate webhook · late success after cancel · restaurant goes offline · rider loses
-connectivity · COD delivery · COD cancellation/refusal · full refund · partial refund · coupon order ·
-night order · surge order · product unavailable during checkout · restaurant closes during checkout ·
-price changes while cart open · double-tap place order.
+Listed in [ORDER_FLOW.md](ORDER_FLOW.md); automated from Phase 5 onwards with fake providers.
 
 ## 4. Test data
 
-- **Factories** (deterministic, seeded) for unit/integration tests.
-- **Seed dataset** (§53) generated *through the engines* so it is financially consistent; used by E2E, admin demos and load tests.
-- Time is injected (`now` parameter / fake timers), never read from the wall clock inside engines — night-window and settlement-cutoff tests are exact.
+Deterministic factories; the Phase 1 seed (geography, roles, settings, flags, version policies, demo
+accounts) is idempotent and used by integration and E2E tests. Time is injected; engines never read the clock.
 
 ## 5. Rules (§58)
 
-No skipped/deleted failing tests, no blanket lint disables, no mocking of the unit under test, no
-hard-coded expected values derived from the implementation (golden values are computed by hand and
-reviewed). External providers are replaced by **fakes that implement the same interface** (signed
-webhooks, delivery receipts), never by stubbing business logic. Coverage gates: engines ≥ 95% lines
-and branches; API modules ≥ 85%.
+No skipped/deleted failing tests; no blanket lint disables; no mocking the unit under test; external
+providers replaced only by **fakes implementing the same interface** (console SMS/email; storage uses the
+real local-filesystem driver in a temp directory); expected values computed independently.
 
-## 6. What Phase 0 actually verified
+## 6. Commands
 
-`pnpm verify:schema`:
-1. `prisma validate` on the full schema;
-2. generates the SQL (96 tables, 141 indexes, 84 foreign keys) and applies it to an empty PostgreSQL 18.3 (PGlite);
-3. applies `constraints.sql`;
-4. inserts fixtures and proves 12 database guarantees reject invalid writes **with the expected SQLSTATE** (unique vs check violation), so a typo cannot pass as a success.
-
-**Not tested in Phase 0** (nothing else exists yet): all application code, mobile builds, admin, API.
-
-## 7. Per-phase gate (§57)
-
-`pnpm install` → `pnpm lint` → `pnpm typecheck` (JSDoc checking if approved, **⚠ Q2**; otherwise
-skipped and stated) → `pnpm test` → integration → relevant E2E → `pnpm build` for affected apps
-(including `expo export` for Android and iOS, and native prebuild checks) → review logs → fix → repeat.
-Each phase report lists commands run, results, and a **Not tested / why / how the owner can test** section.
+See the root [README](../README.md). `pnpm check` runs everything that can run locally.

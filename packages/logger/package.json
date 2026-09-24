@@ -1,0 +1,16 @@
+{
+  "name": "@jamzo/logger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "pino structured logging with secret/PII redaction.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "pino": "^10.3.1"
+  }
+}
