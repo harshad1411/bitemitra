@@ -44,14 +44,26 @@ describe('auth primitives', () => {
     const ok = await verifyAccessToken(token, secret, 'CUSTOMER');
     expect(ok).toEqual({ ok: true, claims: { sub: 'u1', app: 'CUSTOMER', sid: 's1', pv: 0 } });
     expect(await verifyAccessToken(token, secret, 'ADMIN')).toEqual({ ok: false, reason: 'INVALID' });
-    expect(await verifyAccessToken(token, 'x'.repeat(32), 'CUSTOMER')).toEqual({ ok: false, reason: 'INVALID' });
+    expect(await verifyAccessToken(token, 'x'.repeat(32), 'CUSTOMER')).toEqual({
+      ok: false,
+      reason: 'INVALID',
+    });
     const expired = await signAccessToken({ sub: 'u1', app: 'RIDER', sid: 's1' }, secret, -10);
     expect(await verifyAccessToken(expired, secret, 'RIDER')).toEqual({ ok: false, reason: 'EXPIRED' });
   });
 
   it('system roles use known permissions; only Super Admin has rbac.super', () => {
     expect(SYSTEM_ROLES.map((r) => r.key)).toEqual([
-      'SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'CITY_MANAGER', 'FINANCE', 'SUPPORT', 'PARTNER_MANAGER', 'RIDER_MANAGER', 'MARKETING', 'CONTENT_MANAGER',
+      'SUPER_ADMIN',
+      'ADMIN',
+      'OPERATIONS',
+      'CITY_MANAGER',
+      'FINANCE',
+      'SUPPORT',
+      'PARTNER_MANAGER',
+      'RIDER_MANAGER',
+      'MARKETING',
+      'CONTENT_MANAGER',
     ]);
     for (const r of SYSTEM_ROLES) {
       for (const p of r.permissions) expect(PERMISSION_KEYS).toContain(p);

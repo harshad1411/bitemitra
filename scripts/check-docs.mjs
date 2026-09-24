@@ -7,7 +7,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const skip = new Set(['node_modules', '.git', '.turbo', '.next', 'dist']);
+const skip = new Set([
+  'node_modules',
+  '.git',
+  '.turbo',
+  '.next',
+  '.next-e2e',
+  '.expo',
+  'dist',
+  'coverage',
+  'test-results',
+  'playwright-report',
+  'var',
+]);
 
 async function walk(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -86,4 +98,6 @@ if (problems.length) {
   console.error(problems.map((p) => `✗ ${p}`).join('\n'));
   process.exit(1);
 }
-console.log(`✓ ${mdFiles.length} Markdown files, ${checked} relative links/anchors resolve; no .ts/.tsx files`);
+console.log(
+  `✓ ${mdFiles.length} Markdown files, ${checked} relative links/anchors resolve; no .ts/.tsx files`,
+);

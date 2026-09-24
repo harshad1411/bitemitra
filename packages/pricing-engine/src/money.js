@@ -5,13 +5,15 @@ const MAX = Number.MAX_SAFE_INTEGER;
 
 /** @param {number} v @param {string} [name] */
 export function assertPaise(v, name = 'amount') {
-  if (!Number.isSafeInteger(v)) throw new TypeError(`${name} must be a safe integer number of paise, got ${v}`);
+  if (!Number.isSafeInteger(v))
+    throw new TypeError(`${name} must be a safe integer number of paise, got ${v}`);
   return v;
 }
 
 /** @param {number} v @param {string} [name] */
 export function assertBps(v, name = 'rate') {
-  if (!Number.isSafeInteger(v) || v < 0) throw new TypeError(`${name} must be a non-negative integer (basis points), got ${v}`);
+  if (!Number.isSafeInteger(v) || v < 0)
+    throw new TypeError(`${name} must be a non-negative integer (basis points), got ${v}`);
   return v;
 }
 
@@ -61,7 +63,8 @@ export function inclusiveTax(grossPaise, rateBps) {
  */
 export function roundToStep(amountPaise, stepPaise, direction = 'HALF_UP') {
   assertPaise(amountPaise);
-  if (!Number.isSafeInteger(stepPaise) || stepPaise <= 0) throw new TypeError('stepPaise must be a positive integer');
+  if (!Number.isSafeInteger(stepPaise) || stepPaise <= 0)
+    throw new TypeError('stepPaise must be a positive integer');
   if (direction === 'UP') return Math.ceil(amountPaise / stepPaise) * stepPaise;
   if (direction === 'DOWN') return Math.floor(amountPaise / stepPaise) * stepPaise;
   return divRoundHalfUp(amountPaise, stepPaise) * stepPaise;

@@ -12,7 +12,9 @@ const appEnv = env.APP_ENV ?? 'development';
 const live = appEnv === 'staging' || appEnv === 'production';
 const demo = (env.SEED_DEMO ?? (live ? 'false' : 'true')) === 'true';
 if (demo && live) {
-  console.error('Refusing to seed demo data (approximate geography, fake partner accounts) in staging/production.');
+  console.error(
+    'Refusing to seed demo data (approximate geography, fake partner accounts) in staging/production.',
+  );
   process.exit(1);
 }
 const admin =

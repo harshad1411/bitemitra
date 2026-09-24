@@ -1,0 +1,42 @@
+{
+  "name": "@jamzo/mobile-foundation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared React Native foundations for the three Jamzo apps: session, secure storage, API binding, version gate, remote config, push registration, network state, errors, lifecycle, logging, analytics.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./core": "./src/core/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jamzo/api-client": "workspace:*",
+    "@jamzo/mobile-ui": "workspace:*",
+    "@jamzo/validation": "workspace:*"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "expo-constants": "*",
+    "expo-device": "*",
+    "expo-notifications": "*",
+    "expo-secure-store": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "*",
+    "@react-native-community/netinfo": "*"
+  },
+  "devDependencies": {
+    "expo": "catalog:",
+    "expo-constants": "catalog:",
+    "expo-device": "catalog:",
+    "expo-notifications": "catalog:",
+    "expo-secure-store": "catalog:",
+    "react": "catalog:",
+    "react-native": "catalog:",
+    "react-native-safe-area-context": "catalog:",
+    "@react-native-community/netinfo": "catalog:"
+  }
+}

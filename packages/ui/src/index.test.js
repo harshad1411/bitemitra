@@ -4,7 +4,9 @@ import { colors, formatPaise, statusTones } from './index.js';
 /** WCAG relative luminance contrast. */
 function contrast(a, b) {
   const lum = (hex) => {
-    const [r, g, b2] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    const [r, g, b2] = [1, 3, 5]
+      .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
     return 0.2126 * r + 0.7152 * g + 0.0722 * b2;
   };
   const [l1, l2] = [lum(a), lum(b)].sort((x, y) => y - x);

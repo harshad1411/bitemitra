@@ -3,13 +3,20 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
-## Phase 1 — Foundation (in progress)
+## Phase 1 — Foundation (2026-09-24) — awaiting owner review
 
-### Changed (owner decisions OD-1..OD-34, see DECISIONS.md)
-- Brand renamed to **Jamzo** (jamzo.in); identifiers `in.jamzo.{customer,restaurant,rider}`; packages `@jamzo/*`.
-- Polaris dropped after licence/maintenance review; admin uses Tailwind + shadcn/ui with a Jamzo design system.
-- Database: design schema moved to `prisma/design/`; generated active schema (27 tables); table classification; new `auth_identities`, `branch_delivery_areas`, `BRANCH` scope, owner kitchen-state vocabulary, COD shortage/excess, withholding, tip and rounding ledger types, commission basis and distance source in snapshots, outbox leasing fields.
-- Docs updated for all decisions; DECISIONS.md is now the authoritative decision record.
+### Added
+- Tooling: pnpm (hoisted) + Turborepo, ESLint 9 (architecture rules: no server packages in clients, identifiers only from the registry), Prettier, JSDoc type-checking, GitHub Actions CI (checks, admin E2E, mobile bundles, native Android/iOS builds).
+- Shared packages: shared-types, config (product registry, env schemas, settings registry, scope resolution, feature flags, semver, Expo config builder), validation, logger, auth, notifications (console providers), pricing-engine (money math), delivery-engine (geo, serviceability), ui (tokens), api-client, mobile-ui, mobile-foundation.
+- Database: 27 active tables, 2 migrations, seed (base + demo: Unjha live, Mehsana not launched, demo partners), real-PostgreSQL test harness.
+- API (51 endpoints): phone/email OTP, admin password login with lockout, rotating sessions with reuse detection, RBAC with city scoping, audit log, idempotency, standard errors, version gate + maintenance, remote config, geography + serviceability, settings with history, feature flags, app version policies, media library.
+- Workers: PostgreSQL outbox relay (lease, retry, park) and image renditions.
+- Jamzo Admin: login, app shell, dashboard, cities & zones, configuration (settings / flags / app versions / history), admin users, roles, permissions, media, audit log.
+- Mobile: three independent Expo app shells (sign-in, approval-aware home, update/maintenance gate, push registration, offline banner) with placeholder icons and splash screens.
+
+### Changed
+- Owner decisions OD-1..OD-34 applied (Jamzo rebrand, no Polaris, JavaScript only …); see DECISIONS.md.
+- Engineering changes found during implementation: hoisted pnpm layout + catalog (D-2), real PostgreSQL for tests (D-13), `timestamptz` everywhere (D-26), setting history survives resets (D-28).
 
 ## Phase 0 — Architecture (2026-09-24) — approved
 

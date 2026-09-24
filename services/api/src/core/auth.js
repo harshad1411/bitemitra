@@ -15,7 +15,9 @@ import { ACTOR_TYPE_BY_APP } from './client.js';
 export async function loadAdminAccess(prisma, userId) {
   const admin = await prisma.adminUser.findUnique({
     where: { userId },
-    include: { roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } },
+    include: {
+      roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
+    },
   });
   if (!admin) return null;
   const global = new Set();
@@ -58,7 +60,8 @@ async function authPlugin(app, { secret }) {
   app.addHook('onRoute', (route) => {
     const url = route.url ?? '';
     if (url.startsWith('/v1/admin/') && !url.startsWith('/v1/admin/auth/')) {
-      if (!(/** @type {any} */ (route.config))?.permission) throw new Error(`Admin route ${route.method} ${url} must declare config.permission`);
+      if (!(/** @type {any} */ (route.config)?.permission))
+        throw new Error(`Admin route ${route.method} ${url} must declare config.permission`);
     }
   });
 
@@ -69,8 +72,10 @@ async function authPlugin(app, { secret }) {
     const mode = config.auth ?? 'required';
     const isAdminRoute = url.startsWith('/v1/admin/');
 
-    if (isAdminRoute && request.client.appId !== 'ADMIN') throw forbidden('Admin endpoints are only available to Jamzo Admin.');
-    if (config.apps && !config.apps.includes(request.client.appId)) throw forbidden('This endpoint is not available to this app.');
+    if (isAdminRoute && request.client.appId !== 'ADMIN')
+      throw forbidden('Admin endpoints are only available to Jamzo Admin.');
+    if (config.apps && !config.apps.includes(request.client.appId))
+      throw forbidden('This endpoint is not available to this app.');
     if (mode === 'none') return;
 
     const header = request.headers.authorization;
@@ -81,15 +86,24 @@ async function authPlugin(app, { secret }) {
     const verified = await verifyAccessToken(header.slice(7), secret, request.client.appId);
     if ('reason' in verified) {
       if (mode === 'optional' && verified.reason === 'INVALID') return;
-      throw verified.reason === 'EXPIRED' ? new AppError('TOKEN_EXPIRED', 'Your session has expired.') : unauthenticated();
+      throw verified.reason === 'EXPIRED'
+        ? new AppError('TOKEN_EXPIRED', 'Your session has expired.')
+        : unauthenticated();
     }
     const { sub, sid } = /** @type {{ claims: { sub: string, sid: string } }} */ (verified).claims;
     const session = await app.prisma.session.findUnique({ where: { id: sid }, include: { user: true } });
     const now = app.clock.now();
-    if (!session || session.userId !== sub || session.revokedAt || session.expiresAt <= now || session.appId !== request.client.appId) {
+    if (
+      !session ||
+      session.userId !== sub ||
+      session.revokedAt ||
+      session.expiresAt <= now ||
+      session.appId !== request.client.appId
+    ) {
       throw unauthenticated('Your session is no longer valid. Please sign in again.');
     }
-    if (session.user.status !== 'ACTIVE') throw new AppError('ACCOUNT_SUSPENDED', 'This account is not active.');
+    if (session.user.status !== 'ACTIVE')
+      throw new AppError('ACCOUNT_SUSPENDED', 'This account is not active.');
 
     /** @type {any} */
     const auth = {
@@ -103,7 +117,8 @@ async function authPlugin(app, { secret }) {
     };
     if (session.appId === 'ADMIN') {
       const access = await loadAdminAccess(app.prisma, session.userId);
-      if (!access || !access.isActive) throw new AppError('ACCOUNT_SUSPENDED', 'This admin account is not active.');
+      if (!access || !access.isActive)
+        throw new AppError('ACCOUNT_SUSPENDED', 'This admin account is not active.');
       auth.admin = access;
     }
     /** @type {import('./types.js').JamzoRequest} */ (request).auth = auth;
@@ -154,5 +169,6 @@ export function allowedCityIds(request, permission) {
 
 /** @param {import('./types.js').JamzoRequest} request @param {string} permission */
 export function requireGlobal(request, permission) {
-  if (!hasGlobal(request, permission)) throw forbidden('This action needs a permission that is not limited to a city.');
+  if (!hasGlobal(request, permission))
+    throw forbidden('This action needs a permission that is not limited to a city.');
 }

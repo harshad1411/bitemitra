@@ -31,15 +31,28 @@ export async function withIdempotency(request, reply, opts, handler) {
     .digest('hex');
 
   try {
-    await prisma.idempotencyRecord.create({ data: { scope, key, requestHash, expiresAt: new Date(Date.now() + TTL_MS) } });
+    await prisma.idempotencyRecord.create({
+      data: { scope, key, requestHash, expiresAt: new Date(Date.now() + TTL_MS) },
+    });
   } catch (err) {
     if (!isUniqueViolation(err)) throw err;
     const existing = await prisma.idempotencyRecord.findUnique({ where: { scope_key: { scope, key } } });
-    if (!existing) throw new AppError('IDEMPOTENCY_IN_PROGRESS', 'The original request is still being processed. Retry shortly.');
+    if (!existing)
+      throw new AppError(
+        'IDEMPOTENCY_IN_PROGRESS',
+        'The original request is still being processed. Retry shortly.',
+      );
     if (existing.requestHash !== requestHash) {
-      throw new AppError('IDEMPOTENCY_CONFLICT', 'This Idempotency-Key was already used for a different request.');
+      throw new AppError(
+        'IDEMPOTENCY_CONFLICT',
+        'This Idempotency-Key was already used for a different request.',
+      );
     }
-    if (!existing.completedAt) throw new AppError('IDEMPOTENCY_IN_PROGRESS', 'The original request is still being processed. Retry shortly.');
+    if (!existing.completedAt)
+      throw new AppError(
+        'IDEMPOTENCY_IN_PROGRESS',
+        'The original request is still being processed. Retry shortly.',
+      );
     reply.header('idempotent-replayed', 'true');
     reply.code(existing.statusCode ?? 200);
     const body = /** @type {any} */ (existing.responseBody);
@@ -50,7 +63,11 @@ export async function withIdempotency(request, reply, opts, handler) {
     const result = await handler();
     await prisma.idempotencyRecord.update({
       where: { scope_key: { scope, key } },
-      data: { statusCode: status, responseBody: JSON.parse(JSON.stringify(result ?? null)), completedAt: new Date() },
+      data: {
+        statusCode: status,
+        responseBody: JSON.parse(JSON.stringify(result ?? null)),
+        completedAt: new Date(),
+      },
     });
     reply.code(status);
     return result;
@@ -60,7 +77,18 @@ export async function withIdempotency(request, reply, opts, handler) {
     if (err instanceof AppError && err.status < 500) {
       await prisma.idempotencyRecord.update({
         where: { scope_key: { scope, key } },
-        data: { statusCode: err.status, responseBody: { error: { code: err.code, message: err.message, fieldErrors: err.fieldErrors, details: err.details } }, completedAt: new Date() },
+        data: {
+          statusCode: err.status,
+          responseBody: {
+            error: {
+              code: err.code,
+              message: err.message,
+              fieldErrors: err.fieldErrors,
+              details: err.details,
+            },
+          },
+          completedAt: new Date(),
+        },
       });
     } else {
       await prisma.idempotencyRecord.delete({ where: { scope_key: { scope, key } } }).catch(() => {});

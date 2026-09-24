@@ -21,11 +21,18 @@ export function createMediaUploadedHandler({ prisma, storage }) {
     }
     const variants = {};
     for (const [name, width] of Object.entries(RENDITIONS)) {
-      const out = await sharp(original).rotate().resize({ width, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+      const out = await sharp(original)
+        .rotate()
+        .resize({ width, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
       const key = renditionKey(media.id, name);
       await storage.put(key, out, 'image/webp');
       variants[name] = key;
     }
-    await prisma.media.update({ where: { id: media.id }, data: { variants, width: meta.width ?? null, height: meta.height ?? null, status: 'READY' } });
+    await prisma.media.update({
+      where: { id: media.id },
+      data: { variants, width: meta.width ?? null, height: meta.height ?? null, status: 'READY' },
+    });
   };
 }

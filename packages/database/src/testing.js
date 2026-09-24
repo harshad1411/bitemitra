@@ -61,7 +61,9 @@ export async function startTestDatabase({ poolSize = 5 } = {}) {
   const adminUrl = process.env.TEST_DATABASE_URL;
   const template = process.env.TEST_TEMPLATE_DATABASE;
   if (!adminUrl || !template) {
-    throw new Error('No test database server. Add `globalSetup: "@jamzo/database/test-global-setup"` to the Vitest config.');
+    throw new Error(
+      'No test database server. Add `globalSetup: "@jamzo/database/test-global-setup"` to the Vitest config.',
+    );
   }
   const name = `jamzo_t_${process.pid}_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
   await withClient(adminUrl, (c) => c.query(`CREATE DATABASE "${name}" TEMPLATE "${template}"`));
@@ -69,6 +71,9 @@ export async function startTestDatabase({ poolSize = 5 } = {}) {
   return {
     url,
     name,
-    stop: () => withClient(adminUrl, (c) => c.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`)).then(() => undefined),
+    stop: () =>
+      withClient(adminUrl, (c) => c.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`)).then(
+        () => undefined,
+      ),
   };
 }

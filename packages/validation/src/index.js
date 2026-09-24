@@ -10,7 +10,8 @@ import {
   RIDER_ONBOARDING_STATUSES,
 } from '@jamzo/shared-types';
 
-const values = (/** @type {Record<string,string>} */ e) => /** @type {[string, ...string[]]} */ (Object.keys(e));
+const values = (/** @type {Record<string,string>} */ e) =>
+  /** @type {[string, ...string[]]} */ (Object.keys(e));
 
 // ── Primitives ──────────────────────────────────────────────────────────────
 
@@ -24,11 +25,7 @@ export const appId = z.enum(values(APP_IDS));
 export const devicePlatform = z.enum(values(DEVICE_PLATFORMS));
 export const configScope = z.enum(values(CONFIG_SCOPES));
 export const authProvider = z.enum(values(AUTH_PROVIDERS));
-export const email = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .pipe(z.email('Enter a valid email address').max(254));
+export const email = z.string().trim().toLowerCase().pipe(z.email('Enter a valid email address').max(254));
 export const latitude = z.number().min(-90).max(90);
 export const longitude = z.number().min(-180).max(180);
 export const timezone = z.string().refine((tz) => {
@@ -71,7 +68,10 @@ export const password = z
   .string()
   .min(12, 'Use at least 12 characters')
   .max(128)
-  .refine((p) => /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p), 'Use upper- and lower-case letters and a number');
+  .refine(
+    (p) => /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p),
+    'Use upper- and lower-case letters and a number',
+  );
 
 // ── Pagination ──────────────────────────────────────────────────────────────
 
@@ -87,7 +87,10 @@ const position = z.tuple([longitude, latitude]);
 const ring = z
   .array(position)
   .min(4, 'A ring needs at least 4 positions (first = last)')
-  .refine((r) => r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1], 'Ring must be closed (first position = last)');
+  .refine(
+    (r) => r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1],
+    'Ring must be closed (first position = last)',
+  );
 
 export const polygonGeometry = z.object({ type: z.literal('Polygon'), coordinates: z.array(ring).min(1) });
 export const multiPolygonGeometry = z.object({
@@ -119,7 +122,10 @@ export const deviceRegisterBody = z.object({
 export const countryCreateBody = z.object({
   code: z.string().regex(/^[A-Z]{2}$/, 'ISO 3166-1 alpha-2, e.g. IN'),
   name: z.string().trim().min(2).max(80),
-  currencyCode: z.string().regex(/^[A-Z]{3}$/).default('INR'),
+  currencyCode: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .default('INR'),
   timezone: timezone.default('Asia/Kolkata'),
 });
 export const stateCreateBody = z.object({
@@ -146,7 +152,12 @@ export const zoneCreateBody = z.object({
 });
 export const zoneUpdateBody = zoneCreateBody.omit({ cityId: true }).partial();
 export const serviceAreaCreateBody = z.discriminatedUnion('kind', [
-  z.object({ zoneId: uuid, name: z.string().trim().min(2).max(80), kind: z.literal('POLYGON'), geometry: areaGeometry }),
+  z.object({
+    zoneId: uuid,
+    name: z.string().trim().min(2).max(80),
+    kind: z.literal('POLYGON'),
+    geometry: areaGeometry,
+  }),
   z.object({
     zoneId: uuid,
     name: z.string().trim().min(2).max(80),
@@ -156,8 +167,14 @@ export const serviceAreaCreateBody = z.discriminatedUnion('kind', [
     radiusM: z.number().int().min(100).max(50_000),
   }),
 ]);
-export const serviceAreaUpdateBody = z.object({ name: z.string().trim().min(2).max(80).optional(), isActive: z.boolean().optional() });
-export const serviceabilityQuery = z.object({ lat: z.coerce.number().pipe(latitude), lng: z.coerce.number().pipe(longitude) });
+export const serviceAreaUpdateBody = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  isActive: z.boolean().optional(),
+});
+export const serviceabilityQuery = z.object({
+  lat: z.coerce.number().pipe(latitude),
+  lng: z.coerce.number().pipe(longitude),
+});
 
 // ── RBAC ────────────────────────────────────────────────────────────────────
 
@@ -206,7 +223,10 @@ export const featureFlagUpdateBody = z.object({
       apps: z.array(appId).optional(),
       cityIds: z.array(uuid).optional(),
       zoneIds: z.array(uuid).optional(),
-      minAppVersion: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
+      minAppVersion: z
+        .string()
+        .regex(/^\d+\.\d+\.\d+$/)
+        .optional(),
       rolloutPercent: z.number().int().min(0).max(100).optional(),
     })
     .default({}),

@@ -22,7 +22,15 @@ export const DEFAULT_FLAGS = [
 /** Approximate development shapes — NOT surveyed boundaries (DATABASE.md §8). */
 const rect = (x0, y0, x1, y1) => ({
   type: 'Polygon',
-  coordinates: [[[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]],
+  coordinates: [
+    [
+      [x0, y0],
+      [x1, y0],
+      [x1, y1],
+      [x0, y1],
+      [x0, y0],
+    ],
+  ],
 });
 
 export const DEMO_GEOGRAPHY = {
@@ -41,7 +49,15 @@ export const DEMO_GEOGRAPHY = {
           slug: 'unjha-north',
           name: 'Unjha North',
           geometry: rect(72.38, 23.815, 72.405, 23.835),
-          serviceAreas: [{ name: 'North residential (radius)', kind: 'RADIUS', centerLat: 23.825, centerLng: 72.3925, radiusM: 1200 }],
+          serviceAreas: [
+            {
+              name: 'North residential (radius)',
+              kind: 'RADIUS',
+              centerLat: 23.825,
+              centerLng: 72.3925,
+              radiusM: 1200,
+            },
+          ],
         },
         { slug: 'unjha-south', name: 'Unjha South', geometry: rect(72.38, 23.775, 72.405, 23.795) },
       ],
@@ -53,7 +69,9 @@ export const DEMO_GEOGRAPHY = {
       centerLat: 23.588,
       centerLng: 72.3693,
       isActive: false,
-      zones: [{ slug: 'mehsana-central', name: 'Mehsana Central', geometry: rect(72.355, 23.575, 72.385, 23.6) }],
+      zones: [
+        { slug: 'mehsana-central', name: 'Mehsana Central', geometry: rect(72.355, 23.575, 72.385, 23.6) },
+      ],
     },
   ],
 };
@@ -73,7 +91,11 @@ export const DEMO_ACCOUNTS = {
 export async function seed(prisma, { admin, demo = false, log = () => {} } = {}) {
   // ── Permissions (code is the source of truth) ──
   for (const p of PERMISSIONS) {
-    await prisma.permission.upsert({ where: { key: p.key }, create: { key: p.key, description: p.description }, update: { description: p.description } });
+    await prisma.permission.upsert({
+      where: { key: p.key },
+      create: { key: p.key, description: p.description },
+      update: { description: p.description },
+    });
   }
   const permissionIds = new Map((await prisma.permission.findMany()).map((p) => [p.key, p.id]));
   log(`permissions: ${PERMISSIONS.length}`);
@@ -108,7 +130,13 @@ export async function seed(prisma, { admin, demo = false, log = () => {} } = {})
     for (const platform of /** @type {const} */ (['IOS', 'ANDROID'])) {
       await prisma.appVersionPolicy.upsert({
         where: { appId_platform: { appId, platform } },
-        create: { appId, platform, minSupportedVersion: '1.0.0', recommendedVersion: '1.0.0', forceUpdate: false },
+        create: {
+          appId,
+          platform,
+          minSupportedVersion: '1.0.0',
+          recommendedVersion: '1.0.0',
+          forceUpdate: false,
+        },
         update: {},
       });
     }
@@ -143,7 +171,11 @@ export async function seed(prisma, { admin, demo = false, log = () => {} } = {})
 /** @param {import('@jamzo/database').Db} prisma @param {(m: string) => void} log */
 async function seedDemo(prisma, log) {
   const g = DEMO_GEOGRAPHY;
-  const country = await prisma.country.upsert({ where: { code: g.country.code }, create: g.country, update: {} });
+  const country = await prisma.country.upsert({
+    where: { code: g.country.code },
+    create: g.country,
+    update: {},
+  });
   const state = await prisma.state.upsert({
     where: { countryId_code: { countryId: country.id, code: g.state.code } },
     create: { ...g.state, countryId: country.id },
@@ -152,13 +184,21 @@ async function seedDemo(prisma, log) {
   const cityIds = {};
   for (const c of g.cities) {
     const { zones, ...cityData } = c;
-    const city = await prisma.city.upsert({ where: { slug: c.slug }, create: { ...cityData, stateId: state.id }, update: {} });
+    const city = await prisma.city.upsert({
+      where: { slug: c.slug },
+      create: { ...cityData, stateId: state.id },
+      update: {},
+    });
     cityIds[c.slug] = city.id;
     for (const z of zones) {
       const { serviceAreas = [], ...zoneData } = z;
-      const existing = await prisma.zone.findUnique({ where: { cityId_slug: { cityId: city.id, slug: z.slug } } });
+      const existing = await prisma.zone.findUnique({
+        where: { cityId_slug: { cityId: city.id, slug: z.slug } },
+      });
       if (existing) continue;
-      const zone = await prisma.zone.create({ data: { ...zoneData, cityId: city.id, ...bboxOf(z.geometry) } });
+      const zone = await prisma.zone.create({
+        data: { ...zoneData, cityId: city.id, ...bboxOf(z.geometry) },
+      });
       for (const sa of serviceAreas) await prisma.serviceArea.create({ data: { ...sa, zoneId: zone.id } });
     }
   }
@@ -174,7 +214,13 @@ async function seedDemo(prisma, log) {
   const owner = await userFor(DEMO_ACCOUNTS.restaurantOwner, 'Demo Restaurant Owner');
   const kitchen = await prisma.restaurant.upsert({
     where: { slug: 'demo-kitchen' },
-    create: { slug: 'demo-kitchen', name: 'Jamzo Demo Kitchen', cityId: cityIds.unjha, cuisines: ['Gujarati', 'North Indian'], onboardingStatus: 'ACTIVE' },
+    create: {
+      slug: 'demo-kitchen',
+      name: 'Jamzo Demo Kitchen',
+      cityId: cityIds.unjha,
+      cuisines: ['Gujarati', 'North Indian'],
+      onboardingStatus: 'ACTIVE',
+    },
     update: {},
   });
   await prisma.restaurantUser.upsert({
@@ -186,7 +232,13 @@ async function seedDemo(prisma, log) {
   const manager = await userFor(DEMO_ACCOUNTS.draftRestaurantManager, 'Pending Restaurant Manager');
   const pending = await prisma.restaurant.upsert({
     where: { slug: 'pending-restaurant' },
-    create: { slug: 'pending-restaurant', name: 'Pending Restaurant', cityId: cityIds.unjha, cuisines: ['Cafe'], onboardingStatus: 'DRAFT' },
+    create: {
+      slug: 'pending-restaurant',
+      name: 'Pending Restaurant',
+      cityId: cityIds.unjha,
+      cuisines: ['Cafe'],
+      onboardingStatus: 'DRAFT',
+    },
     update: {},
   });
   await prisma.restaurantUser.upsert({
@@ -196,8 +248,16 @@ async function seedDemo(prisma, log) {
   });
 
   const activeRider = await userFor(DEMO_ACCOUNTS.activeRider, 'Demo Delivery Partner');
-  await prisma.rider.upsert({ where: { userId: activeRider.id }, create: { userId: activeRider.id, cityId: cityIds.unjha, onboardingStatus: 'ACTIVE' }, update: {} });
+  await prisma.rider.upsert({
+    where: { userId: activeRider.id },
+    create: { userId: activeRider.id, cityId: cityIds.unjha, onboardingStatus: 'ACTIVE' },
+    update: {},
+  });
   const pendingRider = await userFor(DEMO_ACCOUNTS.pendingRider, 'Pending Delivery Partner');
-  await prisma.rider.upsert({ where: { userId: pendingRider.id }, create: { userId: pendingRider.id, cityId: cityIds.unjha, onboardingStatus: 'APPLIED' }, update: {} });
+  await prisma.rider.upsert({
+    where: { userId: pendingRider.id },
+    create: { userId: pendingRider.id, cityId: cityIds.unjha, onboardingStatus: 'APPLIED' },
+    update: {},
+  });
   log('demo partner accounts');
 }

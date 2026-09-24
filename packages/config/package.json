@@ -8,7 +8,8 @@
     ".": "./src/index.js",
     "./apps": "./src/apps.js",
     "./semver": "./src/semver.js",
-    "./settings-registry": "./src/settings-registry.js"
+    "./settings-registry": "./src/settings-registry.js",
+    "./expo": "./src/expo.js"
   },
   "scripts": {
     "test": "vitest run --passWithNoTests"

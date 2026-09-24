@@ -36,6 +36,7 @@ const GATE_EXEMPT = new Set(['/v1/app-config']);
  *   email: import('@jamzo/notifications').EmailProvider,
  *   storage: import('./modules/media/storage.js').Storage,
  *   logger?: boolean | object,
+ *   onRoute?: (route: any) => void,
  * }} deps
  */
 export async function buildApp(deps) {
@@ -53,8 +54,18 @@ export async function buildApp(deps) {
     },
   });
 
+  if (deps.onRoute) app.addHook('onRoute', deps.onRoute); // used by scripts/generate-api-docs.mjs
+
   const config = createConfigService(prisma, clock);
-  const auth = createAuthService({ prisma, env, clock, config, sms: deps.sms, email: deps.email, log: app.log });
+  const auth = createAuthService({
+    prisma,
+    env,
+    clock,
+    config,
+    sms: deps.sms,
+    email: deps.email,
+    log: app.log,
+  });
   app.decorate('prisma', prisma);
   app.decorate('clock', clock);
   app.decorate('services', { env, config, auth, storage: deps.storage, sms: deps.sms, email: deps.email });
@@ -68,7 +79,9 @@ export async function buildApp(deps) {
     max: env.RATE_LIMIT_MAX,
     timeWindow: '1 minute',
     errorResponseBuilder: (_req, ctx) => {
-      const err = new AppError('RATE_LIMITED', 'Too many requests. Please slow down.', { details: { retryAfterSec: Math.ceil(ctx.ttl / 1000) } });
+      const err = new AppError('RATE_LIMITED', 'Too many requests. Please slow down.', {
+        details: { retryAfterSec: Math.ceil(ctx.ttl / 1000) },
+      });
       /** @type {any} */ (err).statusCode = 429;
       return err;
     },
@@ -85,12 +98,19 @@ export async function buildApp(deps) {
     if (!MOBILE.has(appId) || GATE_EXEMPT.has(url)) return;
     const maintenance = (await config.resolve('maintenance')).value;
     if (maintenance.enabled && maintenance.apps.includes(appId)) {
-      throw new AppError('MAINTENANCE', maintenance.message ?? 'Jamzo is under maintenance. Please try again soon.');
+      throw new AppError(
+        'MAINTENANCE',
+        maintenance.message ?? 'Jamzo is under maintenance. Please try again soon.',
+      );
     }
     const version = await config.clientVersion(request.client);
     if (version.status === 'UPDATE_REQUIRED') {
       throw new AppError('UPGRADE_REQUIRED', 'Please update the app to continue.', {
-        details: { minSupportedVersion: version.minSupportedVersion, recommendedVersion: version.recommendedVersion, storeUrl: version.storeUrl },
+        details: {
+          minSupportedVersion: version.minSupportedVersion,
+          recommendedVersion: version.recommendedVersion,
+          storeUrl: version.storeUrl,
+        },
       });
     }
   });
@@ -98,17 +118,26 @@ export async function buildApp(deps) {
   // Error handlers must be set BEFORE child plugins/routes are registered: Fastify copies them into each
   // child context at registration time.
   app.setNotFoundHandler((request, reply) => {
-    reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Route not found.', requestId: request.id } });
+    reply
+      .code(404)
+      .send({ error: { code: 'NOT_FOUND', message: 'Route not found.', requestId: request.id } });
   });
 
   app.setErrorHandler((err, request, reply) => {
     const e = /** @type {any} */ (err);
     let appErr;
     if (err instanceof AppError) appErr = err;
-    else if (e.statusCode === 429) appErr = new AppError('RATE_LIMITED', 'Too many requests. Please slow down.');
-    else if (e.code === 'FST_ERR_CTP_BODY_TOO_LARGE' || e.statusCode === 413) appErr = new AppError('PAYLOAD_TOO_LARGE', 'The request is too large.');
-    else if (e.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE' || e.statusCode === 415) appErr = new AppError('UNSUPPORTED_MEDIA_TYPE', 'Unsupported content type.');
-    else if (e.code === 'FST_ERR_CTP_EMPTY_JSON_BODY' || e.code === 'FST_ERR_CTP_INVALID_JSON_BODY' || e instanceof SyntaxError) {
+    else if (e.statusCode === 429)
+      appErr = new AppError('RATE_LIMITED', 'Too many requests. Please slow down.');
+    else if (e.code === 'FST_ERR_CTP_BODY_TOO_LARGE' || e.statusCode === 413)
+      appErr = new AppError('PAYLOAD_TOO_LARGE', 'The request is too large.');
+    else if (e.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE' || e.statusCode === 415)
+      appErr = new AppError('UNSUPPORTED_MEDIA_TYPE', 'Unsupported content type.');
+    else if (
+      e.code === 'FST_ERR_CTP_EMPTY_JSON_BODY' ||
+      e.code === 'FST_ERR_CTP_INVALID_JSON_BODY' ||
+      e instanceof SyntaxError
+    ) {
       appErr = new AppError('VALIDATION_FAILED', 'The request body is not valid JSON.');
     } else if (e.code === 'P2025') appErr = new AppError('NOT_FOUND', 'Resource not found.');
     else if (e.code === 'P2002') appErr = new AppError('CONFLICT', 'This conflicts with an existing record.');

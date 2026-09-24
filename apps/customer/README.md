@@ -1,10 +1,17 @@
-# Customer app (`@jamzo/customer`)
+# Jamzo (customer) — `@jamzo/customer`
 
-Expo (React Native, **JavaScript**) app for ordering food — Android + iOS from one codebase.
+Independent Expo (React Native, JavaScript) app for **Android and iOS**. Identity (bundle/package id,
+name, scheme, colour) comes from the central registry via `app.config.js` (DECISIONS D-15); its version is
+this package's `version` and it releases on its own (`customer@x.y.z`).
 
-- Identifiers (proposed, see docs/DECISIONS.md Q8): `in.jamzo.customer` · scheme `jamzo://`
-- Own version, icon (orange), splash, EAS project, store listings and release tag `customer@x.y.z`
-- Displays prices only; every amount comes from the API pricing engine (MASTER_SPEC §9)
-- Planned layout: `src/app/` (Expo Router routes), `src/features/`, `src/platform/` (+ `PLATFORM.md`), `assets/`, `app.json`, `app.config.js`, `eas.json`
+**Phase 1 shell:** phone-OTP sign-in, approval-aware home screen, maintenance / forced-update gate, push
+registration (reports why it cannot register), offline banner. Discovery, menus and cart arrive in Phase 3; ordering and payment in Phases 4–7.
 
-Status: not created yet — shell in Phase 1, features in Phase 3. Design: [docs/MOBILE.md](../../docs/MOBILE.md).
+| Command | What it does |
+|---|---|
+| `pnpm start` | Expo dev server (set `EXPO_PUBLIC_API_URL`, see `.env.example`) |
+| `pnpm test` | component tests (Jest-Expo + React Native Testing Library) |
+| `pnpm export` | JavaScript bundles for Android and iOS |
+| `APP_VARIANT=production pnpm prebuild:check` | generate native projects to inspect (git-ignored) |
+
+Platform differences: [PLATFORM.md](PLATFORM.md). Icons and splash are **placeholders** (DECISIONS D-16).

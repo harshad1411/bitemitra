@@ -23,12 +23,18 @@ describe('seed', () => {
 
     expect(await prisma.permission.count()).toBe(PERMISSION_KEYS.length);
     expect(await prisma.role.count()).toBe(SYSTEM_ROLES.length);
-    const superRole = await prisma.role.findUnique({ where: { key: 'SUPER_ADMIN' }, include: { permissions: true } });
+    const superRole = await prisma.role.findUnique({
+      where: { key: 'SUPER_ADMIN' },
+      include: { permissions: true },
+    });
     expect(superRole.permissions).toHaveLength(PERMISSION_KEYS.length);
     expect(await prisma.featureFlag.count()).toBe(DEFAULT_FLAGS.length);
     expect(await prisma.appVersionPolicy.count()).toBe(6);
 
-    const users = await prisma.user.findMany({ where: { email: 'owner@example.com' }, include: { identities: true, adminUser: true } });
+    const users = await prisma.user.findMany({
+      where: { email: 'owner@example.com' },
+      include: { identities: true, adminUser: true },
+    });
     expect(users).toHaveLength(1);
     expect(users[0].identities[0].provider).toBe('PASSWORD');
     // the second run must not have reset the password
@@ -38,7 +44,10 @@ describe('seed', () => {
     expect(await prisma.city.count()).toBe(2);
     expect(await prisma.zone.count()).toBe(4);
     expect((await prisma.city.findUnique({ where: { slug: 'mehsana' } })).isActive).toBe(false);
-    const north = await prisma.zone.findFirst({ where: { slug: 'unjha-north' }, include: { serviceAreas: true } });
+    const north = await prisma.zone.findFirst({
+      where: { slug: 'unjha-north' },
+      include: { serviceAreas: true },
+    });
     expect(north.serviceAreas).toHaveLength(1);
     expect(Number(north.minLat)).toBeCloseTo(23.815, 6);
     expect(await prisma.rider.count()).toBe(2);

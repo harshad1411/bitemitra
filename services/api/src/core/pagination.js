@@ -6,7 +6,10 @@ import { AppError } from './errors.js';
  * @param {{ cursor?: string, limit: number }} q
  */
 export function idPage(q) {
-  if (q.cursor && !/^[0-9a-f-]{36}$/i.test(q.cursor)) throw new AppError('VALIDATION_FAILED', 'Invalid cursor.', { fieldErrors: { cursor: ['Invalid cursor'] } });
+  if (q.cursor && !/^[0-9a-f-]{36}$/i.test(q.cursor))
+    throw new AppError('VALIDATION_FAILED', 'Invalid cursor.', {
+      fieldErrors: { cursor: ['Invalid cursor'] },
+    });
   return {
     where: q.cursor ? { id: { lt: q.cursor } } : {},
     orderBy: { id: /** @type {const} */ ('desc') },
@@ -25,12 +28,18 @@ export function namePage(q) {
     try {
       parsed = JSON.parse(Buffer.from(q.cursor, 'base64url').toString('utf8'));
     } catch {
-      throw new AppError('VALIDATION_FAILED', 'Invalid cursor.', { fieldErrors: { cursor: ['Invalid cursor'] } });
+      throw new AppError('VALIDATION_FAILED', 'Invalid cursor.', {
+        fieldErrors: { cursor: ['Invalid cursor'] },
+      });
     }
     const [name, id] = parsed;
     where = { OR: [{ name: { gt: name } }, { name, id: { gt: id } }] };
   }
-  return { where, orderBy: [{ name: /** @type {const} */ ('asc') }, { id: /** @type {const} */ ('asc') }], take: q.limit + 1 };
+  return {
+    where,
+    orderBy: [{ name: /** @type {const} */ ('asc') }, { id: /** @type {const} */ ('asc') }],
+    take: q.limit + 1,
+  };
 }
 
 /**
@@ -43,6 +52,10 @@ export function toPage(rows, limit, kind = 'id') {
   const items = rows.slice(0, limit);
   const last = items[items.length - 1];
   const nextCursor =
-    rows.length > limit && last ? (kind === 'id' ? last.id : Buffer.from(JSON.stringify([last.name, last.id])).toString('base64url')) : null;
+    rows.length > limit && last
+      ? kind === 'id'
+        ? last.id
+        : Buffer.from(JSON.stringify([last.name, last.id])).toString('base64url')
+      : null;
   return { items, nextCursor };
 }

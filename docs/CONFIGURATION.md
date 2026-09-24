@@ -36,31 +36,34 @@ inherited value" display (§32), and documentation generation.
 Resolution uses the same hierarchy and ranking as pricing rules ([PRICING.md §2](PRICING.md#2-rule-precedence)).
 Resolution reads settings from PostgreSQL with a short in-process cache (per API instance, invalidated on write in that instance, ≤ 30 s staleness elsewhere). **No Redis in Phase 1** (D-9); a shared cache is introduced only if measurements show it is needed.
 
-## 3. Initial setting keys (defaults; all admin-editable)
+## 3. Setting keys (generated from the registry)
 
-| Section | Key | Default |
-|---|---|---|
-| General | `support.phone`, `support.email`, `support.whatsapp` | — |
-| Auth | `auth.methods` (per app: PHONE_OTP, EMAIL_OTP, GOOGLE, APPLE, PASSWORD) | customer/restaurant/rider: PHONE_OTP · admin: PASSWORD |
-| Auth | `auth.otp.ttlSec`, `auth.otp.maxAttempts`, `auth.otp.resendCooldownSec` | 300, 5, 30 |
-| General | `maintenance.enabled` / `maintenance.message` (per app) | false |
-| Orders | `orders.restaurantAcceptance.timeoutSec` / `.fallback` / `.escalationGraceSec` | 180 / ESCALATE_TO_OPS / 120 |
-| Orders | `orders.minOrderPaise` | 0 |
-| Orders | `orders.maxPrepTimeMinutes` | 60 |
-| Delivery | `delivery.maxDistanceM`, `delivery.distance.fallback`, `delivery.distance.roadFactor` | 7000, HAVERSINE_FACTOR, 1.3 (OD-14) |
-| Dispatch | `dispatch.startAt`, `.offerTimeoutSec`, `.maxOffers`, `.noRiderEscalationSec`, `.maxActiveOrders`, weights | ON_ACCEPT, 30, 5, 600, 1 |
-| Payments | `payments.expirySec` | 900 |
-| COD | `cod.enabled`, `cod.maxOrderValuePaise`, `cod.riderLimitPaise`, `cod.maxRefusedOrders`, `cod.netAgainstEarnings` | true, 100000, 500000, 2, true |
-| Pricing | `pricing.finalRounding.mode` / `.direction`, `pricing.surcharges.maxTotalPaise`, `pricing.promotionStacking` | NEAREST_1 / HALF_UP, 5000, ONE_PROMO_ONE_COUPON (OD-16) |
-| Pricing | `pricing.markup.disclosure` | NONE — pending legal (OD-8, Q-4) |
-| Tips | `tips.riderShareBps` | 10000 = 100% to delivery partner (OD-15) |
-| Payments | `payments.enabledMethods` per city/zone | UPI, CARD, NETBANKING, WALLET, COD |
-| Refunds | `refunds.approvalThresholdPaise` | 100000 |
-| Settlements | `settlements.defaultSchedule`, `.weeklyRunDay`, `.minPayoutPaise`, `.reservePercentBps` | WEEKLY, MONDAY, 10000, 0 |
-| Riders | `riders.settlementSchedule`, `rider.locationIntervalSec` | WEEKLY, 10 |
-| Customer | `customer.guestBrowsing` | true |
+Every key below exists in `packages/config/src/settings-registry.js` with a zod schema. **Phase** = when code first reads the value (earlier, it is stored and editable but has no effect — the admin labels this). Money is integer paise, rates are basis points. Placeholder amounts must be set by the owner before launch (A-16).
 
-(All money defaults are **placeholders** for the owner to set before launch — A-16. Keys whose phase has not started are registered now so the admin can show them, but nothing reads them yet.)
+| Section | Key | Label | Overridable at | Phase | Flags | Default |
+|---|---|---|---|---|---|---|
+| General | `support.contact` | Support contact | GLOBAL, COUNTRY, STATE, CITY, ZONE | 1 | — | `{"phone": null, "email": null, "whatsapp": null}` |
+| General | `maintenance` | Maintenance mode | GLOBAL | 1 | reason required | `{"enabled": false, "message": null, "apps": ["CUSTOMER", "RESTAURANT", "RIDER"]}` |
+| General | `operations.serviceHours` | Service hours | GLOBAL, COUNTRY, STATE, CITY, ZONE | 5 | — | `{"start": "00:00", "end": "00:00"}` |
+| Security | `auth.methods` | Sign-in methods per app | GLOBAL | 1 | reason required | `{"CUSTOMER": ["PHONE_OTP"], "RESTAURANT": ["PHONE_OTP"], "RIDER": ["PHONE_OTP"], "ADMIN": ["PASSWORD"]}` |
+| Security | `auth.otp` | OTP policy | GLOBAL | 1 | reason required | `{"ttlSec": 300, "maxAttempts": 5, "resendCooldownSec": 30, "maxPerHour": 5}` |
+| Security | `auth.adminLockout` | Admin lockout | GLOBAL | 1 | reason required | `{"maxFailedLogins": 5, "lockMinutes": 15}` |
+| Orders | `orders.restaurantAcceptance` | Restaurant acceptance timeout | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 5 | — | `{"timeoutSec": 180, "fallback": "ESCALATE_TO_OPS", "escalationGraceSec": 120}` |
+| Orders | `orders.preparation` | Preparation time limits | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 5 | — | `{"maxPrepMinutes": 60, "lateAfterMinutes": 15}` |
+| Orders | `orders.limits` | Order limits | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 4 | **placeholder** | `{"minOrderPaise": 0, "maxOrderPaise": 5000000, "maxItems": 50}` |
+| Delivery | `delivery.distance` | Distance rules | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 3 | — | `{"maxDistanceM": 7000, "fallback": "HAVERSINE_FACTOR", "roadFactorBps": 13000}` |
+| Delivery | `dispatch.offers` | Dispatch offers | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"startAt": "ON_ACCEPT", "leadMinutes": 10, "offerTimeoutSec": 30, "maxOffers": 5, "noRiderEscalationSec": 600, "maxActiveOrders": 1}` |
+| Payments | `payments.methods` | Payment methods | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 7 | — | `{"enabled": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"], "expirySec": 900}` |
+| COD | `cod` | Cash on delivery | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 6 | reason required, **placeholder** | `{"enabled": true, "maxOrderValuePaise": 100000, "riderLimitPaise": 500000, "maxRefusedOrders": 2, "netAgainstEarnings": true}` |
+| Payments | `refunds.approval` | Refund approval threshold | GLOBAL | 7 | reason required, **placeholder** | `{"thresholdPaise": 100000}` |
+| Pricing | `pricing.finalRounding` | Final bill rounding | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required | `{"mode": "NEAREST_1", "direction": "HALF_UP", "absorbedBy": "PLATFORM"}` |
+| Pricing | `pricing.markupDisclosure` | Markup disclosure | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required, **legal review** | `"NONE"` |
+| Pricing | `pricing.surcharges` | Surcharge cap and promotion stacking | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | **placeholder** | `{"maxTotalPaise": 5000, "promotionStacking": "ONE_PROMO_ONE_COUPON"}` |
+| Pricing | `tips` | Tips | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required | `{"enabled": true, "riderShareBps": 10000, "presetsPaise": [1000, 2000, 3000]}` |
+| Settlements | `settlements.restaurants` | Restaurant settlements | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 8 | reason required, **placeholder** | `{"schedule": "WEEKLY", "weeklyRunDay": "MONDAY", "minPayoutPaise": 10000, "reservePercentBps": 0}` |
+| Settlements | `settlements.riders` | Delivery partner payouts | GLOBAL, COUNTRY, STATE, CITY, ZONE | 8 | reason required, **placeholder** | `{"schedule": "WEEKLY", "minPayoutPaise": 10000}` |
+| Delivery | `riders.location` | Delivery partner location updates | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"tripIntervalSec": 10, "idleIntervalSec": 30}` |
+| Customer | `customer.guestBrowsing` | Guest browsing | GLOBAL, COUNTRY, STATE, CITY, ZONE | 3 | — | `true` |
 
 ## 4. Feature flags (§51)
 

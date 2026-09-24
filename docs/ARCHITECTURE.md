@@ -45,9 +45,9 @@ commission, earning or payable; clients display what the API returns (spec §9, 
 | Contracts | zod schemas in `@jamzo/validation` are the runtime source of truth; JSDoc `@typedef`s for editors |
 | Static checking | `tsc --noEmit` with `checkJs` over Node packages and services (checker only, D-1) |
 | Runtime | Node.js ≥ 22.12 (22 LTS today; 24 LTS in Phase 10) |
-| Monorepo | pnpm workspaces + Turborepo |
+| Monorepo | pnpm workspaces (hoisted layout + catalog of Expo/React Native versions — D-2) + Turborepo |
 | Lint / format | ESLint 9 flat config (+ react, react-hooks, jsdoc plugins) + Prettier |
-| Tests | Vitest (packages, API, admin components), PGlite/PostgreSQL for DB tests, Jest-Expo + React Native Testing Library (mobile), Playwright (admin E2E), Maestro (mobile E2E, when simulators are available), k6 (load, later) |
+| Tests | Vitest (packages, API, workers) on real PostgreSQL (embedded locally, service container in CI), Jest-Expo + React Native Testing Library (mobile), Playwright (admin E2E), Maestro (mobile E2E, when simulators are available), k6 (load, later) |
 
 ## 3. Repository layout
 

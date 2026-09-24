@@ -1,0 +1,42 @@
+{
+  "name": "@jamzo/restaurant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jamzo Restaurant Partner app (Expo, Android + iOS).",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "run:android": "expo run:android",
+    "run:ios": "expo run:ios",
+    "test": "jest --passWithNoTests",
+    "export": "expo export --platform android --platform ios --output-dir dist",
+    "prebuild:check": "expo prebuild --no-install --clean"
+  },
+  "dependencies": {
+    "@jamzo/config": "workspace:*",
+    "@jamzo/mobile-foundation": "workspace:*",
+    "@jamzo/mobile-ui": "workspace:*",
+    "@react-native-community/netinfo": "catalog:",
+    "expo": "catalog:",
+    "expo-constants": "catalog:",
+    "expo-device": "catalog:",
+    "expo-linking": "catalog:",
+    "expo-notifications": "catalog:",
+    "expo-router": "catalog:",
+    "expo-secure-store": "catalog:",
+    "expo-splash-screen": "catalog:",
+    "expo-status-bar": "catalog:",
+    "expo-system-ui": "catalog:",
+    "react": "catalog:",
+    "react-native": "catalog:",
+    "react-native-safe-area-context": "catalog:",
+    "react-native-screens": "catalog:"
+  },
+  "devDependencies": {
+    "@testing-library/react-native": "catalog:",
+    "jest": "catalog:",
+    "jest-expo": "catalog:"
+  }
+}

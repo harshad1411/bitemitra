@@ -15,7 +15,8 @@ const SAFE_KEY = /^[a-zA-Z0-9][a-zA-Z0-9/_.-]{0,300}$/;
 
 /** @param {string} key */
 export function assertSafeKey(key) {
-  if (!SAFE_KEY.test(key) || key.includes('..') || key.includes('//')) throw new Error(`Unsafe storage key: ${key}`);
+  if (!SAFE_KEY.test(key) || key.includes('..') || key.includes('//'))
+    throw new Error(`Unsafe storage key: ${key}`);
   return key;
 }
 
@@ -64,9 +65,19 @@ export function createStorage(env) {
  * @returns {{ mime: string, ext: string } | null}
  */
 export function sniffImage(buf) {
-  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return { mime: 'image/jpeg', ext: 'jpg' };
-  if (buf.length >= 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { mime: 'image/png', ext: 'png' };
-  if (buf.length >= 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP') return { mime: 'image/webp', ext: 'webp' };
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)
+    return { mime: 'image/jpeg', ext: 'jpg' };
+  if (
+    buf.length >= 8 &&
+    buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  )
+    return { mime: 'image/png', ext: 'png' };
+  if (
+    buf.length >= 12 &&
+    buf.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    buf.subarray(8, 12).toString('ascii') === 'WEBP'
+  )
+    return { mime: 'image/webp', ext: 'webp' };
   return null;
 }
 

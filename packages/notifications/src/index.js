@@ -31,7 +31,10 @@ export function createConsoleSmsProvider({ logger, keep = 50 } = {}) {
       sent.push({ to, text, purpose });
       if (sent.length > keep) sent.shift();
       // Intentionally includes the text: this provider exists so developers can read OTPs locally.
-      logger?.info({ channel: 'SMS', to, purpose, devOnlyText: text }, 'console SMS provider (development only)');
+      logger?.info(
+        { channel: 'SMS', to, purpose, devOnlyText: text },
+        'console SMS provider (development only)',
+      );
       return { providerRef: ref('console-sms') };
     },
   };
@@ -49,7 +52,10 @@ export function createConsoleEmailProvider({ logger, keep = 50 } = {}) {
     async send({ to, subject, text, purpose }) {
       sent.push({ to, subject, text, purpose });
       if (sent.length > keep) sent.shift();
-      logger?.info({ channel: 'EMAIL', to, subject, purpose, devOnlyText: text }, 'console email provider (development only)');
+      logger?.info(
+        { channel: 'EMAIL', to, subject, purpose, devOnlyText: text },
+        'console email provider (development only)',
+      );
       return { providerRef: ref('console-email') };
     },
   };

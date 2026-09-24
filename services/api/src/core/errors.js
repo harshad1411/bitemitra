@@ -19,7 +19,8 @@ export class AppError extends Error {
 }
 
 export const notFound = (what = 'Resource') => new AppError('NOT_FOUND', `${what} not found.`);
-export const forbidden = (message = 'You do not have permission to do this.') => new AppError('FORBIDDEN', message);
+export const forbidden = (message = 'You do not have permission to do this.') =>
+  new AppError('FORBIDDEN', message);
 export const conflict = (message, details) => new AppError('CONFLICT', message, { details });
 export const unauthenticated = (message = 'Please sign in.') => new AppError('UNAUTHENTICATED', message);
 export const invalid = (message, fieldErrors) => new AppError('VALIDATION_FAILED', message, { fieldErrors });

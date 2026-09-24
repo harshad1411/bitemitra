@@ -6,7 +6,10 @@ const design = await readFile(new URL('../prisma/design/schema.design.prisma', i
 const prismaEnum = (name) => {
   const m = new RegExp(`enum ${name} \\{([^}]*)\\}`).exec(design);
   if (!m) throw new Error(`enum ${name} not found`);
-  return m[1].split('\n').map((l) => l.replace(/\/\/.*$/, '').trim()).filter(Boolean);
+  return m[1]
+    .split('\n')
+    .map((l) => l.replace(/\/\/.*$/, '').trim())
+    .filter(Boolean);
 };
 
 describe('shared-types mirror the database enums', () => {

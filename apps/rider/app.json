@@ -1,0 +1,6 @@
+{
+  "expo": {
+    "assetBundlePatterns": ["**/*"],
+    "experiments": { "typedRoutes": false }
+  }
+}

@@ -67,7 +67,8 @@ export function headers(appId = 'CUSTOMER', extra = {}) {
   };
 }
 
-export const bearer = (token, appId = 'ADMIN', extra = {}) => headers(appId, { authorization: `Bearer ${token}`, ...extra });
+export const bearer = (token, appId = 'ADMIN', extra = {}) =>
+  headers(appId, { authorization: `Bearer ${token}`, ...extra });
 
 /** Reads the last OTP sent to a destination by the console provider. */
 export function lastOtp(provider, to) {
@@ -77,17 +78,32 @@ export function lastOtp(provider, to) {
 
 /** Full phone-OTP sign-in for a mobile app. */
 export async function mobileLogin(ctx, appId, phone) {
-  const req = await ctx.app.inject({ method: 'POST', url: '/v1/auth/otp/request', headers: headers(appId), payload: { channel: 'SMS', destination: phone } });
+  const req = await ctx.app.inject({
+    method: 'POST',
+    url: '/v1/auth/otp/request',
+    headers: headers(appId),
+    payload: { channel: 'SMS', destination: phone },
+  });
   if (req.statusCode !== 200) throw new Error(`otp request failed: ${req.statusCode} ${req.body}`);
   const { challengeId } = req.json();
-  const res = await ctx.app.inject({ method: 'POST', url: '/v1/auth/otp/verify', headers: headers(appId), payload: { challengeId, code: lastOtp(ctx.sms, normalizeIndianMobile(phone)) } });
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url: '/v1/auth/otp/verify',
+    headers: headers(appId),
+    payload: { challengeId, code: lastOtp(ctx.sms, normalizeIndianMobile(phone)) },
+  });
   if (res.statusCode !== 200) throw new Error(`otp verify failed: ${res.statusCode} ${res.body}`);
   return res.json();
 }
 
 /** Admin password sign-in; returns the access token and the refresh cookie. */
 export async function adminLogin(ctx, email = SUPER.email, password = SUPER.password) {
-  const res = await ctx.app.inject({ method: 'POST', url: '/v1/admin/auth/login', headers: headers('ADMIN'), payload: { email, password } });
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url: '/v1/admin/auth/login',
+    headers: headers('ADMIN'),
+    payload: { email, password },
+  });
   if (res.statusCode !== 200) throw new Error(`admin login failed: ${res.statusCode} ${res.body}`);
   const cookie = res.cookies.find((c) => c.name === 'jz_admin_rt');
   return { ...res.json(), cookie };
@@ -118,7 +134,11 @@ export function multipart(fields, file) {
     parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`));
   }
   if (file) {
-    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.filename}"\r\nContent-Type: ${file.contentType}\r\n\r\n`));
+    parts.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.filename}"\r\nContent-Type: ${file.contentType}\r\n\r\n`,
+      ),
+    );
     parts.push(file.content, Buffer.from('\r\n'));
   }
   parts.push(Buffer.from(`--${boundary}--\r\n`));

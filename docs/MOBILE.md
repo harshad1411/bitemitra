@@ -31,9 +31,9 @@ release workflow. **No store publication happens during development** (OD-3).
 
 | Concern | Choice |
 |---|---|
-| Framework | Expo SDK 57 (React Native 0.86), JavaScript — `.js`/`.jsx` only |
+| Framework | Expo SDK 57 (React Native 0.86.3, React 19.2.3), JavaScript — `.js`/`.jsx` only; one version for all three apps via the pnpm catalog (SDK upgrades are coordinated, releases are not — D-30) |
 | Navigation / deep links | Expo Router (`src/app/`) |
-| Server state | TanStack Query |
+| Server state | TanStack Query — introduced with the first data-heavy screens (Phase 3, D-29) |
 | Tokens | `expo-secure-store` (Keychain / Android Keystore) |
 | Networking | `@jamzo/api-client` via `@jamzo/mobile-foundation` |
 | Network state | `@react-native-community/netinfo` |
@@ -44,12 +44,12 @@ release workflow. **No store publication happens during development** (OD-3).
 
 | Concern | What the package provides |
 |---|---|
-| Environment | `getAppEnv()` from `expo-constants` `extra` (API URL, app variant) validated with zod |
+| Environment | `getAppEnv()` from `expo-constants` `extra` (API URL, variant, schemes, EAS project id); fails loudly if the API URL is missing |
 | Secure storage | token store on `expo-secure-store` |
 | API client | `@jamzo/api-client` bound to the app id, version and platform; automatic refresh; Idempotency-Key on mutations |
-| Authentication | `SessionProvider`: restore → sign in (OTP request/verify) → sign out; `useSession()` |
+| Authentication | `JamzoProvider` session: restore on launch → phone OTP sign-in (`PhoneSignIn`) → sign out; read via `useJamzo().session` |
 | Version check / forced & optional update | `AppGate` decides from remote config: maintenance → force update → optional update banner |
-| Remote configuration | `RemoteConfigProvider` fetches `/v1/app-config`, refreshes on foreground |
+| Remote configuration | `JamzoProvider` fetches `/v1/app-config` on launch and whenever the app returns to the foreground |
 | Push registration | `registerForPush()` → permission → Expo push token → API; reports a clear status when it cannot (simulator, no EAS project id, denied) |
 | Deep linking | Expo Router scheme per app; `parseDeepLink()` helper |
 | Network / offline | `useNetwork()` + `OfflineBanner` |

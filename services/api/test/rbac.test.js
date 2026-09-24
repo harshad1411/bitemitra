@@ -31,9 +31,16 @@ describe('deny by default', () => {
 
   it('admin endpoints reject non-admin apps and anonymous callers', async () => {
     const customer = await mobileLogin(ctx, 'CUSTOMER', '9876511111');
-    const asCustomer = await ctx.app.inject({ method: 'GET', url: '/v1/admin/dashboard', headers: bearer(customer.accessToken, 'CUSTOMER') });
+    const asCustomer = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/admin/dashboard',
+      headers: bearer(customer.accessToken, 'CUSTOMER'),
+    });
     expect(asCustomer.statusCode).toBe(403);
-    expect((await ctx.app.inject({ method: 'GET', url: '/v1/admin/dashboard', headers: headers('ADMIN') })).statusCode).toBe(401);
+    expect(
+      (await ctx.app.inject({ method: 'GET', url: '/v1/admin/dashboard', headers: headers('ADMIN') }))
+        .statusCode,
+    ).toBe(401);
   });
 });
 
@@ -80,23 +87,68 @@ describe('city scoping (City Manager)', () => {
       cityId,
       slug,
       name: 'Test zone',
-      geometry: { type: 'Polygon', coordinates: [[[72.30, 23.70], [72.31, 23.70], [72.31, 23.71], [72.30, 23.71], [72.30, 23.70]]] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [72.3, 23.7],
+            [72.31, 23.7],
+            [72.31, 23.71],
+            [72.3, 23.71],
+            [72.3, 23.7],
+          ],
+        ],
+      },
     });
-    const own = await ctx.app.inject({ method: 'POST', url: '/v1/admin/geo/zones', headers: bearer(token), payload: zone(unjha.id, 'cm-zone') });
+    const own = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/geo/zones',
+      headers: bearer(token),
+      payload: zone(unjha.id, 'cm-zone'),
+    });
     expect(own.statusCode).toBe(201);
-    const other = await ctx.app.inject({ method: 'POST', url: '/v1/admin/geo/zones', headers: bearer(token), payload: zone(mehsana.id, 'cm-zone') });
+    const other = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/geo/zones',
+      headers: bearer(token),
+      payload: zone(mehsana.id, 'cm-zone'),
+    });
     expect(other.statusCode).toBe(403);
     const state = await ctx.prisma.state.findFirstOrThrow();
-    const city = await ctx.app.inject({ method: 'POST', url: '/v1/admin/geo/cities', headers: bearer(token), payload: { stateId: state.id, slug: 'surat', name: 'Surat', centerLat: 21.17, centerLng: 72.83 } });
+    const city = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/geo/cities',
+      headers: bearer(token),
+      payload: { stateId: state.id, slug: 'surat', name: 'Surat', centerLat: 21.17, centerLng: 72.83 },
+    });
     expect(city.statusCode).toBe(403);
   });
 
   it('can override settings for their city only', async () => {
     const write = (scopeRefId) =>
-      ctx.app.inject({ method: 'PUT', url: '/v1/admin/settings', headers: bearer(token), payload: { key: 'orders.limits', scope: 'CITY', scopeRefId, value: { minOrderPaise: 9900, maxOrderPaise: 5_000_000, maxItems: 50 } } });
+      ctx.app.inject({
+        method: 'PUT',
+        url: '/v1/admin/settings',
+        headers: bearer(token),
+        payload: {
+          key: 'orders.limits',
+          scope: 'CITY',
+          scopeRefId,
+          value: { minOrderPaise: 9900, maxOrderPaise: 5_000_000, maxItems: 50 },
+        },
+      });
     expect((await write(unjha.id)).statusCode).toBe(200);
     expect((await write(mehsana.id)).statusCode).toBe(403);
-    const global = await ctx.app.inject({ method: 'PUT', url: '/v1/admin/settings', headers: bearer(token), payload: { key: 'orders.limits', scope: 'GLOBAL', value: { minOrderPaise: 0, maxOrderPaise: 5_000_000, maxItems: 50 } } });
+    const global = await ctx.app.inject({
+      method: 'PUT',
+      url: '/v1/admin/settings',
+      headers: bearer(token),
+      payload: {
+        key: 'orders.limits',
+        scope: 'GLOBAL',
+        value: { minOrderPaise: 0, maxOrderPaise: 5_000_000, maxItems: 50 },
+      },
+    });
     expect(global.statusCode).toBe(403);
   });
 });
@@ -109,10 +161,20 @@ describe('no self-escalation', () => {
       method: 'POST',
       url: '/v1/admin/users',
       headers: bearer(admin.accessToken),
-      payload: { email: 'new-super@jamzo.test', name: 'New Super', password: 'Correct-Horse-9', grants: [{ roleId: superRole.id }] },
+      payload: {
+        email: 'new-super@jamzo.test',
+        name: 'New Super',
+        password: 'Correct-Horse-9',
+        grants: [{ roleId: superRole.id }],
+      },
     });
     expect(res.statusCode).toBe(403);
-    const role = await ctx.app.inject({ method: 'POST', url: '/v1/admin/roles', headers: bearer(admin.accessToken), payload: { key: 'SNEAKY', name: 'Sneaky', permissions: ['rbac.super'] } });
+    const role = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/roles',
+      headers: bearer(admin.accessToken),
+      payload: { key: 'SNEAKY', name: 'Sneaky', permissions: ['rbac.super'] },
+    });
     expect(role.statusCode).toBe(403);
   });
 
@@ -122,14 +184,31 @@ describe('no self-escalation', () => {
       method: 'POST',
       url: '/v1/admin/users',
       headers: bearer(superToken),
-      payload: { email: 'cm2@jamzo.test', name: 'CM Two', password: 'Correct-Horse-9', grants: [{ roleId: cm.id }] },
+      payload: {
+        email: 'cm2@jamzo.test',
+        name: 'CM Two',
+        password: 'Correct-Horse-9',
+        grants: [{ roleId: cm.id }],
+      },
     });
     expect(noCity.statusCode).toBe(400);
     const superRole = await ctx.prisma.role.findUniqueOrThrow({ where: { key: 'SUPER_ADMIN' } });
-    const edit = await ctx.app.inject({ method: 'PATCH', url: `/v1/admin/roles/${superRole.id}`, headers: bearer(superToken), payload: { permissions: [], reason: 'try' } });
+    const edit = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/roles/${superRole.id}`,
+      headers: bearer(superToken),
+      payload: { permissions: [], reason: 'try' },
+    });
     expect(edit.statusCode).toBe(403);
-    const me = await ctx.prisma.adminUser.findFirstOrThrow({ where: { user: { email: 'super@jamzo.test' } } });
-    const self = await ctx.app.inject({ method: 'PATCH', url: `/v1/admin/users/${me.id}`, headers: bearer(superToken), payload: { isActive: false, reason: 'try' } });
+    const me = await ctx.prisma.adminUser.findFirstOrThrow({
+      where: { user: { email: 'super@jamzo.test' } },
+    });
+    const self = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/users/${me.id}`,
+      headers: bearer(superToken),
+      payload: { isActive: false, reason: 'try' },
+    });
     expect(self.statusCode).toBe(403);
   });
 });
@@ -141,7 +220,12 @@ describe('admin user lifecycle', () => {
       method: 'POST',
       url: '/v1/admin/users',
       headers: bearer(superToken, 'ADMIN', { 'idempotency-key': 'create-ops-1' }),
-      payload: { email: 'Ops.Person@Jamzo.test', name: 'Ops Person', password: 'Correct-Horse-9', grants: [{ roleId: ops.id }] },
+      payload: {
+        email: 'Ops.Person@Jamzo.test',
+        name: 'Ops Person',
+        password: 'Correct-Horse-9',
+        grants: [{ roleId: ops.id }],
+      },
     });
     expect(created.statusCode).toBe(201);
     const opsAdmin = created.json();
@@ -151,7 +235,12 @@ describe('admin user lifecycle', () => {
       method: 'POST',
       url: '/v1/admin/users',
       headers: bearer(superToken, 'ADMIN', { 'idempotency-key': 'create-ops-1' }),
-      payload: { email: 'Ops.Person@Jamzo.test', name: 'Ops Person', password: 'Correct-Horse-9', grants: [{ roleId: ops.id }] },
+      payload: {
+        email: 'Ops.Person@Jamzo.test',
+        name: 'Ops Person',
+        password: 'Correct-Horse-9',
+        grants: [{ roleId: ops.id }],
+      },
     });
     expect(replay.headers['idempotent-replayed']).toBe('true');
     expect(replay.json().id).toBe(opsAdmin.id);
@@ -159,26 +248,67 @@ describe('admin user lifecycle', () => {
     const login = await adminLogin(ctx, 'ops.person@jamzo.test', 'Correct-Horse-9');
     expect((await get(login.accessToken, '/v1/admin/dashboard')).statusCode).toBe(200);
 
-    const noReason = await ctx.app.inject({ method: 'PATCH', url: `/v1/admin/users/${opsAdmin.id}`, headers: bearer(superToken), payload: { isActive: false } });
+    const noReason = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/users/${opsAdmin.id}`,
+      headers: bearer(superToken),
+      payload: { isActive: false },
+    });
     expect(noReason.statusCode).toBe(400);
-    const off = await ctx.app.inject({ method: 'PATCH', url: `/v1/admin/users/${opsAdmin.id}`, headers: bearer(superToken), payload: { isActive: false, reason: 'left the company' } });
+    const off = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/users/${opsAdmin.id}`,
+      headers: bearer(superToken),
+      payload: { isActive: false, reason: 'left the company' },
+    });
     expect(off.statusCode).toBe(200);
     expect((await get(login.accessToken, '/v1/admin/dashboard')).statusCode).toBe(401);
 
-    const audits = await ctx.prisma.auditLog.findMany({ where: { entityId: opsAdmin.id }, orderBy: { id: 'asc' } });
-    expect(audits.map((a) => a.action)).toEqual(expect.arrayContaining(['admin_user.create', 'admin.login', 'admin_user.update']));
+    const audits = await ctx.prisma.auditLog.findMany({
+      where: { entityId: opsAdmin.id },
+      orderBy: { id: 'asc' },
+    });
+    expect(audits.map((a) => a.action)).toEqual(
+      expect.arrayContaining(['admin_user.create', 'admin.login', 'admin_user.update']),
+    );
     const update = audits.find((a) => a.action === 'admin_user.update');
     expect(update.oldValue.isActive).toBe(true);
     expect(update.newValue).toMatchObject({ isActive: false, reason: 'left the company' });
   });
 
   it('custom roles: create, cannot delete while assigned, system roles cannot be deleted', async () => {
-    const role = await ctx.app.inject({ method: 'POST', url: '/v1/admin/roles', headers: bearer(superToken), payload: { key: 'SUPPORT_LEAD', name: 'Support lead', permissions: ['dashboard.view', 'audit.view'] } });
+    const role = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/roles',
+      headers: bearer(superToken),
+      payload: { key: 'SUPPORT_LEAD', name: 'Support lead', permissions: ['dashboard.view', 'audit.view'] },
+    });
     expect(role.statusCode).toBe(201);
-    const dup = await ctx.app.inject({ method: 'POST', url: '/v1/admin/roles', headers: bearer(superToken), payload: { key: 'SUPPORT_LEAD', name: 'Again', permissions: [] } });
+    const dup = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/admin/roles',
+      headers: bearer(superToken),
+      payload: { key: 'SUPPORT_LEAD', name: 'Again', permissions: [] },
+    });
     expect(dup.statusCode).toBe(409);
     const ops = await ctx.prisma.role.findUniqueOrThrow({ where: { key: 'OPERATIONS' } });
-    expect((await ctx.app.inject({ method: 'DELETE', url: `/v1/admin/roles/${ops.id}`, headers: bearer(superToken) })).statusCode).toBe(403);
-    expect((await ctx.app.inject({ method: 'DELETE', url: `/v1/admin/roles/${role.json().id}`, headers: bearer(superToken) })).statusCode).toBe(204);
+    expect(
+      (
+        await ctx.app.inject({
+          method: 'DELETE',
+          url: `/v1/admin/roles/${ops.id}`,
+          headers: bearer(superToken),
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await ctx.app.inject({
+          method: 'DELETE',
+          url: `/v1/admin/roles/${role.json().id}`,
+          headers: bearer(superToken),
+        })
+      ).statusCode,
+    ).toBe(204);
   });
 });

@@ -71,7 +71,10 @@ export function mobileIdentity(appId, variant = 'development') {
     variant,
     bundleId: app.bundleId + VARIANT_SUFFIX[variant],
     name: app.displayName + VARIANT_LABEL[variant],
-    scheme: variant === 'production' ? app.scheme : `${app.scheme}-${variant === 'development' ? 'dev' : 'preview'}`,
+    scheme:
+      variant === 'production'
+        ? app.scheme
+        : `${app.scheme}-${variant === 'development' ? 'dev' : 'preview'}`,
     associatedDomain: app.universalLinks ? BRAND.domain : null,
   };
 }

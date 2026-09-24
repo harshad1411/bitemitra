@@ -10,7 +10,10 @@ let server = null;
 export async function setup() {
   let adminUrl = process.env.TEST_DATABASE_URL;
   if (!adminUrl) {
-    server = await startPostgresServer({ dataDir: path.join(os.tmpdir(), `jamzo-test-pg-${process.pid}`), fresh: true });
+    server = await startPostgresServer({
+      dataDir: path.join(os.tmpdir(), `jamzo-test-pg-${process.pid}`),
+      fresh: true,
+    });
     adminUrl = server.adminUrl;
   }
   const template = `jamzo_template_${process.pid}`;
@@ -23,7 +26,9 @@ export async function teardown() {
   const adminUrl = process.env.TEST_DATABASE_URL;
   const template = process.env.TEST_TEMPLATE_DATABASE;
   if (adminUrl && template) {
-    await withClient(adminUrl, (c) => c.query(`DROP DATABASE IF EXISTS "${template}" WITH (FORCE)`)).catch(() => {});
+    await withClient(adminUrl, (c) => c.query(`DROP DATABASE IF EXISTS "${template}" WITH (FORCE)`)).catch(
+      () => {},
+    );
   }
   await server?.stop();
 }

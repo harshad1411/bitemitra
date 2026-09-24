@@ -1,0 +1,113 @@
+# Jamzo CI. Runs on every push and pull request. Native mobile builds run in their own jobs because they are
+# slow; they prove the Android and iOS projects compile (this cannot be done on the development Mac today).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, schema, tests
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Tests create a migrated template database and one database per test file on this server.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm verify:schema
+      - run: pnpm check:docs
+      - run: pnpm test
+      - name: Admin production build
+        run: pnpm --filter @jamzo/admin build
+
+  admin-e2e:
+    name: Admin end-to-end (Playwright)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @jamzo/admin exec playwright install --with-deps chromium
+      - run: pnpm --filter @jamzo/admin test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: admin-e2e-report, path: apps/admin/playwright-report, retention-days: 7 }
+
+  mobile-bundles:
+    name: Mobile JS bundles (${{ matrix.app }})
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix: { app: [customer, restaurant, rider] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - working-directory: apps/${{ matrix.app }}
+        run: npx expo-doctor
+      - working-directory: apps/${{ matrix.app }}
+        run: npx expo export --platform android --platform ios --output-dir dist
+
+  android-build:
+    name: Android debug build (${{ matrix.app }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: { app: [customer, restaurant, rider] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: pnpm install --frozen-lockfile
+      - working-directory: apps/${{ matrix.app }}
+        run: npx expo prebuild --platform android --no-install
+      - working-directory: apps/${{ matrix.app }}/android
+        run: ./gradlew assembleDebug --no-daemon
+
+  ios-build:
+    name: iOS simulator build (${{ matrix.app }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix: { app: [customer, restaurant, rider] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - working-directory: apps/${{ matrix.app }}
+        run: npx expo prebuild --platform ios
+      - working-directory: apps/${{ matrix.app }}/ios
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build | tail -50

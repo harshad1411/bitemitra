@@ -93,7 +93,9 @@ export async function generate() {
     out.push([...block.leading, ...kept].join('\n'));
   }
 
-  const header = blocks.filter((b) => b.kind === 'generator' || b.kind === 'datasource').map((b) => b.lines.join('\n'));
+  const header = blocks
+    .filter((b) => b.kind === 'generator' || b.kind === 'datasource')
+    .map((b) => b.lines.join('\n'));
   const enums = blocks
     .filter((b) => b.kind === 'enum' && usedEnums.has(b.name))
     .map((b) => [...b.leading, ...b.lines].join('\n'));
@@ -127,22 +129,37 @@ export async function generate() {
     ...activeStatements.map((s) => `${s.replace(/^(--[^\n]*\n)+/, '')};\n`),
   ].join('\n');
 
-  return { schema, constraints, activeCount: active.size, enumCount: usedEnums.size, constraintCount: activeStatements.length };
+  return {
+    schema,
+    constraints,
+    activeCount: active.size,
+    enumCount: usedEnums.size,
+    constraintCount: activeStatements.length,
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const check = process.argv.includes('--check');
   const result = await generate();
   if (check) {
-    const [a, b] = await Promise.all([readFile(outSchema, 'utf8').catch(() => ''), readFile(outConstraints, 'utf8').catch(() => '')]);
+    const [a, b] = await Promise.all([
+      readFile(outSchema, 'utf8').catch(() => ''),
+      readFile(outConstraints, 'utf8').catch(() => ''),
+    ]);
     if (a !== result.schema || b !== result.constraints) {
-      console.error('✗ prisma/schema.prisma or constraints.active.sql is out of date — run: pnpm --filter @jamzo/database schema:generate');
+      console.error(
+        '✗ prisma/schema.prisma or constraints.active.sql is out of date — run: pnpm --filter @jamzo/database schema:generate',
+      );
       process.exit(1);
     }
-    console.log(`✓ active schema up to date (${result.activeCount} models, ${result.enumCount} enums, ${result.constraintCount} constraints)`);
+    console.log(
+      `✓ active schema up to date (${result.activeCount} models, ${result.enumCount} enums, ${result.constraintCount} constraints)`,
+    );
   } else {
     await writeFile(outSchema, result.schema);
     await writeFile(outConstraints, result.constraints);
-    console.log(`✓ wrote schema.prisma (${result.activeCount} models, ${result.enumCount} enums) and constraints.active.sql (${result.constraintCount} statements)`);
+    console.log(
+      `✓ wrote schema.prisma (${result.activeCount} models, ${result.enumCount} enums) and constraints.active.sql (${result.constraintCount} statements)`,
+    );
   }
 }

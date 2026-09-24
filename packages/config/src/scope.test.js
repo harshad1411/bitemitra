@@ -54,7 +54,13 @@ describe('resolveScoped — most specific applicable rule wins', () => {
   it('respects effective windows (future-dated and expired rules are skipped)', () => {
     const at = new Date('2026-09-24T10:00:00Z');
     const rs = [
-      { id: 'old', scope: 'CITY', scopeRefId: 'unjha', effectiveFrom: '2026-01-01', effectiveTo: '2026-09-01' },
+      {
+        id: 'old',
+        scope: 'CITY',
+        scopeRefId: 'unjha',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: '2026-09-01',
+      },
       { id: 'current', scope: 'CITY', scopeRefId: 'unjha', effectiveFrom: '2026-09-01', effectiveTo: null },
       { id: 'future', scope: 'CITY', scopeRefId: 'unjha', effectiveFrom: '2026-10-01', effectiveTo: null },
     ];

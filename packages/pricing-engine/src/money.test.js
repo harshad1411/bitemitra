@@ -42,7 +42,10 @@ describe('money', () => {
     expect(allocate(4400, [22_000, 22_000])).toEqual([2200, 2200]);
     expect(allocate(0, [5, 5])).toEqual([0, 0]);
     for (let seed = 1; seed < 500; seed++) {
-      const weights = Array.from({ length: (seed % 7) + 1 }, (_, i) => ((seed * (i + 3)) % 997) + (i === 0 ? 1 : 0));
+      const weights = Array.from(
+        { length: (seed % 7) + 1 },
+        (_, i) => ((seed * (i + 3)) % 997) + (i === 0 ? 1 : 0),
+      );
       const total = (seed * 7919) % 100_000;
       const parts = allocate(total, weights);
       expect(parts.reduce((a, b) => a + b, 0)).toBe(total);

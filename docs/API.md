@@ -82,15 +82,85 @@ Rate limits per IP and per principal (stricter on auth/OTP), body size limits, s
 (unknown keys rejected), secure headers, CORS allow-list (admin origin only; mobile apps don't need
 CORS). Webhooks verify provider signatures on the raw body. See [SECURITY.md](SECURITY.md).
 
-## 7. Endpoint index
+## 7. Endpoint index (Phase 1)
 
-Filled in per phase. Phase 1 will document: `/v1/app-config`, `/v1/auth/otp/request`,
-`/v1/auth/otp/verify`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/admin/auth/login`, `/v1/me`,
-`/v1/geo/serviceability`, `/v1/admin/geo/*`, `/v1/admin/settings/*`, `/v1/admin/flags/*`,
-`/v1/admin/app-versions/*`, `/v1/admin/media/*`, `/v1/admin/roles/*`, `/v1/admin/audit-logs`.
+Request/response schemas are the zod schemas in `packages/validation/src/index.js` (the single source of
+truth); errors follow §3. Every admin route requires an ADMIN access token **and** the listed permission,
+checked on the server; City Manager grants are additionally limited to their city (RBAC.md). Mutating
+admin routes write an audit log entry in the same transaction.
 
-Each entry will list: method + path · auth · permission · request schema · response schema ·
-validation rules · error codes · example.
+<!-- routes:start -->
+
+_Generated from the route definitions by `pnpm docs:api` (51 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+
+| Method | Path | Auth | Apps | Permission | Rate limit |
+|---|---|---|---|---|---|
+| `GET` | `/health` | none | — | — |  |
+| `GET` | `/ready` | none | — | — |  |
+| `GET` | `/v1/admin/app-versions` | admin token | ADMIN | `config.view` |  |
+| `PUT` | `/v1/admin/app-versions/:appId/:platform` | admin token | ADMIN | `config.manage` |  |
+| `GET` | `/v1/admin/audit-logs` | admin token | ADMIN | `audit.view` |  |
+| `POST` | `/v1/admin/auth/login` | none | ADMIN | — | auth limit/min |
+| `GET` | `/v1/admin/dashboard` | admin token | ADMIN | `dashboard.view` |  |
+| `GET` | `/v1/admin/flags` | admin token | ADMIN | `config.view` |  |
+| `PUT` | `/v1/admin/flags/:key` | admin token | ADMIN | `flags.manage` |  |
+| `GET` | `/v1/admin/geo/cities` | admin token | ADMIN | `geo.view` |  |
+| `POST` | `/v1/admin/geo/cities` | admin token | ADMIN | `geo.manage` |  |
+| `GET` | `/v1/admin/geo/cities/:id` | admin token | ADMIN | `geo.view` |  |
+| `PATCH` | `/v1/admin/geo/cities/:id` | admin token | ADMIN | `geo.manage` |  |
+| `GET` | `/v1/admin/geo/countries` | admin token | ADMIN | `geo.view` |  |
+| `POST` | `/v1/admin/geo/countries` | admin token | ADMIN | `geo.manage` |  |
+| `POST` | `/v1/admin/geo/service-areas` | admin token | ADMIN | `geo.manage` |  |
+| `PATCH` | `/v1/admin/geo/service-areas/:id` | admin token | ADMIN | `geo.manage` |  |
+| `POST` | `/v1/admin/geo/states` | admin token | ADMIN | `geo.manage` |  |
+| `POST` | `/v1/admin/geo/zones` | admin token | ADMIN | `geo.manage` |  |
+| `GET` | `/v1/admin/geo/zones/:id` | admin token | ADMIN | `geo.view` |  |
+| `PATCH` | `/v1/admin/geo/zones/:id` | admin token | ADMIN | `geo.manage` |  |
+| `GET` | `/v1/admin/media` | admin token | ADMIN | `media.view` |  |
+| `POST` | `/v1/admin/media` | admin token | ADMIN | `media.manage` |  |
+| `DELETE` | `/v1/admin/media/:id` | admin token | ADMIN | `media.manage` |  |
+| `GET` | `/v1/admin/media/:id` | admin token | ADMIN | `media.view` |  |
+| `PATCH` | `/v1/admin/media/:id` | admin token | ADMIN | `media.manage` |  |
+| `GET` | `/v1/admin/permissions` | admin token | ADMIN | `roles.view` |  |
+| `GET` | `/v1/admin/roles` | admin token | ADMIN | `roles.view` |  |
+| `POST` | `/v1/admin/roles` | admin token | ADMIN | `roles.manage` |  |
+| `DELETE` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |
+| `GET` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.view` |  |
+| `PATCH` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |
+| `DELETE` | `/v1/admin/settings` | admin token | ADMIN | `config.manage` |  |
+| `GET` | `/v1/admin/settings` | admin token | ADMIN | `config.view` |  |
+| `PUT` | `/v1/admin/settings` | admin token | ADMIN | `config.manage` |  |
+| `GET` | `/v1/admin/settings/history` | admin token | ADMIN | `config.view` |  |
+| `GET` | `/v1/admin/users` | admin token | ADMIN | `admins.view` |  |
+| `POST` | `/v1/admin/users` | admin token | ADMIN | `admins.manage` |  |
+| `GET` | `/v1/admin/users/:id` | admin token | ADMIN | `admins.view` |  |
+| `PATCH` | `/v1/admin/users/:id` | admin token | ADMIN | `admins.manage` |  |
+| `GET` | `/v1/app-config` | optional | any | — |  |
+| `POST` | `/v1/auth/logout` | optional | any | — |  |
+| `POST` | `/v1/auth/otp/request` | none | CUSTOMER, RESTAURANT, RIDER | — | auth limit/min |
+| `POST` | `/v1/auth/otp/verify` | none | CUSTOMER, RESTAURANT, RIDER | — | 2× auth limit/min |
+| `POST` | `/v1/auth/refresh` | none | any | — | 60/min |
+| `POST` | `/v1/auth/social/:provider` | none | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `GET` | `/v1/geo/serviceability` | optional | any | — | 60/min |
+| `GET` | `/v1/me` | required | any | — |  |
+| `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `POST` | `/v1/me/devices` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `GET` | `/v1/media/files/*` | none | browser (no headers) | — |  |
+
+<!-- routes:end -->
+
+### Notes per area
+
+| Area | Behaviour worth knowing |
+|---|---|
+| OTP | `POST /v1/auth/otp/request` answers the same whether or not an account exists; resend cooldown and hourly cap per destination come from setting `auth.otp`; codes are stored only as HMAC hashes. `verify` counts attempts atomically. |
+| Sessions | Mobile apps get `refreshToken` in the body; the admin gets it as an httpOnly `SameSite=Strict` cookie scoped to `ADMIN_COOKIE_PATH`. Refresh rotates the token; reusing a rotated token revokes the whole session family. |
+| `/v1/me` | Returns `access.status` — `OK`, `PENDING_APPROVAL`, `NOT_REGISTERED` or `BLOCKED` — so partner apps never treat sign-in as approval (OD-13). |
+| Social sign-in | `/v1/auth/social/:provider` returns `501 AUTH_METHOD_UNAVAILABLE` until Google/Apple verification is implemented (D-20). |
+| Version gate | Mobile requests below the minimum version get `426 UPGRADE_REQUIRED`; maintenance returns `503 MAINTENANCE`; `/v1/app-config` always answers so apps can show the right screen. |
+| Settings | `PUT /v1/admin/settings` validates against the settings registry (key, allowed scope, value schema, business rules) and requires a reason for critical keys; `DELETE` resets to the inherited value; history survives resets. |
+| Media | `POST /v1/admin/media` takes one multipart image (JPEG/PNG/WebP detected from file content; SVG refused), stores it, and enqueues renditions via the outbox. `GET /v1/media/files/*` serves library images only. |
+| Idempotency | Create endpoints accept `Idempotency-Key`; replays return the original response with header `idempotent-replayed: true`. |
 
 ## Deprecations
 

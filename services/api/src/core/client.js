@@ -12,19 +12,36 @@ const PLATFORMS = new Set(['IOS', 'ANDROID', 'WEB']);
 export function readClient(request, { required }) {
   const appId = String(request.headers[CLIENT_HEADERS.appId] ?? '').toUpperCase() || null;
   const platform = String(request.headers[CLIENT_HEADERS.platform] ?? '').toUpperCase() || null;
-  const appVersion = request.headers[CLIENT_HEADERS.appVersion] ? String(request.headers[CLIENT_HEADERS.appVersion]).slice(0, 40) : null;
+  const appVersion = request.headers[CLIENT_HEADERS.appVersion]
+    ? String(request.headers[CLIENT_HEADERS.appVersion]).slice(0, 40)
+    : null;
   if (!appId) {
-    if (required) throw new AppError('VALIDATION_FAILED', 'Missing x-app-id header.', { fieldErrors: { 'x-app-id': ['Required'] } });
+    if (required)
+      throw new AppError('VALIDATION_FAILED', 'Missing x-app-id header.', {
+        fieldErrors: { 'x-app-id': ['Required'] },
+      });
     return { appId: null, platform, appVersion };
   }
-  if (!isKnownAppId(appId)) throw new AppError('VALIDATION_FAILED', 'Unknown x-app-id.', { fieldErrors: { 'x-app-id': ['Unknown app'] } });
+  if (!isKnownAppId(appId))
+    throw new AppError('VALIDATION_FAILED', 'Unknown x-app-id.', {
+      fieldErrors: { 'x-app-id': ['Unknown app'] },
+    });
   if (platform && !PLATFORMS.has(platform)) {
-    throw new AppError('VALIDATION_FAILED', 'Unknown x-platform.', { fieldErrors: { 'x-platform': ['Use IOS, ANDROID or WEB'] } });
+    throw new AppError('VALIDATION_FAILED', 'Unknown x-platform.', {
+      fieldErrors: { 'x-platform': ['Use IOS, ANDROID or WEB'] },
+    });
   }
   if (appId !== 'ADMIN' && required && !platform) {
-    throw new AppError('VALIDATION_FAILED', 'Missing x-platform header.', { fieldErrors: { 'x-platform': ['Required for mobile apps'] } });
+    throw new AppError('VALIDATION_FAILED', 'Missing x-platform header.', {
+      fieldErrors: { 'x-platform': ['Required for mobile apps'] },
+    });
   }
   return { appId, platform: platform ?? (appId === 'ADMIN' ? 'WEB' : null), appVersion };
 }
 
-export const ACTOR_TYPE_BY_APP = Object.freeze({ CUSTOMER: 'CUSTOMER', RESTAURANT: 'RESTAURANT_USER', RIDER: 'RIDER', ADMIN: 'ADMIN' });
+export const ACTOR_TYPE_BY_APP = Object.freeze({
+  CUSTOMER: 'CUSTOMER',
+  RESTAURANT: 'RESTAURANT_USER',
+  RIDER: 'RIDER',
+  ADMIN: 'ADMIN',
+});

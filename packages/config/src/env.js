@@ -2,9 +2,7 @@
 import { z } from 'zod';
 
 const APP_ENVS = ['development', 'test', 'staging', 'production'];
-const bool = z
-  .enum(['true', 'false', '1', '0'])
-  .transform((v) => v === 'true' || v === '1');
+const bool = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1');
 
 const base = {
   APP_ENV: z.enum(APP_ENVS).default('development'),
@@ -24,7 +22,12 @@ export const apiEnvSchema = z
     CORS_ORIGINS: z
       .string()
       .default('')
-      .transform((s) => s.split(',').map((o) => o.trim()).filter(Boolean)),
+      .transform((s) =>
+        s
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean),
+      ),
     JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
     ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().min(60).max(3600).default(900),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
@@ -34,7 +37,11 @@ export const apiEnvSchema = z
     COOKIE_SECURE: bool.default(true),
     ADMIN_COOKIE_PATH: z.string().startsWith('/').default('/api/v1'),
     MEDIA_PUBLIC_BASE_URL: z.string().default('/v1/media/files'),
-    MEDIA_MAX_BYTES: z.coerce.number().int().min(1024).default(10 * 1024 * 1024),
+    MEDIA_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1024)
+      .default(10 * 1024 * 1024),
     RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(300),
     // Per-IP limit for sign-in endpoints (OTP request, admin login); OTP verify allows twice this.
     AUTH_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).default(10),
@@ -43,10 +50,30 @@ export const apiEnvSchema = z
     const live = env.APP_ENV === 'staging' || env.APP_ENV === 'production';
     if (!live) return;
     // Development-only providers must never run where real users exist (DECISIONS D-21, D-23).
-    if (env.SMS_PROVIDER === 'console') ctx.addIssue({ code: 'custom', path: ['SMS_PROVIDER'], message: 'console SMS provider is not allowed in staging/production' });
-    if (env.EMAIL_PROVIDER === 'console') ctx.addIssue({ code: 'custom', path: ['EMAIL_PROVIDER'], message: 'console email provider is not allowed in staging/production' });
-    if (env.MEDIA_STORAGE_DRIVER === 'local') ctx.addIssue({ code: 'custom', path: ['MEDIA_STORAGE_DRIVER'], message: 'local media storage is not allowed in staging/production' });
-    if (!env.COOKIE_SECURE) ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'cookies must be Secure in staging/production' });
+    if (env.SMS_PROVIDER === 'console')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SMS_PROVIDER'],
+        message: 'console SMS provider is not allowed in staging/production',
+      });
+    if (env.EMAIL_PROVIDER === 'console')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EMAIL_PROVIDER'],
+        message: 'console email provider is not allowed in staging/production',
+      });
+    if (env.MEDIA_STORAGE_DRIVER === 'local')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MEDIA_STORAGE_DRIVER'],
+        message: 'local media storage is not allowed in staging/production',
+      });
+    if (!env.COOKIE_SECURE)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['COOKIE_SECURE'],
+        message: 'cookies must be Secure in staging/production',
+      });
   });
 
 export const workerEnvSchema = z.object({

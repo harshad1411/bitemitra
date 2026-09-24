@@ -1,6 +1,14 @@
 // Configuration module (CONFIGURATION.md): hierarchical settings with history, feature flags, app version
 // policies and the remote config served to apps. Reads use a short in-process cache (no Redis — D-9).
-import { SETTINGS, evaluateFlag, getSettingDefinition, resolveScoped, scopeTargets, validateSetting, versionStatus } from '@jamzo/config';
+import {
+  SETTINGS,
+  evaluateFlag,
+  getSettingDefinition,
+  resolveScoped,
+  scopeTargets,
+  validateSetting,
+  versionStatus,
+} from '@jamzo/config';
 import { AppError, notFound } from '../../core/errors.js';
 import { audit } from '../../core/audit.js';
 
@@ -33,11 +41,18 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
   async function contextFor(scope, scopeRefId) {
     if (scope === 'GLOBAL') return {};
     if (PHASE_TARGETS_UNAVAILABLE.has(scope)) {
-      throw new AppError('VALIDATION_FAILED', `${scope} overrides become available when that entity exists (Phase 2+).`, {
-        fieldErrors: { scope: ['Not available yet'] },
-      });
+      throw new AppError(
+        'VALIDATION_FAILED',
+        `${scope} overrides become available when that entity exists (Phase 2+).`,
+        {
+          fieldErrors: { scope: ['Not available yet'] },
+        },
+      );
     }
-    if (!scopeRefId) throw new AppError('VALIDATION_FAILED', 'scopeRefId is required for non-global scopes.', { fieldErrors: { scopeRefId: ['Required'] } });
+    if (!scopeRefId)
+      throw new AppError('VALIDATION_FAILED', 'scopeRefId is required for non-global scopes.', {
+        fieldErrors: { scopeRefId: ['Required'] },
+      });
     if (scope === 'COUNTRY') {
       const c = await prisma.country.findUnique({ where: { id: scopeRefId } });
       if (!c) throw notFound('Country');
@@ -92,7 +107,10 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
       // Stored values are re-validated on read; an invalid stored value falls back to the default loudly.
       const parsed = def.schema.safeParse(/** @type {any} */ (winner.winner).value);
       if (!parsed.success) return { value: def.default, source: null, invalidStoredValue: true };
-      return { value: parsed.data, source: { scope: winner.winner.scope, scopeRefId: winner.winner.scopeRefId } };
+      return {
+        value: parsed.data,
+        source: { scope: winner.winner.scope, scopeRefId: winner.winner.scopeRefId },
+      };
     });
   }
 
@@ -104,8 +122,10 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
         if (bad.length) {
           return `${bad.join(' and ')} sign-in is not implemented yet (needs OAuth client ids — DECISIONS Q-6b).`;
         }
-        if (app === 'ADMIN' && (methods.length !== 1 || methods[0] !== 'PASSWORD')) return 'Admin sign-in must be PASSWORD in Phase 1.';
-        if (app !== 'ADMIN' && methods.includes('PASSWORD')) return 'Password sign-in is only available for Admin in Phase 1.';
+        if (app === 'ADMIN' && (methods.length !== 1 || methods[0] !== 'PASSWORD'))
+          return 'Admin sign-in must be PASSWORD in Phase 1.';
+        if (app !== 'ADMIN' && methods.includes('PASSWORD'))
+          return 'Password sign-in is only available for Admin in Phase 1.';
       }
     }
     return null;
@@ -118,11 +138,14 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
    */
   async function listForScope(scope, scopeRefId) {
     const ctx = await contextFor(scope, scopeRefId);
-    const rows = await prisma.setting.findMany({ where: { OR: scopeTargets(ctx).map((t) => ({ scope: t.scope, scopeRefId: t.scopeRefId })) } });
+    const rows = await prisma.setting.findMany({
+      where: { OR: scopeTargets(ctx).map((t) => ({ scope: t.scope, scopeRefId: t.scopeRefId })) },
+    });
     return SETTINGS.map((def) => {
       const forKey = rows.filter((r) => r.key === def.key);
       const winner = resolveScoped(forKey, ctx);
-      const local = forKey.find((r) => r.scope === scope && (r.scopeRefId ?? null) === (scopeRefId ?? null)) ?? null;
+      const local =
+        forKey.find((r) => r.scope === scope && (r.scopeRefId ?? null) === (scopeRefId ?? null)) ?? null;
       return {
         key: def.key,
         section: def.section,
@@ -137,7 +160,9 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
         legalReview: Boolean(def.legalReview),
         default: def.default,
         effectiveValue: winner ? /** @type {any} */ (winner.winner).value : def.default,
-        source: winner ? { scope: winner.winner.scope, scopeRefId: winner.winner.scopeRefId } : { scope: 'DEFAULT', scopeRefId: null },
+        source: winner
+          ? { scope: winner.winner.scope, scopeRefId: winner.winner.scopeRefId }
+          : { scope: 'DEFAULT', scopeRefId: null },
         override: local ? { id: local.id, value: local.value, updatedAt: local.updatedAt } : null,
       };
     });
@@ -149,7 +174,7 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
    * @param {{ key: string, scope: string, scopeRefId?: string | null, value: unknown, reason?: string }} input
    */
   async function write(request, input) {
-    const scopeRefId = input.scope === 'GLOBAL' ? null : input.scopeRefId ?? null;
+    const scopeRefId = input.scope === 'GLOBAL' ? null : (input.scopeRefId ?? null);
     const checked = validateSetting(input.key, input.scope, input.value);
     if ('error' in checked) {
       const fieldErrors = checked.issues
@@ -160,14 +185,30 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
     const rule = extraValidation(input.key, checked.value);
     if (rule) throw new AppError('VALIDATION_FAILED', rule, { fieldErrors: { value: [rule] } });
     const def = getSettingDefinition(input.key);
-    if (def.critical && !input.reason) throw new AppError('VALIDATION_FAILED', 'A reason is required for this setting.', { fieldErrors: { reason: ['Required'] } });
+    if (def.critical && !input.reason)
+      throw new AppError('VALIDATION_FAILED', 'A reason is required for this setting.', {
+        fieldErrors: { reason: ['Required'] },
+      });
     await contextFor(input.scope, scopeRefId);
 
     const result = await prisma.$transaction(async (tx) => {
-      const existing = await tx.setting.findFirst({ where: { key: input.key, scope: input.scope, scopeRefId } });
+      const existing = await tx.setting.findFirst({
+        where: { key: input.key, scope: input.scope, scopeRefId },
+      });
       const row = existing
-        ? await tx.setting.update({ where: { id: existing.id }, data: { value: checked.value, updatedById: request.auth.userId } })
-        : await tx.setting.create({ data: { key: input.key, scope: input.scope, scopeRefId, value: checked.value, updatedById: request.auth.userId } });
+        ? await tx.setting.update({
+            where: { id: existing.id },
+            data: { value: checked.value, updatedById: request.auth.userId },
+          })
+        : await tx.setting.create({
+            data: {
+              key: input.key,
+              scope: input.scope,
+              scopeRefId,
+              value: checked.value,
+              updatedById: request.auth.userId,
+            },
+          });
       await tx.settingHistory.create({
         data: {
           settingId: row.id,
@@ -199,12 +240,17 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
    * @param {{ key: string, scope: string, scopeRefId?: string | null, reason?: string }} input
    */
   async function reset(request, input) {
-    const scopeRefId = input.scope === 'GLOBAL' ? null : input.scopeRefId ?? null;
+    const scopeRefId = input.scope === 'GLOBAL' ? null : (input.scopeRefId ?? null);
     const def = getSettingDefinition(input.key);
     if (!def) throw notFound('Setting');
-    if (def.critical && !input.reason) throw new AppError('VALIDATION_FAILED', 'A reason is required for this setting.', { fieldErrors: { reason: ['Required'] } });
+    if (def.critical && !input.reason)
+      throw new AppError('VALIDATION_FAILED', 'A reason is required for this setting.', {
+        fieldErrors: { reason: ['Required'] },
+      });
     await prisma.$transaction(async (tx) => {
-      const existing = await tx.setting.findFirst({ where: { key: input.key, scope: input.scope, scopeRefId } });
+      const existing = await tx.setting.findFirst({
+        where: { key: input.key, scope: input.scope, scopeRefId },
+      });
       if (!existing) throw notFound('Override');
       // History is kept: the FK is ON DELETE SET NULL and the row records key + scope + target itself.
       await tx.settingHistory.create({
@@ -235,7 +281,9 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
 
   /** @param {string} appId @param {string} platform */
   const versionPolicy = (appId, platform) =>
-    cached(`policy:${appId}:${platform}`, () => prisma.appVersionPolicy.findUnique({ where: { appId_platform: { appId, platform } } }));
+    cached(`policy:${appId}:${platform}`, () =>
+      prisma.appVersionPolicy.findUnique({ where: { appId_platform: { appId, platform } } }),
+    );
 
   /**
    * Version status for a mobile client. A missing policy row means "no restriction configured".
@@ -243,7 +291,12 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
    */
   async function clientVersion(client) {
     const policy = client.platform ? await versionPolicy(client.appId, client.platform) : null;
-    const p = policy ?? { minSupportedVersion: '0.0.0', recommendedVersion: '0.0.0', forceUpdate: false, storeUrl: null };
+    const p = policy ?? {
+      minSupportedVersion: '0.0.0',
+      recommendedVersion: '0.0.0',
+      forceUpdate: false,
+      storeUrl: null,
+    };
     return {
       status: versionStatus(client.appVersion, p),
       minSupportedVersion: p.minSupportedVersion,
@@ -275,12 +328,29 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
       version,
       auth: { methods: methods.value[client.appId] ?? [] },
       featureFlags: Object.fromEntries(
-        flagRows.map((f) => [f.key, evaluateFlag({ key: f.key, enabled: f.enabled, rules: /** @type {any} */ (f.rules) }, { userId: who.userId, cityId: who.cityId, appId: client.appId, appVersion: client.appVersion })]),
+        flagRows.map((f) => [
+          f.key,
+          evaluateFlag(
+            { key: f.key, enabled: f.enabled, rules: /** @type {any} */ (f.rules) },
+            { userId: who.userId, cityId: who.cityId, appId: client.appId, appVersion: client.appVersion },
+          ),
+        ]),
       ),
       support: support.value,
       serverTime: clock.now().toISOString(),
     };
   }
 
-  return { resolve, listForScope, write, reset, flags, versionPolicy, clientVersion, remoteConfig, contextFor, invalidate };
+  return {
+    resolve,
+    listForScope,
+    write,
+    reset,
+    flags,
+    versionPolicy,
+    clientVersion,
+    remoteConfig,
+    contextFor,
+    invalidate,
+  };
 }

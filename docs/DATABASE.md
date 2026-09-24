@@ -16,7 +16,7 @@ are stale, validates both schemas, applies both to PostgreSQL and exercises the 
 
 ## 1. Technology
 
-PostgreSQL (verified on 18.3 via PGlite; production ≥ 16) · Prisma 6 `prisma-client-js` (D-6) ·
+PostgreSQL (tests: real PostgreSQL 18 embedded locally and 17 in CI; schema checks: PGlite 18.3; production ≥ 16). All timestamps are `timestamptz` (D-26) · Prisma 6 `prisma-client-js` (D-6) ·
 raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 2. Conventions

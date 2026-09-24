@@ -23,5 +23,9 @@ export function createPrismaClient({ url, log = ['warn', 'error'] } = {}) {
  */
 export function isUniqueViolation(err) {
   const e = /** @type {any} */ (err);
-  return e?.code === 'P2002' || e?.meta?.code === '23505' || /23505|unique constraint/i.test(String(e?.message ?? ''));
+  return (
+    e?.code === 'P2002' ||
+    e?.meta?.code === '23505' ||
+    /23505|unique constraint/i.test(String(e?.message ?? ''))
+  );
 }

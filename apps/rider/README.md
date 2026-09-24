@@ -1,9 +1,17 @@
-# Rider app (`@jamzo/rider`)
+# Jamzo Delivery Partner — `@jamzo/rider`
 
-Expo (React Native, **JavaScript**) app for delivery partners — Android + iOS.
+Independent Expo (React Native, JavaScript) app for **Android and iOS**. Identity (bundle/package id,
+name, scheme, colour) comes from the central registry via `app.config.js` (DECISIONS D-15); its version is
+this package's `version` and it releases on its own (`rider@x.y.z`).
 
-- Identifiers (proposed): `in.jamzo.rider` · scheme `jamzo-rider://`
-- Own version, icon (leaf green), splash, push, **foreground + background location** configuration, EAS project, release tag `rider@x.y.z`
-- Online/offline, offers, navigation hand-off, pickup/delivery, COD, earnings, payouts
+**Phase 1 shell:** phone-OTP sign-in, approval-aware home screen, maintenance / forced-update gate, push
+registration (reports why it cannot register), offline banner. Going online, delivery requests, navigation, COD and earnings arrive in Phase 6. Foreground and background location are declared in native config but not requested yet.
 
-Status: not created yet — shell in Phase 1, features in Phase 6. Design: [docs/MOBILE.md](../../docs/MOBILE.md), [docs/DELIVERY.md](../../docs/DELIVERY.md).
+| Command | What it does |
+|---|---|
+| `pnpm start` | Expo dev server (set `EXPO_PUBLIC_API_URL`, see `.env.example`) |
+| `pnpm test` | component tests (Jest-Expo + React Native Testing Library) |
+| `pnpm export` | JavaScript bundles for Android and iOS |
+| `APP_VARIANT=production pnpm prebuild:check` | generate native projects to inspect (git-ignored) |
+
+Platform differences: [PLATFORM.md](PLATFORM.md). Icons and splash are **placeholders** (DECISIONS D-16).

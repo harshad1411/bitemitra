@@ -138,4 +138,3 @@ export const ERROR_STATUS = Object.freeze({
  * @property {boolean} forceUpdate
  * @property {string | null} storeUrl
  */
-

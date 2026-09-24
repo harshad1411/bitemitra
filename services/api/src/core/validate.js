@@ -11,7 +11,9 @@ import { AppError } from './errors.js';
 export function parse(schema, input) {
   const result = schema.safeParse(input ?? {});
   if (!result.success) {
-    throw new AppError('VALIDATION_FAILED', 'Some fields are invalid.', { fieldErrors: toFieldErrors(result.error) });
+    throw new AppError('VALIDATION_FAILED', 'Some fields are invalid.', {
+      fieldErrors: toFieldErrors(result.error),
+    });
   }
   return result.data;
 }

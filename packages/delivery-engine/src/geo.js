@@ -36,7 +36,12 @@ export function pointInRing(lng, lat, ring) {
 function onSegment(px, py, ax, ay, bx, by) {
   const cross = (px - ax) * (by - ay) - (py - ay) * (bx - ax);
   if (Math.abs(cross) > 1e-12) return false;
-  return px >= Math.min(ax, bx) - 1e-12 && px <= Math.max(ax, bx) + 1e-12 && py >= Math.min(ay, by) - 1e-12 && py <= Math.max(ay, by) + 1e-12;
+  return (
+    px >= Math.min(ax, bx) - 1e-12 &&
+    px <= Math.max(ax, bx) + 1e-12 &&
+    py >= Math.min(ay, by) - 1e-12 &&
+    py <= Math.max(ay, by) + 1e-12
+  );
 }
 
 /**
@@ -64,7 +69,8 @@ function ringEdgeContains(lng, lat, ring) {
  */
 export function pointInGeometry(point, geometry) {
   if (geometry.type === 'Polygon') return pointInPolygonRings(point.lng, point.lat, geometry.coordinates);
-  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some((poly) => pointInPolygonRings(point.lng, point.lat, poly));
+  if (geometry.type === 'MultiPolygon')
+    return geometry.coordinates.some((poly) => pointInPolygonRings(point.lng, point.lat, poly));
   throw new Error(`Unsupported geometry type ${/** @type {any} */ (geometry).type}`);
 }
 

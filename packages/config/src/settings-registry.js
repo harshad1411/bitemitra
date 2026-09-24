@@ -75,14 +75,20 @@ const DEFINITIONS = [
     key: 'auth.methods',
     section: 'Security',
     label: 'Sign-in methods per app',
-    description: 'Enabled sign-in methods. GOOGLE/APPLE are not implemented yet and are rejected when enabled.',
+    description:
+      'Enabled sign-in methods. GOOGLE/APPLE are not implemented yet and are rejected when enabled.',
     schema: z.object({
       CUSTOMER: z.array(z.enum(AUTH_METHODS)).min(1),
       RESTAURANT: z.array(z.enum(AUTH_METHODS)).min(1),
       RIDER: z.array(z.enum(AUTH_METHODS)).min(1),
       ADMIN: z.array(z.enum(AUTH_METHODS)).min(1),
     }),
-    default: { CUSTOMER: ['PHONE_OTP'], RESTAURANT: ['PHONE_OTP'], RIDER: ['PHONE_OTP'], ADMIN: ['PASSWORD'] },
+    default: {
+      CUSTOMER: ['PHONE_OTP'],
+      RESTAURANT: ['PHONE_OTP'],
+      RIDER: ['PHONE_OTP'],
+      ADMIN: ['PASSWORD'],
+    },
     scopes: ['GLOBAL'],
     phase: 1,
     critical: true,
@@ -108,7 +114,10 @@ const DEFINITIONS = [
     section: 'Security',
     label: 'Admin lockout',
     description: 'Failed password attempts before an admin account is locked, and for how long.',
-    schema: z.object({ maxFailedLogins: z.number().int().min(3).max(20), lockMinutes: z.number().int().min(1).max(1440) }),
+    schema: z.object({
+      maxFailedLogins: z.number().int().min(3).max(20),
+      lockMinutes: z.number().int().min(1).max(1440),
+    }),
     default: { maxFailedLogins: 5, lockMinutes: 15 },
     scopes: ['GLOBAL'],
     phase: 1,
@@ -135,7 +144,10 @@ const DEFINITIONS = [
     section: 'Orders',
     label: 'Preparation time limits',
     description: 'Maximum preparation time a restaurant can set, and when a late order is flagged.',
-    schema: z.object({ maxPrepMinutes: z.number().int().min(5).max(180), lateAfterMinutes: z.number().int().min(1).max(120) }),
+    schema: z.object({
+      maxPrepMinutes: z.number().int().min(5).max(180),
+      lateAfterMinutes: z.number().int().min(1).max(120),
+    }),
     default: { maxPrepMinutes: 60, lateAfterMinutes: 15 },
     scopes: GEO_AND_RESTAURANT,
     phase: 5,
@@ -145,7 +157,11 @@ const DEFINITIONS = [
     section: 'Orders',
     label: 'Order limits',
     description: 'Minimum order value, maximum order value and maximum items per order.',
-    schema: z.object({ minOrderPaise: paise, maxOrderPaise: paise, maxItems: z.number().int().min(1).max(500) }),
+    schema: z.object({
+      minOrderPaise: paise,
+      maxOrderPaise: paise,
+      maxItems: z.number().int().min(1).max(500),
+    }),
     default: { minOrderPaise: 0, maxOrderPaise: 5_000_000, maxItems: 50 },
     scopes: GEO_AND_RESTAURANT,
     phase: 4,
@@ -211,7 +227,8 @@ const DEFINITIONS = [
     key: 'cod',
     section: 'COD',
     label: 'Cash on delivery',
-    description: 'COD availability, maximum COD order, rider cash limit, refusal limit, netting against earnings.',
+    description:
+      'COD availability, maximum COD order, rider cash limit, refusal limit, netting against earnings.',
     schema: z.object({
       enabled: z.boolean(),
       maxOrderValuePaise: paise,
@@ -264,7 +281,8 @@ const DEFINITIONS = [
     key: 'pricing.markupDisclosure',
     section: 'Pricing',
     label: 'Markup disclosure',
-    description: 'How customer prices above the restaurant menu price are disclosed. Pending legal confirmation (Q-4).',
+    description:
+      'How customer prices above the restaurant menu price are disclosed. Pending legal confirmation (Q-4).',
     schema: z.enum(['NONE', 'NOTE', 'ITEMISED']),
     default: 'NONE',
     scopes: GEO_SCOPES,
@@ -290,7 +308,8 @@ const DEFINITIONS = [
     key: 'tips',
     section: 'Pricing',
     label: 'Tips',
-    description: 'Whether tipping is offered and the delivery partner share (default 100%). Tips are never platform revenue.',
+    description:
+      'Whether tipping is offered and the delivery partner share (default 100%). Tips are never platform revenue.',
     schema: z.object({ enabled: z.boolean(), riderShareBps: bps, presetsPaise: z.array(paise).max(6) }),
     default: { enabled: true, riderShareBps: 10_000, presetsPaise: [1000, 2000, 3000] },
     scopes: GEO_SCOPES,
@@ -333,7 +352,10 @@ const DEFINITIONS = [
     section: 'Delivery',
     label: 'Delivery partner location updates',
     description: 'Location reporting interval while on a trip and while idle online.',
-    schema: z.object({ tripIntervalSec: z.number().int().min(3).max(60), idleIntervalSec: z.number().int().min(10).max(300) }),
+    schema: z.object({
+      tripIntervalSec: z.number().int().min(3).max(60),
+      idleIntervalSec: z.number().int().min(10).max(300),
+    }),
     default: { tripIntervalSec: 10, idleIntervalSec: 30 },
     scopes: GEO_SCOPES,
     phase: 6,
@@ -376,7 +398,10 @@ export function validateSetting(key, scope, value) {
   const def = BY_KEY.get(key);
   if (!def) return { ok: false, error: `Unknown setting "${key}"` };
   if (!def.scopes.includes(scope)) {
-    return { ok: false, error: `"${key}" cannot be overridden at ${scope} scope (allowed: ${def.scopes.join(', ')})` };
+    return {
+      ok: false,
+      error: `"${key}" cannot be overridden at ${scope} scope (allowed: ${def.scopes.join(', ')})`,
+    };
   }
   const parsed = def.schema.safeParse(value);
   if (!parsed.success) return { ok: false, error: 'Invalid value', issues: parsed.error.issues };

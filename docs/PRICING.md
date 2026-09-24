@@ -123,7 +123,7 @@ Executed in this order; each step's output is recorded in the quote.
 14. **Total payable** = sum of all customer-facing lines.
 
 **Markup disclosure (OD-8, A-18):** the engine always computes markup separately; *how it is shown* is the
-setting `pricing.markup.disclosure` — `NONE` (customer sees final item prices), `NOTE` (a "prices may
+setting `pricing.markupDisclosure` — `NONE` (customer sees final item prices), `NOTE` (a "prices may
 differ from restaurant menu" notice) or `ITEMISED` (markup shown as a bill line). Development default
 `NONE`; **legal confirmation required before launch (Q-4)**. The applied mode is frozen in the snapshot.
 

@@ -34,7 +34,9 @@ export const REDACT_PATHS = [
  */
 export function maskPhone(phone) {
   if (!phone) return phone ?? null;
-  return phone.length <= 6 ? '•••' : `${phone.slice(0, 6)}${'•'.repeat(Math.max(0, phone.length - 8))}${phone.slice(-2)}`;
+  return phone.length <= 6
+    ? '•••'
+    : `${phone.slice(0, 6)}${'•'.repeat(Math.max(0, phone.length - 8))}${phone.slice(-2)}`;
 }
 
 /**

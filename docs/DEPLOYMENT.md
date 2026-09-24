@@ -7,8 +7,8 @@ Full runbooks come in Phase 10.
 
 | Env | Purpose | Data | Payments | Apps |
 |---|---|---|---|---|
-| development | local machines | seed data; PostgreSQL from `docker compose` **or** the bundled PGlite dev server (no Docker needed) | none yet (Phase 7: fake provider) | Expo dev builds (`.dev` ids) |
-| test | CI | ephemeral PGlite / Postgres container | fake provider | — |
+| development | local machines | seed data; PostgreSQL from `pnpm dev:db` (embedded real PostgreSQL, no Docker) **or** `docker compose up postgres` | none yet (Phase 7: fake provider) | Expo dev builds (`.dev` ids) |
+| test | CI and local | a fresh database per test file on embedded PostgreSQL (local) or a PostgreSQL service container (CI) | fake provider | — |
 | staging | pre-release, owner UAT | anonymised/seed | gateway **test** keys | `preview` builds (internal distribution / TestFlight / Play internal testing) |
 | production | live | real | gateway **live** keys | store builds |
 

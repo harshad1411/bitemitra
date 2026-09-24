@@ -1,7 +1,7 @@
 {
   "name": "jamzo",
   "private": true,
-  "description": "Jamzo food delivery platform — Customer, Restaurant Partner and Delivery Partner apps, Jamzo Admin, API, workers and shared packages (JavaScript monorepo).",
+  "description": "Jamzo food delivery platform \u2014 Customer, Restaurant Partner and Delivery Partner apps, Jamzo Admin, API, workers and shared packages (JavaScript monorepo).",
   "type": "module",
   "packageManager": "pnpm@11.24.0",
   "engines": {
@@ -24,8 +24,10 @@
     "test": "turbo run test",
     "build": "turbo run build",
     "verify:schema": "node scripts/verify-schema.mjs",
-    "check:docs": "node scripts/check-docs.mjs",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm test"
+    "check:docs": "node scripts/check-docs.mjs && node scripts/generate-api-docs.mjs --check",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm test",
+    "assets:generate": "node scripts/generate-app-assets.mjs",
+    "docs:api": "node scripts/generate-api-docs.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -40,6 +42,10 @@
     "prettier": "^3.9.9",
     "turbo": "^2.11.3",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "@jamzo/config": "workspace:*",
+    "sharp": "^0.35.4",
+    "@jamzo/api": "workspace:*",
+    "@jamzo/database": "workspace:*"
   }
 }

@@ -11,7 +11,8 @@ export const generateOtp = () => String(randomInt(0, 1_000_000)).padStart(6, '0'
  * @param {string} challengeId
  * @param {string} pepper
  */
-export const hashOtp = (code, challengeId, pepper) => createHmac('sha256', pepper).update(`${challengeId}:${code}`).digest('hex');
+export const hashOtp = (code, challengeId, pepper) =>
+  createHmac('sha256', pepper).update(`${challengeId}:${code}`).digest('hex');
 
 /**
  * Constant-time comparison of hex digests.
@@ -61,7 +62,15 @@ export async function verifyAccessToken(token, secret, expectedApp) {
       audience: expectedApp,
       algorithms: ['HS256'],
     });
-    return { ok: true, claims: { sub: String(payload.sub), app: String(payload.app), sid: String(payload.sid), pv: Number(payload.pv ?? 0) } };
+    return {
+      ok: true,
+      claims: {
+        sub: String(payload.sub),
+        app: String(payload.app),
+        sid: String(payload.sid),
+        pv: Number(payload.pv ?? 0),
+      },
+    };
   } catch (err) {
     return { ok: false, reason: err instanceof errors.JWTExpired ? 'EXPIRED' : 'INVALID' };
   }

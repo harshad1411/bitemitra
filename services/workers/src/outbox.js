@@ -6,7 +6,16 @@
  * @param {{ prisma: import('@jamzo/database').Db, handlers: Record<string, (event: any) => Promise<void>>,
  *           log: any, workerId: string, clock?: { now: () => Date }, batchSize?: number, maxAttempts?: number, leaseSec?: number }} opts
  */
-export function createOutboxRelay({ prisma, handlers, log, workerId, clock = { now: () => new Date() }, batchSize = 10, maxAttempts = 8, leaseSec = 60 }) {
+export function createOutboxRelay({
+  prisma,
+  handlers,
+  log,
+  workerId,
+  clock = { now: () => new Date() },
+  batchSize = 10,
+  maxAttempts = 8,
+  leaseSec = 60,
+}) {
   /** Claim a batch atomically; expired leases are reclaimable (a crashed worker's events are not lost). */
   async function claim() {
     const now = clock.now();
@@ -21,8 +30,14 @@ export function createOutboxRelay({ prisma, handlers, log, workerId, clock = { n
         FOR UPDATE SKIP LOCKED`;
       const ids = /** @type {{ id: string }[]} */ (rows).map((r) => r.id);
       if (!ids.length) return [];
-      await tx.outboxEvent.updateMany({ where: { id: { in: ids } }, data: { lockedAt: now, lockedBy: workerId } });
-      return tx.outboxEvent.findMany({ where: { id: { in: ids } }, orderBy: [{ availableAt: 'asc' }, { id: 'asc' }] });
+      await tx.outboxEvent.updateMany({
+        where: { id: { in: ids } },
+        data: { lockedAt: now, lockedBy: workerId },
+      });
+      return tx.outboxEvent.findMany({
+        where: { id: { in: ids } },
+        orderBy: [{ availableAt: 'asc' }, { id: 'asc' }],
+      });
     });
   }
 
@@ -35,7 +50,10 @@ export function createOutboxRelay({ prisma, handlers, log, workerId, clock = { n
     try {
       if (!handler) throw new Error(`No handler registered for ${event.eventType}`);
       await handler(event);
-      await prisma.outboxEvent.update({ where: { id: event.id }, data: { publishedAt: clock.now(), attempts, lockedAt: null, lockedBy: null, lastError: null } });
+      await prisma.outboxEvent.update({
+        where: { id: event.id },
+        data: { publishedAt: clock.now(), attempts, lockedAt: null, lockedBy: null, lastError: null },
+      });
       return 'done';
     } catch (err) {
       const message = String(/** @type {any} */ (err)?.message ?? err).slice(0, 1000);
@@ -47,10 +65,15 @@ export function createOutboxRelay({ prisma, handlers, log, workerId, clock = { n
           lastError: message,
           lockedAt: null,
           lockedBy: null,
-          ...(park ? { failedAt: clock.now() } : { availableAt: new Date(clock.now().getTime() + backoffMs(attempts)) }),
+          ...(park
+            ? { failedAt: clock.now() }
+            : { availableAt: new Date(clock.now().getTime() + backoffMs(attempts)) }),
         },
       });
-      log[park ? 'error' : 'warn']({ eventId: event.id, eventType: event.eventType, attempts, err: message }, park ? 'outbox event parked' : 'outbox event failed, will retry');
+      log[park ? 'error' : 'warn'](
+        { eventId: event.id, eventType: event.eventType, attempts, err: message },
+        park ? 'outbox event parked' : 'outbox event failed, will retry',
+      );
       return park ? 'parked' : 'retry';
     }
   }

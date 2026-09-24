@@ -88,7 +88,11 @@ export function createApiClient(options) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await doFetch(url, { ...init, signal: controller.signal, credentials: refreshMode === 'cookie' ? 'include' : 'omit' });
+      return await doFetch(url, {
+        ...init,
+        signal: controller.signal,
+        credentials: refreshMode === 'cookie' ? 'include' : 'omit',
+      });
     } catch (err) {
       const timedOut = /** @type {any} */ (err)?.name === 'AbortError';
       throw new ApiError({
@@ -156,9 +160,19 @@ export function createApiClient(options) {
   async function request(path, req = {}) {
     const method = (req.method ?? 'GET').toUpperCase();
     const auth = req.auth ?? true;
-    const key = req.idempotencyKey === true || (req.idempotencyKey === undefined && method === 'POST') ? newIdempotencyKey() : req.idempotencyKey || null;
+    const key =
+      req.idempotencyKey === true || (req.idempotencyKey === undefined && method === 'POST')
+        ? newIdempotencyKey()
+        : req.idempotencyKey || null;
     const qs = req.query
-      ? '?' + new URLSearchParams(/** @type {[string, string][]} */ (Object.entries(req.query).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)]))).toString()
+      ? '?' +
+        new URLSearchParams(
+          /** @type {[string, string][]} */ (
+            Object.entries(req.query)
+              .filter(([, v]) => v !== undefined && v !== null && v !== '')
+              .map(([k, v]) => [k, String(v)])
+          ),
+        ).toString()
       : '';
     const url = `${baseUrl}${path}${qs === '?' ? '' : qs}`;
     const canRetry = method === 'GET' || Boolean(key);
@@ -173,7 +187,11 @@ export function createApiClient(options) {
         if (token) extra.authorization = `Bearer ${token}`;
       }
       try {
-        const res = await rawFetch(url, { method, headers: headersFor(extra), body: req.body === undefined ? undefined : JSON.stringify(req.body) });
+        const res = await rawFetch(url, {
+          method,
+          headers: headersFor(extra),
+          body: req.body === undefined ? undefined : JSON.stringify(req.body),
+        });
         if (canRetry && RETRYABLE_STATUS.has(res.status) && attempt < maxRetries) {
           await sleep(retryBaseMs * 2 ** attempt);
           continue;

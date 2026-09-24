@@ -18,11 +18,18 @@ describe('test database (real PostgreSQL via PGlite)', () => {
     const country = await prisma.country.create({ data: { code: 'IN', name: 'India' } });
     const state = await prisma.state.create({ data: { countryId: country.id, code: 'GJ', name: 'Gujarat' } });
     const city = await prisma.$transaction(async (tx) => {
-      const c = await tx.city.create({ data: { stateId: state.id, slug: 'unjha', name: 'Unjha', centerLat: 23.8053, centerLng: 72.3935 } });
-      await tx.auditLog.create({ data: { actorType: 'SYSTEM', action: 'city.create', entityType: 'city', entityId: c.id } });
+      const c = await tx.city.create({
+        data: { stateId: state.id, slug: 'unjha', name: 'Unjha', centerLat: 23.8053, centerLng: 72.3935 },
+      });
+      await tx.auditLog.create({
+        data: { actorType: 'SYSTEM', action: 'city.create', entityType: 'city', entityId: c.id },
+      });
       return c;
     });
-    const found = await prisma.city.findUnique({ where: { id: city.id }, include: { state: { include: { country: true } } } });
+    const found = await prisma.city.findUnique({
+      where: { id: city.id },
+      include: { state: { include: { country: true } } },
+    });
     expect(found.state.country.code).toBe('IN');
     expect(Number(found.centerLat)).toBeCloseTo(23.8053, 6);
     expect(await prisma.auditLog.count()).toBe(1);
@@ -41,7 +48,9 @@ describe('test database (real PostgreSQL via PGlite)', () => {
 
   it('surfaces database constraints to the application', async () => {
     await prisma.setting.create({ data: { key: 'tips', scope: 'GLOBAL', value: { enabled: true } } });
-    const dup = await prisma.setting.create({ data: { key: 'tips', scope: 'GLOBAL', value: { enabled: false } } }).catch((e) => e);
+    const dup = await prisma.setting
+      .create({ data: { key: 'tips', scope: 'GLOBAL', value: { enabled: false } } })
+      .catch((e) => e);
     expect(isUniqueViolation(dup)).toBe(true);
     const bad = await prisma.setting.create({ data: { key: 'x', scope: 'CITY', value: 1 } }).catch((e) => e);
     expect(String(bad.message)).toMatch(/settings_scope_ref_present|23514|check constraint/i);

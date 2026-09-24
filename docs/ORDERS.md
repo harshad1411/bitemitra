@@ -154,4 +154,4 @@ on retry). In one transaction:
 - Exhaustive: for every (state, event, actor) triple, assert allowed/denied matches the tables above (generated, so a table change forces a test change).
 - `deriveStatus` for every reachable (kitchen, delivery) pair.
 - Concurrency: two riders accept simultaneously → exactly one succeeds; accept vs. timeout job race; cancel vs. accept race.
-- E2E scenarios from §56, run against the real API + PGlite with fake payment/push/SMS adapters.
+- E2E scenarios from §56, run against the real API + PostgreSQL with fake payment/push/SMS adapters.

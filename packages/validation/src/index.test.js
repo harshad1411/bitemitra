@@ -13,7 +13,15 @@ import {
 
 const square = {
   type: 'Polygon',
-  coordinates: [[[72.38, 23.79], [72.41, 23.79], [72.41, 23.82], [72.38, 23.82], [72.38, 23.79]]],
+  coordinates: [
+    [
+      [72.38, 23.79],
+      [72.41, 23.79],
+      [72.41, 23.82],
+      [72.38, 23.82],
+      [72.38, 23.79],
+    ],
+  ],
 };
 
 describe('validation', () => {
@@ -31,8 +39,12 @@ describe('validation', () => {
   });
 
   it('OTP request normalises the destination per channel', () => {
-    expect(otpRequestBody.parse({ channel: 'SMS', destination: '98765 43210' }).destination).toBe('+919876543210');
-    expect(otpRequestBody.parse({ channel: 'EMAIL', destination: ' Owner@Jamzo.example ' }).destination).toBe('owner@jamzo.example');
+    expect(otpRequestBody.parse({ channel: 'SMS', destination: '98765 43210' }).destination).toBe(
+      '+919876543210',
+    );
+    expect(otpRequestBody.parse({ channel: 'EMAIL', destination: ' Owner@Jamzo.example ' }).destination).toBe(
+      'owner@jamzo.example',
+    );
     expect(otpRequestBody.safeParse({ channel: 'SMS', destination: 'x@y.z' }).success).toBe(false);
   });
 
@@ -47,32 +59,75 @@ describe('validation', () => {
     expect(zoneCreateBody.safeParse({ ...base, geometry: square }).success).toBe(true);
     const open = { ...square, coordinates: [square.coordinates[0].slice(0, 4)] };
     expect(zoneCreateBody.safeParse({ ...base, geometry: open }).success).toBe(false);
-    const outOfRange = { type: 'Polygon', coordinates: [[[200, 23], [201, 23], [201, 24], [200, 23]]] };
+    const outOfRange = {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [200, 23],
+          [201, 23],
+          [201, 24],
+          [200, 23],
+        ],
+      ],
+    };
     expect(zoneCreateBody.safeParse({ ...base, geometry: outOfRange }).success).toBe(false);
   });
 
   it('service areas are either polygon or radius', () => {
     const zoneId = '0192d6a0-0000-7000-8000-000000000002';
-    expect(serviceAreaCreateBody.safeParse({ zoneId, name: 'Radius', kind: 'RADIUS', centerLat: 23.8, centerLng: 72.39, radiusM: 3000 }).success).toBe(true);
-    expect(serviceAreaCreateBody.safeParse({ zoneId, name: 'Radius', kind: 'RADIUS', centerLat: 23.8, centerLng: 72.39 }).success).toBe(false);
+    expect(
+      serviceAreaCreateBody.safeParse({
+        zoneId,
+        name: 'Radius',
+        kind: 'RADIUS',
+        centerLat: 23.8,
+        centerLng: 72.39,
+        radiusM: 3000,
+      }).success,
+    ).toBe(true);
+    expect(
+      serviceAreaCreateBody.safeParse({
+        zoneId,
+        name: 'Radius',
+        kind: 'RADIUS',
+        centerLat: 23.8,
+        centerLng: 72.39,
+      }).success,
+    ).toBe(false);
   });
 
   it('city slugs and timezones are validated', () => {
-    const city = { stateId: '0192d6a0-0000-7000-8000-000000000003', slug: 'unjha', name: 'Unjha', centerLat: 23.8, centerLng: 72.39 };
+    const city = {
+      stateId: '0192d6a0-0000-7000-8000-000000000003',
+      slug: 'unjha',
+      name: 'Unjha',
+      centerLat: 23.8,
+      centerLng: 72.39,
+    };
     expect(cityCreateBody.parse(city).timezone).toBe('Asia/Kolkata');
     expect(cityCreateBody.safeParse({ ...city, slug: 'Unjha City' }).success).toBe(false);
     expect(cityCreateBody.safeParse({ ...city, timezone: 'Mars/Olympus' }).success).toBe(false);
   });
 
   it('admin passwords must be strong', () => {
-    const body = { email: 'a@b.co', name: 'Ops', grants: [{ roleId: '0192d6a0-0000-7000-8000-000000000004' }] };
+    const body = {
+      email: 'a@b.co',
+      name: 'Ops',
+      grants: [{ roleId: '0192d6a0-0000-7000-8000-000000000004' }],
+    };
     expect(adminUserCreateBody.safeParse({ ...body, password: 'short' }).success).toBe(false);
     expect(adminUserCreateBody.safeParse({ ...body, password: 'alllowercase123' }).success).toBe(false);
     expect(adminUserCreateBody.safeParse({ ...body, password: 'Correct-Horse-9' }).success).toBe(true);
   });
 
   it('version policies use strict semver', () => {
-    expect(appVersionPolicyBody.safeParse({ minSupportedVersion: '1.0', recommendedVersion: '1.0.0', forceUpdate: false }).success).toBe(false);
+    expect(
+      appVersionPolicyBody.safeParse({
+        minSupportedVersion: '1.0',
+        recommendedVersion: '1.0.0',
+        forceUpdate: false,
+      }).success,
+    ).toBe(false);
   });
 
   it('formats field errors', () => {

@@ -21,7 +21,8 @@ const SERVER_ONLY = [
 /** Product identifiers live only in the central registry (DECISIONS D-15). */
 const IDENTIFIER_LITERALS = {
   selector: 'Literal[value=/in\\.jamzo\\.|jamzo\\.in/]',
-  message: 'Product identifiers/domain must come from @jamzo/config (packages/config/src/apps.js), not literals.',
+  message:
+    'Product identifiers/domain must come from @jamzo/config (packages/config/src/apps.js), not literals.',
 };
 
 export default [
@@ -29,6 +30,7 @@ export default [
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.next-e2e/**',
       '**/.expo/**',
       '**/dist/**',
       '**/coverage/**',
@@ -47,7 +49,11 @@ export default [
     plugins: { jsdoc },
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node } },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
+      // `React` may be imported but unused under the automatic JSX runtime (generated shadcn/ui components).
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^(_|React$)', caughtErrors: 'none' },
+      ],
       'no-restricted-syntax': ['error', IDENTIFIER_LITERALS],
       eqeqeq: ['error', 'always', { null: 'ignore' }],
       'jsdoc/valid-types': 'error',
@@ -64,7 +70,11 @@ export default [
     rules: { 'no-restricted-syntax': 'off' },
   },
   {
-    files: ['apps/**/*.{js,jsx}', 'packages/mobile-ui/**/*.{js,jsx}', 'packages/mobile-foundation/**/*.{js,jsx}'],
+    files: [
+      'apps/**/*.{js,jsx}',
+      'packages/mobile-ui/**/*.{js,jsx}',
+      'packages/mobile-foundation/**/*.{js,jsx}',
+    ],
     plugins: { react, 'react-hooks': reactHooks },
     languageOptions: {
       parserOptions: { ecmaFeatures: { jsx: true } },
@@ -82,15 +92,39 @@ export default [
         {
           paths: SERVER_ONLY.map((name) => ({
             name,
-            message: 'Server-only package: clients must not compute money or touch the database (ARCHITECTURE §3).',
+            message:
+              'Server-only package: clients must not compute money or touch the database (ARCHITECTURE §3).',
           })),
         },
       ],
     },
   },
   {
-    files: ['**/*.test.{js,jsx}', '**/test/**/*.{js,jsx}', '**/__tests__/**/*.{js,jsx}'],
+    files: [
+      '**/*.test.{js,jsx}',
+      '**/test/**/*.{js,jsx}',
+      '**/__tests__/**/*.{js,jsx}',
+      '**/jest.setup.js',
+      '**/e2e/**/*.js',
+    ],
     languageOptions: { globals: { ...globals.node, ...globals.jest } },
+    // Tests assert the registry's identifiers, so literals are expected there.
+    rules: { 'no-restricted-syntax': 'off' },
+  },
+  {
+    // React Native renders apostrophes in <Text> as-is; this HTML/DOM rule does not apply.
+    files: [
+      'apps/customer/**/*.{js,jsx}',
+      'apps/restaurant/**/*.{js,jsx}',
+      'apps/rider/**/*.{js,jsx}',
+      'packages/mobile-*/**/*.{js,jsx}',
+    ],
+    rules: { 'react/no-unescaped-entities': 'off' },
+  },
+  {
+    // The admin E2E harness starts a real test backend; it never ships to a browser.
+    files: ['apps/admin/e2e/**/*.js'],
+    rules: { 'no-restricted-imports': 'off' },
   },
   prettier,
 ];

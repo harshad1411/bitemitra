@@ -10,15 +10,16 @@ with why and how the owner can test it.
 |---|---|---|---|
 | Unit (pure logic) | Vitest | money math, geo, config resolution, semver, flags, permissions, OTP/token helpers, validation schemas | yes |
 | Database invariants | `pnpm verify:schema` (PGlite) | design + active schema apply cleanly; constraint behaviour with expected SQLSTATEs; active ⊆ design consistency; table classification complete | yes |
-| API integration | Vitest + Fastify `inject` + **PGlite** (fresh migrated database per test file via `@jamzo/database/testing`) | every Phase 1 route: auth, sessions, RBAC matrix, audit, idempotency, geography, serviceability, settings, flags, app versions, remote config, media, error format | yes |
-| Worker | Vitest + PGlite | outbox claim/lease/retry/park, media renditions | yes |
-| CI parity | same suites against a PostgreSQL 17 service container | PGlite-vs-Postgres differences | CI workflow (runs on GitHub) |
+| API integration | Vitest + Fastify `inject` + **real PostgreSQL 18** (embedded, a fresh database per test file cloned from a migrated template — D-13) | every Phase 1 route: auth, sessions, RBAC matrix, audit, idempotency, geography, serviceability, settings, flags, app versions, remote config, media, error format | yes |
+| Worker | Vitest + real PostgreSQL | outbox claim/lease/retry/park, media renditions | yes |
+| CI parity | same suites against a PostgreSQL 17 service container (`TEST_DATABASE_URL`) | version/server differences | CI workflow written; the same code path was run locally against a separate PostgreSQL server |
 | Static | ESLint 9, Prettier check, `tsc --checkJs` (Node packages/services), no-TS-file guard | | yes |
 | Mobile foundations & screens | Jest-Expo + React Native Testing Library | gates, login flow, shells, error/loading states | yes |
 | Mobile bundles / config | `expo export` (android + ios), `expo prebuild --no-install`, `expo-doctor` | | yes |
-| Admin components | Vitest + Testing Library (jsdom) | design-system components, permission-aware nav | yes |
-| Admin E2E | Playwright against real API + PGlite + Next build | login → cities/zones → settings → roles → audit | yes if browsers install |
-| Mobile E2E | Maestro (Android emulator **and** iOS simulator) | | **not possible on this machine yet** ([MOBILE.md §7](MOBILE.md#7-verification-b8--what-can-and-cannot-be-proven-on-the-current-machine)) |
+| Admin components | Vitest + Testing Library (jsdom) | design-system components | **not written in Phase 1** — the admin is covered end to end by Playwright instead |
+| Admin E2E | Playwright against the real API + embedded PostgreSQL + production Next build (desktop and phone viewports) | sign-in, dashboard, cities/zones, settings override + history, roles, admin users, media upload → worker renditions, audit, session cookie, sign-out | yes |
+| Mobile E2E | Maestro (Android emulator **and** iOS simulator) | | **not possible on this machine yet** (Q-17; [MOBILE.md §7](MOBILE.md#7-verification-b8--what-can-and-cannot-be-proven-on-the-current-machine)) |
+| Native builds | Gradle `assembleDebug` / `xcodebuild` for the simulator | all three apps | CI jobs written, **not yet run** (nothing pushed — Q-16) |
 | Load | k6 | | Phase 10 |
 
 ## 2. Highest-priority suites (§54) — by phase
