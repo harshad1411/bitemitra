@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as v from './index.js';
 import {
   adminUserCreateBody,
   appVersionPolicyBody,
@@ -134,5 +135,64 @@ describe('validation', () => {
     const r = otpRequestBody.safeParse({ channel: 'SMS', destination: '123' });
     expect(r.success).toBe(false);
     expect(toFieldErrors(r.error)).toEqual({ destination: ['Enter a valid 10-digit Indian mobile number'] });
+  });
+});
+
+describe('PATCH schemas never inject defaults (bug found in Phase 2)', () => {
+  // Full-document writes (product with its version, feature flag state) are PUT-like and excluded.
+  const FULL_DOCUMENT = new Set(['productUpdateBody', 'featureFlagUpdateBody']);
+  const patches = Object.entries(v).filter(([k]) => /UpdateBody$/.test(k) && !FULL_DOCUMENT.has(k));
+
+  it.each(patches)('%s: an empty body stays empty', (_name, schema) => {
+    expect(schema.parse({})).toEqual({});
+  });
+
+  it('a partial restaurant update keeps only what was sent', () => {
+    expect(v.restaurantUpdateBody.parse({ phone: '98765 43210' })).toEqual({ phone: '+919876543210' });
+    expect(v.cityUpdateBody.parse({ name: 'Unjha' })).toEqual({ name: 'Unjha' });
+  });
+});
+
+describe('Indian business identifiers (Phase 2)', () => {
+  it.each([
+    ['gstin', '24ABCDE1234F1Z5', true],
+    ['gstin', '24abcde1234f1z5', true],
+    ['gstin', '24ABCDE1234F1X5', false],
+    ['pan', 'ABCDE1234F', true],
+    ['pan', 'ABCD1234F', false],
+    ['fssaiNumber', '10026022000123', true],
+    ['fssaiNumber', '1002602200012', false],
+    ['ifsc', 'hdfc0001234', true],
+    ['ifsc', 'HDFC1001234', false],
+    ['bankAccountNumber', '5010 0012 3456 78', true],
+    ['bankAccountNumber', '12345678', false],
+    ['upiId', 'unjha.foods@okhdfc', true],
+    ['upiId', 'no-at-sign', false],
+    ['pincode', '384170', true],
+    ['pincode', '084170', false],
+  ])('%s %s → %s', (name, value, ok) => {
+    expect(v[name].safeParse(value).success).toBe(ok);
+  });
+
+  it('bank account confirmation must match', () => {
+    const base = { accountHolderName: 'Test Foods', accountNumber: '123456789012', ifsc: 'SBIN0001234' };
+    expect(
+      v.bankAccountCreateBody.safeParse({ ...base, confirmAccountNumber: '1234 5678 9012' }).success,
+    ).toBe(true);
+    expect(v.bankAccountCreateBody.safeParse({ ...base, confirmAccountNumber: '123456789013' }).success).toBe(
+      false,
+    );
+  });
+
+  it('availability "until" only applies to marking a whole product sold out', () => {
+    expect(v.availabilityBody.safeParse({ isAvailable: false, until: 'END_OF_DAY' }).success).toBe(true);
+    expect(v.availabilityBody.safeParse({ isAvailable: true, until: 'END_OF_DAY' }).success).toBe(false);
+    expect(
+      v.availabilityBody.safeParse({
+        isAvailable: false,
+        variantId: '0199a3c4-1111-7000-8000-000000000001',
+        until: 'END_OF_DAY',
+      }).success,
+    ).toBe(false);
   });
 });

@@ -32,6 +32,13 @@ export const apiEnvSchema = z
     ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().min(60).max(3600).default(900),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
     OTP_PEPPER: z.string().min(32, 'OTP_PEPPER must be at least 32 characters'),
+    // AES-256-GCM key for sensitive fields such as bank account numbers (DECISIONS D-35).
+    FIELD_ENCRYPTION_KEY: z
+      .string()
+      .refine(
+        (v) => Buffer.from(v, 'base64').length === 32,
+        'FIELD_ENCRYPTION_KEY must be 32 random bytes, base64-encoded',
+      ),
     SMS_PROVIDER: z.enum(['console']).default('console'),
     EMAIL_PROVIDER: z.enum(['console']).default('console'),
     COOKIE_SECURE: bool.default(true),

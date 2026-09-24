@@ -25,6 +25,9 @@ describe('shared-types mirror the database enums', () => {
     ['RiderOnboardingStatus', 'RIDER_ONBOARDING_STATUSES'],
     ['RestaurantUserRole', 'RESTAURANT_USER_ROLES'],
     ['MediaKind', 'MEDIA_KINDS'],
+    ['DocumentStatus', 'DOCUMENT_STATUSES'],
+    ['FoodType', 'FOOD_TYPES'],
+    ['ProductStatus', 'PRODUCT_STATUSES'],
   ])('%s', (prismaName, exportName) => {
     expect(Object.keys(types[exportName])).toEqual(prismaEnum(prismaName));
   });

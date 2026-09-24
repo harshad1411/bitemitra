@@ -1,6 +1,6 @@
 {
-  "$comment": "Models migrated in the current phase. Classification and reasons: docs/DATABASE.md §3. Adding a model here activates it; run `pnpm --filter @jamzo/database schema:generate` and create a migration.",
-  "phase": 1,
+  "$comment": "Models migrated in the current phase. Classification and reasons: docs/DATABASE.md \u00a73. Adding a model here activates it; run `pnpm --filter @jamzo/database schema:generate` and create a migration.",
+  "phase": 2,
   "models": [
     "User",
     "AuthIdentity",
@@ -28,6 +28,22 @@
     "Customer",
     "Restaurant",
     "RestaurantUser",
-    "Rider"
+    "Rider",
+    "RestaurantBranch",
+    "RestaurantBusinessHours",
+    "BranchDeliveryArea",
+    "RestaurantDocument",
+    "RestaurantBankAccount",
+    "RestaurantSettings",
+    "RestaurantZone",
+    "Category",
+    "MenuCategory",
+    "Product",
+    "ProductVariant",
+    "ProductAddonGroup",
+    "ProductAddon",
+    "ProductImage",
+    "ProductAvailability",
+    "ProductSchedule"
   ]
 }

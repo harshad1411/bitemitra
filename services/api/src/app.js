@@ -20,6 +20,10 @@ import geographyRoutes from './modules/geography/routes.js';
 import configurationRoutes from './modules/configuration/routes.js';
 import mediaRoutes from './modules/media/routes.js';
 import dashboardRoutes from './modules/dashboard/routes.js';
+import restaurantRoutes from './modules/restaurants/routes.js';
+import partnerRoutes from './modules/restaurants/partner-routes.js';
+import catalogRoutes from './modules/catalog/routes.js';
+import { createFieldCipher } from '@jamzo/auth';
 
 const MOBILE = new Set(['CUSTOMER', 'RESTAURANT', 'RIDER']);
 /** Routes that browsers load directly (no custom headers possible). */
@@ -68,7 +72,15 @@ export async function buildApp(deps) {
   });
   app.decorate('prisma', prisma);
   app.decorate('clock', clock);
-  app.decorate('services', { env, config, auth, storage: deps.storage, sms: deps.sms, email: deps.email });
+  app.decorate('services', {
+    env,
+    config,
+    auth,
+    storage: deps.storage,
+    sms: deps.sms,
+    email: deps.email,
+    fieldCipher: createFieldCipher(env.FIELD_ENCRYPTION_KEY),
+  });
   app.decorateRequest('client', null);
 
   await app.register(helmet, { crossOriginResourcePolicy: { policy: 'cross-origin' } });
@@ -177,6 +189,9 @@ export async function buildApp(deps) {
   await app.register(geographyRoutes);
   await app.register(mediaRoutes);
   await app.register(dashboardRoutes);
+  await app.register(restaurantRoutes);
+  await app.register(catalogRoutes);
+  await app.register(partnerRoutes);
 
   return app;
 }

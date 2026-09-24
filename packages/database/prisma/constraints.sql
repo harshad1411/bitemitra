@@ -86,3 +86,50 @@ ALTER TABLE zones ADD CONSTRAINT zones_bbox_valid CHECK ("minLat" <= "maxLat" AN
 ALTER TABLE otp_challenges ADD CONSTRAINT otp_attempts_valid CHECK (attempts >= 0 AND "maxAttempts" > 0);
 ALTER TABLE media ADD CONSTRAINT media_size_nonneg CHECK ("sizeBytes" >= 0);
 ALTER TABLE outbox_events ADD CONSTRAINT outbox_attempts_nonneg CHECK (attempts >= 0);
+
+-- ── Phase 2 tables (restaurants & menus — docs/RESTAURANTS.md) ────────────────
+
+-- One primary branch per restaurant, one default variant per product, one primary bank account
+-- (only a verified account may be primary — D-35) and one active delivery area per branch (D-41).
+CREATE UNIQUE INDEX restaurant_branches_one_primary
+  ON restaurant_branches ("restaurantId")
+  WHERE "isPrimary";
+CREATE UNIQUE INDEX product_variants_one_default
+  ON product_variants ("productId")
+  WHERE "isDefault";
+CREATE UNIQUE INDEX restaurant_bank_accounts_one_primary
+  ON restaurant_bank_accounts ("restaurantId")
+  WHERE "isPrimary";
+CREATE UNIQUE INDEX branch_delivery_areas_one_active
+  ON branch_delivery_areas ("branchId")
+  WHERE "isActive";
+-- Menu section names are unique within a restaurant, ignoring case.
+CREATE UNIQUE INDEX menu_categories_name_per_restaurant
+  ON menu_categories ("restaurantId", lower(name));
+
+ALTER TABLE restaurant_bank_accounts ADD CONSTRAINT rba_primary_verified CHECK (NOT "isPrimary" OR "verifiedAt" IS NOT NULL);
+ALTER TABLE restaurant_bank_accounts ADD CONSTRAINT rba_last4_format CHECK ("accountNumberLast4" ~ '^[0-9]{4}$');
+ALTER TABLE restaurant_bank_accounts ADD CONSTRAINT rba_ifsc_format CHECK (ifsc ~ '^[A-Z]{4}0[A-Z0-9]{6}$');
+ALTER TABLE restaurant_branches ADD CONSTRAINT branches_prep_time_range CHECK ("prepTimeMinutes" BETWEEN 1 AND 240);
+ALTER TABLE restaurant_branches ADD CONSTRAINT branches_location_range CHECK (lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180);
+-- "HH:mm" local times; a closing time may be 24:00 (end of day) and may be earlier than the opening time
+-- (past midnight), but never equal to it.
+ALTER TABLE restaurant_business_hours ADD CONSTRAINT rbh_time_format CHECK (
+  "opensAt" ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND
+  "closesAt" ~ '^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$' AND
+  "opensAt" <> "closesAt"
+);
+ALTER TABLE product_schedules ADD CONSTRAINT ps_time_format CHECK (
+  "startsAt" ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND
+  "endsAt" ~ '^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$' AND
+  "startsAt" <> "endsAt"
+);
+ALTER TABLE branch_delivery_areas ADD CONSTRAINT bda_shape CHECK (
+  (kind = 'RADIUS' AND "radiusM" BETWEEN 100 AND 50000) OR
+  (kind = 'POLYGON' AND geometry IS NOT NULL)
+);
+ALTER TABLE products ADD CONSTRAINT products_packaging_nonneg CHECK ("packagingChargePaise" IS NULL OR "packagingChargePaise" >= 0);
+ALTER TABLE products ADD CONSTRAINT products_stock_nonneg CHECK ("stockQuantity" IS NULL OR "stockQuantity" >= 0);
+ALTER TABLE products ADD CONSTRAINT products_prep_time_range CHECK ("prepTimeMinutes" IS NULL OR "prepTimeMinutes" BETWEEN 1 AND 240);
+ALTER TABLE product_addon_groups ADD CONSTRAINT pag_max_positive CHECK ("maxSelect" >= 1);
+ALTER TABLE product_availability ADD CONSTRAINT pa_window_valid CHECK ("endsAt" IS NULL OR "endsAt" > "startsAt");

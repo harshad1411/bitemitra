@@ -218,13 +218,23 @@ describe('hierarchical settings', () => {
     });
     expect(google.statusCode).toBe(400);
     expect(google.json().error.message).toMatch(/not implemented/);
+    // BRANCH overrides exist since Phase 2 (D-40): an unknown branch is 404. PRODUCT/CATEGORY/VARIANT
+    // scopes belong to pricing rules (Phase 4) and are refused for settings.
     const branch = await put({
       key: 'orders.limits',
       scope: 'BRANCH',
       scopeRefId: '0192d6a0-0000-7000-8000-000000000001',
       value: limits(0),
     });
-    expect(branch.statusCode).toBe(400);
+    expect(branch.statusCode).toBe(404);
+    const product = await put({
+      key: 'orders.limits',
+      scope: 'PRODUCT',
+      scopeRefId: '0192d6a0-0000-7000-8000-000000000001',
+      value: limits(0),
+    });
+    expect(product.statusCode).toBe(400);
+    expect(product.json().error.message).toMatch(/cannot be overridden at PRODUCT scope/);
     const missing = await put({
       key: 'orders.limits',
       scope: 'CITY',

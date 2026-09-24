@@ -24,6 +24,7 @@
     "packages/notifications/src",
     "packages/pricing-engine/src",
     "packages/delivery-engine/src",
+    "packages/catalog-engine/src",
     "packages/api-client/src",
     "packages/ui/src",
     "packages/database/src",

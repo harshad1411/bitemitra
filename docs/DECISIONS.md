@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-24 (Phase 1 complete, awaiting review).
+Last updated: 2026-09-24 (Phase 2 in progress).
 
 ---
 
@@ -51,6 +51,7 @@ Last updated: 2026-09-24 (Phase 1 complete, awaiting review).
 | OD-32 | Design for growth; no premature distributed systems. |
 | OD-33 | **No fake completeness:** placeholders, mocks, simulations, unconnected or untested pieces are labelled explicitly. |
 | OD-34 | Detailed Phase 1 completion report (22 items), then stop. |
+| OD-35 | **Phase 1 accepted; start Phase 2** (owner, 2026-09-24: "now start phase 2"). Phase 2 = MASTER_SPEC §82 "Restaurant/Menu": restaurant management, categories, products, variants, add-ons, availability, admin UI, tests. The same working rules apply (docs first, JavaScript only, no fake completeness, stop for review after the phase). Items that asked for explicit approval in Phase 1 (CH-5, CH-8, CH-9, D-30) have not been answered and stay open. |
 
 ## 2. Engineering decisions
 
@@ -228,6 +229,88 @@ reviewed from the test run. The owner can sign in to a local instance with the c
 `pnpm docs:api` writes the endpoint table in API.md from the registered routes (method, path, auth, apps,
 permission, rate limit); `pnpm check:docs` fails when it drifts.
 
+## 2a. Engineering decisions — Phase 2 (restaurants & menus)
+
+Design detail: [RESTAURANTS.md](RESTAURANTS.md).
+
+### D-34. Restaurant onboarding is a server-enforced state machine
+`DRAFT → REVIEW → APPROVED → ACTIVE ⇄ SUSPENDED`, with `DOCUMENTS_PENDING` for missing or rejected
+documents. Each transition has a permission, server-side readiness checks and (for backward steps and
+suspensions) a mandatory reason; all are audit-logged. The API returns the readiness checklist it
+evaluates, and the admin renders exactly that list. Required document kinds are a setting
+(`restaurants.requiredDocuments`, A-21). Partner endpoints accept members of APPROVED or ACTIVE
+restaurants (approved but not yet live restaurants can prepare their menu and hours); SUSPENDED blocks them.
+
+### D-35. Bank account numbers are encrypted at the application layer; four-eyes verification
+AES-256-GCM with `FIELD_ENCRYPTION_KEY` (32 random bytes, base64; required by the API in every
+environment, never committed). Ciphertext format `<keyId>.<iv>.<tag>.<data>` where `keyId` is derived
+from the key, so a wrong key is detected instead of producing garbage. Only the last 4 digits are
+returned or audit-logged; Phase 2 has no decrypting endpoint. A new account is unverified and not
+primary; a **different** admin with `restaurants.approve` verifies it, which atomically makes it primary
+(partial unique index: one primary per restaurant). Rationale: bank-detail changes are a classic payout
+fraud path (spec §43 lists "restaurant bank account changed" as an audited event).
+
+### D-36. KYC documents use private storage, never the public media route
+Documents are media of kind `DOCUMENT` stored under `private/…` keys. The public file route only serves
+`media/…` keys of kind `IMAGE`, the media library lists images only, and document files are downloaded
+through an authenticated, permission-checked, audit-logged admin endpoint. PDFs are accepted for
+documents (content-sniffed like images).
+
+### D-37. Catalog modelling
+- Platform `categories` (taxonomy for discovery and rule scoping) are separate from each restaurant's
+  `menu_categories` (its own sections).
+- Variants carry the **full** price of the size; the product's base price mirrors the default variant.
+- Add-on groups belong to one product (a shared add-on library is future work).
+- A product is written as one document (variants, groups, add-ons, images, schedules). Children are
+  upserted by id and removed when missing; this is safe because order items (Phase 5) copy names and
+  prices and have no foreign keys to catalog rows (see the design schema). Products are archived, never
+  deleted.
+- Optimistic concurrency: `products.version`; a stale write returns `409 CONFLICT`.
+- Food-type consistency and pure-veg rules are enforced by the server (RESTAURANTS.md §5).
+
+### D-38. Opening hours and availability are evaluated by a pure engine (`@jamzo/catalog-engine`)
+Same rules for API, admin previews and (Phase 3) customer listings; time and timezone are inputs (D-4).
+Several intervals per day, past-midnight intervals, `24:00` end of day, overlap rejection, "no hours =
+closed". Branch `isOpen` now defaults to **true** and means "not manually closed" (the Phase 0 design
+defaulted it to false, which would have kept every new restaurant closed until someone remembered to
+switch it on).
+
+### D-39. Restaurant self-editing of menu content is not built in Phase 2
+Spec §19 lists menu/product management in the restaurant app; the owner's flag `restaurant_self_edit_menu`
+(default off) gates it. Phase 2 builds the admin-side catalog and, in the partner app, **read-only menu,
+sold-out toggles and store status controls** — the daily operational needs. Self-editing prices and
+content needs a review/approval flow (price changes affect customers and commission) and is proposed for a
+later phase. Needs approval (CH-12).
+
+### D-40. Restaurant settings: one source of truth per value
+The Phase 0 `restaurant_settings` table duplicated values that the settings registry already resolves
+hierarchically (minimum order, acceptance timeout, COD, settlement schedule, packaging, delivery radius).
+Two sources would disagree. Those columns are removed from the design; the registry's RESTAURANT and
+BRANCH scopes are now enabled in the configuration service, so the admin can override those settings
+for one restaurant or branch. `restaurant_settings` keeps only per-restaurant capabilities that are not
+hierarchical: `selfEditMenu` and `autoAccept` (Phase 5). The delivery radius is the branch's delivery area.
+
+### D-41. Zones and delivery areas of a restaurant
+A branch's `zoneId` is derived from its location on every save (point-in-zone within the restaurant's
+city); a branch outside every zone cannot be submitted for review. `restaurant_zones` (where the restaurant
+is listed) always contains its branches' zones and may add neighbouring zones chosen by an admin. Each
+branch has one active delivery area (radius or polygon; partial unique index). Customer serviceability in
+Phase 3 = inside a zone service area **and** inside the branch delivery area (D-19).
+
+### D-42. Restaurant partner endpoints live under `/v1/restaurant/…`
+Only the Restaurant Partner app may call them (`x-app-id` + app-bound token). Every request re-checks the
+membership, its role and the restaurant status (no cached approval). Role capabilities are code
+(`RESTAURANT_ROLE_CAPABILITIES` in `@jamzo/auth`), listed in RESTAURANTS.md §7.
+
+### D-43. Bulk product actions are all-or-nothing
+Up to 200 products per request, all must be visible to the admin (city scope); either every product
+changes (one transaction, one audit entry per product) or none does.
+
+### D-44. Seed catalog is realistic but fictional
+11 fictional Unjha restaurants (mostly pure veg, reflecting the town), 120+ products with variants,
+add-ons (including Jain preparation choices), hours and delivery areas. Demo documents have fake numbers
+and no files; demo bank accounts are not seeded (they would need the encryption key).
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 | # | Change | Why | Consequence | Approval |
@@ -242,6 +325,9 @@ permission, rate limit); `pnpm check:docs` fails when it drifts.
 | CH-8 | Admin 2FA deferred to before production | Phase 1 scope | admin must not be exposed publicly until done | Needs approval |
 | CH-10 | pnpm hoisted layout instead of isolated installs (Phase 0 D-2) | duplicate React Native copies | single versions across apps; coordinated SDK upgrades (D-30) | **Please acknowledge D-30** |
 | CH-11 | Tests on embedded real PostgreSQL instead of PGlite | PGlite socket server dropped connections after errors | closer to production | Informational |
+| CH-12 | Restaurant self-editing of menu content not built in Phase 2 (spec §19) | needs a price/content review flow; flag stays off | restaurants use sold-out toggles and store controls; Jamzo edits menus | Needs approval (D-39) |
+| CH-13 | Product admin shows no customer-price preview yet (spec §31 "customer/display price preview, markup, tax") | markup and tax rules are Phase 4 | the editor says so; preview added with the pricing engine | Informational |
+| CH-14 | `restaurant_settings` slimmed; hierarchical values use the settings registry | avoid two sources of truth | admins override per restaurant/branch in Configuration | Informational (D-40) |
 | CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | Needs approval |
 
 ## 4. Assumptions (configurable defaults)
@@ -265,6 +351,8 @@ permission, rate limit); `pnpm check:docs` fails when it drifts.
 | A-17 | Commission basis default for development: food value after restaurant-funded discount — **placeholder** (OD-10, Q-7). |
 | A-18 | Markup disclosure default for development: `NONE` (customer sees final item prices only) — **pending legal (Q-4)**; setting `pricing.markupDisclosure` = NONE \| NOTE \| ITEMISED. |
 | A-19 | Route-distance fallback: `haversine × 1.3` with the order flagged `distanceSource = FALLBACK`; alternative setting value `REJECT` refuses to quote. |
+| A-21 | Required restaurant documents before approval: FSSAI and PAN (setting `restaurants.requiredDocuments`); GST certificate only when the restaurant has a GSTIN. **Legal review** (Q-12). |
+| A-22 | New branch preparation time 20 minutes; pause limited to 15–120 minutes; busy mode adds 10 minutes (setting `restaurants.operations`). |
 | A-20 | Store names: "Jamzo", "Jamzo Restaurant Partner", "Jamzo Delivery Partner"; URL schemes `jamzo`, `jamzo-restaurant`, `jamzo-rider` (Q-8). |
 
 ## 5. Questions
@@ -278,6 +366,7 @@ permission, rate limit); `pnpm check:docs` fails when it drifts.
 | Q-9 | Distance source | Road distance preferred, configurable fallback (OD-14, A-19) |
 | Q-10 | Tips / rounding | Tips 100% to rider, configurable (OD-15); rounding configurable & explicit (OD-16) |
 | Q-5a | First payment gateway | Razorpay (OD-11) |
+| Q-16 | GitHub push | Pushed 2026-09-24 using `https://harshad1411@github.com/harshad1411/bitemitra.git` (the username in the URL selects the right saved credential) |
 
 ### Open — must be answered before **production financial launch** (do not block development)
 - **Q-3 (CA)** GST liability on food (platform as e-commerce operator vs restaurant) and taxable value when marked up; GST on delivery / platform / small-order fees, surcharges, packaging; GST on commission; TCS (GST) and TDS (income tax) on restaurant payouts; invoice issuer per document type. See [PRICING.md §11](PRICING.md#11-open-tax--legal-questions-owner--ca-must-decide).
@@ -292,6 +381,5 @@ permission, rate limit); `pnpm check:docs` fails when it drifts.
 - **Q-13** Jamzo brand assets: logo, colours, typography (placeholders in use — D-16, D-17). Should the legacy BiteMitra kit be deleted?
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
-- **Q-16 (GitHub)** The repository push failed: this Mac's saved GitHub credentials belong to another account (`dcgolfgods`) without access to `harshad1411/bitemitra`. The owner must push, or grant that account access.
 - **Q-17 (toolchains)** Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
 - **Q-18 (Expo/EAS)** An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).

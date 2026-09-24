@@ -1,0 +1,13 @@
+{
+  "name": "@jamzo/catalog-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure restaurant/menu rules: opening hours, product availability and schedules, product structure validation.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

@@ -12,8 +12,9 @@ import {
 import { AppError, notFound } from '../../core/errors.js';
 import { audit } from '../../core/audit.js';
 
-export const CURRENT_PHASE = 1;
-const PHASE_TARGETS_UNAVAILABLE = new Set(['BRANCH', 'CATEGORY', 'PRODUCT', 'VARIANT']);
+export const CURRENT_PHASE = 2;
+/** Scopes used only by versioned commercial rules (Phase 4), never by operational settings. */
+const RULE_ONLY_SCOPES = new Set(['CATEGORY', 'PRODUCT', 'VARIANT']);
 
 /**
  * @param {import('@jamzo/database').Db} prisma
@@ -40,13 +41,11 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
    */
   async function contextFor(scope, scopeRefId) {
     if (scope === 'GLOBAL') return {};
-    if (PHASE_TARGETS_UNAVAILABLE.has(scope)) {
+    if (RULE_ONLY_SCOPES.has(scope)) {
       throw new AppError(
         'VALIDATION_FAILED',
-        `${scope} overrides become available when that entity exists (Phase 2+).`,
-        {
-          fieldErrors: { scope: ['Not available yet'] },
-        },
+        `${scope} scope is used by pricing and commission rules (Phase 4), not by settings.`,
+        { fieldErrors: { scope: ['Not available for settings'] } },
       );
     }
     if (!scopeRefId)
@@ -63,9 +62,20 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
       if (!s) throw notFound('State');
       return { countryId: s.countryId, stateId: s.id };
     }
-    if (scope === 'CITY' || scope === 'ZONE' || scope === 'RESTAURANT') {
+    if (scope === 'CITY' || scope === 'ZONE' || scope === 'RESTAURANT' || scope === 'BRANCH') {
       let cityId = scopeRefId;
       const extra = {};
+      if (scope === 'BRANCH') {
+        const b = await prisma.restaurantBranch.findUnique({
+          where: { id: scopeRefId },
+          include: { restaurant: true },
+        });
+        if (!b) throw notFound('Branch');
+        cityId = b.restaurant.cityId;
+        extra.restaurantId = b.restaurantId;
+        extra.branchId = b.id;
+        if (b.zoneId) extra.zoneId = b.zoneId;
+      }
       if (scope === 'ZONE') {
         const z = await prisma.zone.findUnique({ where: { id: scopeRefId } });
         if (!z) throw notFound('Zone');

@@ -11,3 +11,5 @@ export function hasPermissions(granted, required) {
   const set = granted instanceof Set ? granted : new Set(granted);
   return (Array.isArray(required) ? required : [required]).every((p) => set.has(p));
 }
+export * from './crypto.js';
+export * from './restaurant-roles.js';

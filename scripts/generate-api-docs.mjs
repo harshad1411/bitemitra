@@ -18,6 +18,7 @@ const env = loadEnv(apiEnvSchema, {
   DATABASE_URL: 'postgresql://docs@localhost:1/docs', // never connected — routes are only registered
   JWT_ACCESS_SECRET: 'x'.repeat(32),
   OTP_PEPPER: 'y'.repeat(32),
+  FIELD_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
   LOG_LEVEL: 'silent',
 });
 const prisma = createPrismaClient({ url: env.DATABASE_URL });

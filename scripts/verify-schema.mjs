@@ -2,7 +2,7 @@
 // Database design checks (DATABASE.md, DECISIONS D-18). Uses PGlite (PostgreSQL compiled to WASM) so it
 // needs no server. Verifies:
 //   1. design and active schemas validate; the active schema is up to date with the design
-//   2. committed migrations equal what the active schema generates (no drift)
+//   2. the committed migration chain produces exactly the active schema + active constraints (no drift)
 //   3. the full design + constraints.sql apply to an empty PostgreSQL, and every guarantee rejects bad
 //      writes with the EXPECTED SQLSTATE (a typo cannot pass as a success)
 //   4. the migrations apply cleanly on their own
@@ -48,17 +48,47 @@ const migrationDirs = (await readdir(path.join(dbPkg, 'prisma/migrations'), { wi
   .map((d) => d.name)
   .sort();
 const migrations = await Promise.all(migrationDirs.map((d) => read(`prisma/migrations/${d}/migration.sql`)));
-if (migrations.length === 2) {
-  if (migrations[0] !== activeSql)
-    throw new Error('init migration differs from the active schema — regenerate it');
-  if (migrations[1] !== (await read('prisma/constraints.active.sql'))) {
-    throw new Error('constraints migration differs from constraints.active.sql');
+// The migration chain must produce exactly the database the active schema + active constraints describe.
+// Compared structurally (columns, types, defaults, nullability, indexes, constraints, enums) so it works
+// for any number of migrations (Phase 1 init + constraints, Phase 2 catalog + constraints, …).
+{
+  const fromMigrations = await PGlite.create();
+  const fromSchema = await PGlite.create();
+  try {
+    for (const sql of migrations) await fromMigrations.exec(sql);
+    await fromSchema.exec(activeSql);
+    await fromSchema.exec(await read('prisma/constraints.active.sql'));
+    const [a, b] = await Promise.all([describe(fromMigrations), describe(fromSchema)]);
+    const onlyA = a.filter((x) => !b.includes(x));
+    const onlyB = b.filter((x) => !a.includes(x));
+    if (onlyA.length || onlyB.length) {
+      throw new Error(
+        `migrations drift from the active schema:\n  only in migrations: ${onlyA.join('\n    ') || '—'}\n  only in schema: ${onlyB.join('\n    ') || '—'}`,
+      );
+    }
+    console.log(
+      `✓ ${migrations.length} migrations produce exactly the active schema + constraints (${a.length} objects)`,
+    );
+  } finally {
+    await fromMigrations.close();
+    await fromSchema.close();
   }
-  console.log('✓ migrations match the active schema and active constraints exactly');
-} else {
-  console.log(
-    `• ${migrations.length} migrations — exact-match check covers the Phase 1 pair only; all are applied below`,
-  );
+}
+
+/** Normalised description of a database's public schema. */
+async function describe(db) {
+  const q = async (sql) => (await db.query(sql)).rows.map((r) => Object.values(r).join(' | '));
+  return [
+    ...(await q(`select 'column', table_name, column_name, data_type, udt_name, is_nullable, coalesce(column_default, '')
+                 from information_schema.columns where table_schema = 'public'`)),
+    ...(await q(
+      `select 'index', tablename, indexname, indexdef from pg_indexes where schemaname = 'public'`,
+    )),
+    ...(await q(`select 'constraint', conrelid::regclass::text, conname, pg_get_constraintdef(oid)
+                 from pg_constraint where connamespace = 'public'::regnamespace`)),
+    ...(await q(`select 'enum', t.typname, string_agg(e.enumlabel, ',' order by e.enumsortorder)
+                 from pg_type t join pg_enum e on e.enumtypid = t.oid group by t.typname`)),
+  ].sort();
 }
 
 // 3. full design + guarantees
@@ -77,7 +107,7 @@ try {
   await designDb.close();
 }
 
-// 4. migrations alone
+// 4. migrations alone (table count)
 const migDb = await PGlite.create();
 try {
   for (const sql of migrations) await migDb.exec(sql);
@@ -235,6 +265,63 @@ async function checkGuarantees(db) {
   await rejects(
     'zone with an inverted bounding box',
     `insert into zones (id, "cityId", slug, name, geometry, "minLat", "minLng", "maxLat", "maxLng", "updatedAt") values ('${id()}', '${ids.city}', 'z', 'Z', '{}', 24, 72, 23, 73, now())`,
+    CHECK,
+  );
+  // Phase 2 — restaurants & menus
+  await rejects(
+    'second primary branch for a restaurant',
+    `insert into restaurant_branches (id, "restaurantId", name, "addressLine", lat, lng, "updatedAt") values ('${id()}', '${ids.restaurant}', 'Second', 'Market Rd', 23.80, 72.39, now())`,
+    UNIQUE,
+  );
+  const product = id();
+  await db.exec(
+    `insert into products (id, "restaurantId", name, "basePricePaise", "updatedAt") values ('${product}', '${ids.restaurant}', 'Thali', 15000, now())`,
+  );
+  const variant = (name, isDefault) =>
+    `insert into product_variants (id, "productId", name, "basePricePaise", "isDefault") values ('${id()}', '${product}', '${name}', 15000, ${isDefault})`;
+  await db.exec(variant('Regular', true));
+  await rejects('two default variants for one product', variant('Deluxe', true), UNIQUE);
+  await rejects(
+    'negative product price',
+    `update products set "basePricePaise" = -1 where id = '${product}'`,
+    CHECK,
+  );
+  const bank = (primary, verified) =>
+    `insert into restaurant_bank_accounts (id, "restaurantId", "accountHolderName", "accountNumberEncrypted", "accountNumberLast4", ifsc, "isPrimary", "verifiedAt", "updatedAt") values ('${id()}', '${ids.restaurant}', 'Test', 'k.x.y.z', '1234', 'HDFC0001234', ${primary}, ${verified ? 'now()' : 'null'}, now())`;
+  await rejects('unverified bank account marked primary', bank(true, false), CHECK);
+  await db.exec(bank(true, true));
+  await rejects('second primary bank account', bank(true, true), UNIQUE);
+  await rejects(
+    'malformed IFSC',
+    `insert into restaurant_bank_accounts (id, "restaurantId", "accountHolderName", "accountNumberEncrypted", "accountNumberLast4", ifsc, "updatedAt") values ('${id()}', '${ids.restaurant}', 'Test', 'k.x.y.z', '1234', 'HDFC1234', now())`,
+    CHECK,
+  );
+  const area = () =>
+    `insert into branch_delivery_areas (id, "branchId", kind, "radiusM", "updatedAt") values ('${id()}', '${ids.branch}', 'RADIUS', 3000, now())`;
+  await db.exec(area());
+  await rejects('second active delivery area for a branch', area(), UNIQUE);
+  await rejects(
+    'delivery radius below 100 m',
+    `insert into branch_delivery_areas (id, "branchId", kind, "radiusM", "isActive", "updatedAt") values ('${id()}', '${ids.branch}', 'RADIUS', 50, false, now())`,
+    CHECK,
+  );
+  const section = (name) =>
+    `insert into menu_categories (id, "restaurantId", name, "updatedAt") values ('${id()}', '${ids.restaurant}', '${name}', now())`;
+  await db.exec(section('Starters'));
+  await rejects('duplicate menu section name (case-insensitive)', section('STARTERS'), UNIQUE);
+  await rejects(
+    'business hours with an invalid time',
+    `insert into restaurant_business_hours (id, "branchId", "dayOfWeek", "opensAt", "closesAt") values ('${id()}', '${ids.branch}', 1, '25:00', '23:00')`,
+    CHECK,
+  );
+  await rejects(
+    'sold-out window that ends before it starts',
+    `insert into product_availability (id, "productId", "isAvailable", "startsAt", "endsAt") values ('${id()}', '${product}', false, now(), now() - interval '1 hour')`,
+    CHECK,
+  );
+  await rejects(
+    'add-on group allowing zero selections at most',
+    `insert into product_addon_groups (id, "productId", name, "minSelect", "maxSelect") values ('${id()}', '${product}', 'Extras', 0, 0)`,
     CHECK,
   );
   console.log('✓ database-level guarantees hold');

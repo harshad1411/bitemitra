@@ -81,6 +81,20 @@ export function sniffImage(buf) {
   return null;
 }
 
+/**
+ * Document types accepted for restaurant KYC (D-36): PDF, JPEG, PNG — detected from content.
+ * @param {Buffer} buf
+ * @returns {{ mime: string, ext: string } | null}
+ */
+export function sniffDocument(buf) {
+  if (buf.length >= 5 && buf.subarray(0, 5).toString('ascii') === '%PDF-')
+    return { mime: 'application/pdf', ext: 'pdf' };
+  const image = sniffImage(buf);
+  return image && image.ext !== 'webp' ? image : null;
+}
+
 export const RENDITIONS = Object.freeze({ thumb: 200, small: 480, medium: 960 });
 export const originalKey = (id, ext) => `media/${id}/original.${ext}`;
 export const renditionKey = (id, size) => `media/${id}/${size}.webp`;
+/** Private documents never live under media/ (the public route only serves media/ keys — D-36). */
+export const documentKey = (id, ext) => `private/documents/${id}/original.${ext}`;

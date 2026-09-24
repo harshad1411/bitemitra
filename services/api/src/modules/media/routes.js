@@ -10,6 +10,7 @@ import { enqueueEvent } from '../../core/outbox.js';
 import { idPage, toPage } from '../../core/pagination.js';
 import { withIdempotency } from '../../core/idempotency.js';
 import { originalKey, sniffImage } from './storage.js';
+import { mediaBase, mediaUrls } from './urls.js';
 
 const idParam = z.object({ id: uuid });
 
@@ -17,7 +18,7 @@ const idParam = z.object({ id: uuid });
 export default async function mediaRoutes(app) {
   const prisma = app.prisma;
   const { storage, env } = app.services;
-  const base = env.MEDIA_PUBLIC_BASE_URL.replace(/\/$/, '');
+  const base = mediaBase(env);
 
   const dto = (m) => ({
     id: m.id,
@@ -32,15 +33,7 @@ export default async function mediaRoutes(app) {
     status: m.status,
     createdAt: m.createdAt,
     updatedAt: m.updatedAt,
-    urls: {
-      original: `${base}/${m.storageKey}`,
-      ...Object.fromEntries(
-        Object.entries(/** @type {Record<string,string>} */ (m.variants ?? {})).map(([k, v]) => [
-          k,
-          `${base}/${v}`,
-        ]),
-      ),
-    },
+    urls: mediaUrls(m, base),
   });
 
   app.post(
@@ -141,6 +134,7 @@ export default async function mediaRoutes(app) {
       const rows = await prisma.media.findMany({
         where: {
           ...page.where,
+          kind: 'IMAGE', // documents are private and never listed (D-36)
           deletedAt: null,
           ...(q.status ? { status: q.status } : {}),
           ...(q.q
@@ -165,7 +159,7 @@ export default async function mediaRoutes(app) {
     { config: { permission: 'media.view' } },
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
       const { id } = parse(idParam, request.params);
-      const m = await prisma.media.findFirst({ where: { id, deletedAt: null } });
+      const m = await prisma.media.findFirst({ where: { id, deletedAt: null, kind: 'IMAGE' } });
       if (!m) throw notFound('Media');
       return dto(m);
     },
@@ -178,7 +172,7 @@ export default async function mediaRoutes(app) {
       const { id } = parse(idParam, request.params);
       const body = parse(mediaUpdateBody, request.body);
       return prisma.$transaction(async (tx) => {
-        const before = await tx.media.findFirst({ where: { id, deletedAt: null } });
+        const before = await tx.media.findFirst({ where: { id, deletedAt: null, kind: 'IMAGE' } });
         if (!before) throw notFound('Media');
         const after = await tx.media.update({ where: { id }, data: body });
         await audit(tx, request, {
@@ -201,7 +195,7 @@ export default async function mediaRoutes(app) {
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request, reply) => {
       const { id } = parse(idParam, request.params);
       await prisma.$transaction(async (tx) => {
-        const before = await tx.media.findFirst({ where: { id, deletedAt: null } });
+        const before = await tx.media.findFirst({ where: { id, deletedAt: null, kind: 'IMAGE' } });
         if (!before) throw notFound('Media');
         await tx.media.update({ where: { id }, data: { deletedAt: app.clock.now() } });
         await audit(tx, request, {
@@ -216,7 +210,8 @@ export default async function mediaRoutes(app) {
     },
   );
 
-  // Public file delivery for library images (not documents — those need private storage, Phase 2).
+  // Public file delivery for library images only. Documents live under private/ keys and are served by the
+  // authenticated restaurant-document endpoint (D-36).
   app.get(
     '/v1/media/files/*',
     { config: { auth: 'none', public: true } },

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Usage: pnpm db:seed   (reads DATABASE_URL, APP_ENV, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, SEED_DEMO)
+import { createFieldCipher } from '@jamzo/auth';
 import { createPrismaClient } from '../index.js';
 import { seed } from './index.js';
 
@@ -23,9 +24,17 @@ const admin =
     : undefined;
 if (!admin) console.warn('SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not set — no Super Admin will be created.');
 
+// Demo bank accounts are encrypted like real ones, so they are only seeded when the key is configured.
+let fieldCipher;
+try {
+  fieldCipher = env.FIELD_ENCRYPTION_KEY ? createFieldCipher(env.FIELD_ENCRYPTION_KEY) : undefined;
+} catch {
+  console.warn('FIELD_ENCRYPTION_KEY is not a valid 32-byte base64 key — demo bank accounts are skipped.');
+}
+
 const prisma = createPrismaClient();
 try {
-  await seed(prisma, { admin, demo, log: (m) => console.log(`✓ ${m}`) });
+  await seed(prisma, { admin, demo, catalog: demo, fieldCipher, log: (m) => console.log(`✓ ${m}`) });
 } finally {
   await prisma.$disconnect();
 }

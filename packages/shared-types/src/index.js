@@ -45,6 +45,19 @@ export const RIDER_ONBOARDING_STATUSES = enumOf([
 ]);
 export const RESTAURANT_USER_ROLES = enumOf(['OWNER', 'MANAGER', 'STAFF']);
 export const MEDIA_KINDS = enumOf(['IMAGE', 'DOCUMENT']);
+export const DOCUMENT_STATUSES = enumOf(['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED']);
+export const FOOD_TYPES = enumOf(['VEG', 'NON_VEG', 'EGG', 'VEGAN']);
+export const PRODUCT_STATUSES = enumOf(['DRAFT', 'ACTIVE', 'ARCHIVED']);
+/** Restaurant document kinds (validated in the API; the column is free text so new kinds need no migration). */
+export const RESTAURANT_DOCUMENT_KINDS = enumOf([
+  'FSSAI',
+  'PAN',
+  'GST',
+  'SHOP_ACT',
+  'TRADE_LICENSE',
+  'CANCELLED_CHEQUE',
+  'OTHER',
+]);
 
 /** Headers every first-party client sends (API.md §2). */
 export const CLIENT_HEADERS = Object.freeze({

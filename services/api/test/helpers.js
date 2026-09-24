@@ -4,7 +4,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { apiEnvSchema, loadEnv } from '@jamzo/config';
-import { createPrismaClient } from '@jamzo/database';
+import { PrismaClient, createPrismaClient } from '@jamzo/database';
+import { createFieldCipher } from '@jamzo/auth';
 import { startTestDatabase } from '@jamzo/database/testing';
 import { DEMO_ACCOUNTS, seed } from '@jamzo/database/seed';
 import { createConsoleEmailProvider, createConsoleSmsProvider } from '@jamzo/notifications';
@@ -15,17 +16,34 @@ import { createLocalStorage } from '../src/modules/media/storage.js';
 export const SUPER = { email: 'super@jamzo.test', password: 'Super-Admin-Pass-1' };
 export { DEMO_ACCOUNTS };
 
-/** @param {{ env?: Record<string, string> }} [opts] */
+export const TEST_FIELD_KEY = Buffer.alloc(32, 7).toString('base64'); // fixed test key, not a secret
+
+/**
+ * @param {{ env?: Record<string, string>, catalog?: boolean, countQueries?: boolean }} [opts]
+ *   catalog: seed the demo restaurants and menus; countQueries: count SQL statements in `queries.count`
+ */
 export async function startTestApp(opts = {}) {
   const db = await startTestDatabase();
-  const prisma = createPrismaClient({ url: db.url });
-  await seed(prisma, { admin: SUPER, demo: true });
+  const queries = { count: 0 };
+  let prisma;
+  if (opts.countQueries) {
+    prisma = new PrismaClient({
+      datasources: { db: { url: db.url } },
+      log: [{ emit: 'event', level: 'query' }],
+    });
+    prisma.$on('query', () => {
+      queries.count += 1;
+    });
+  } else prisma = createPrismaClient({ url: db.url });
+  const fieldCipher = createFieldCipher(TEST_FIELD_KEY);
+  await seed(prisma, { admin: SUPER, demo: true, catalog: Boolean(opts.catalog), fieldCipher });
   const mediaDir = await mkdtemp(path.join(os.tmpdir(), 'jamzo-media-'));
   const env = loadEnv(apiEnvSchema, {
     APP_ENV: 'test',
     DATABASE_URL: db.url,
     JWT_ACCESS_SECRET: 'test-access-secret-that-is-long-enough-123',
     OTP_PEPPER: 'test-otp-pepper-that-is-long-enough-12345',
+    FIELD_ENCRYPTION_KEY: TEST_FIELD_KEY,
     COOKIE_SECURE: 'false',
     MEDIA_LOCAL_DIR: mediaDir,
     RATE_LIMIT_MAX: '10000',
@@ -43,6 +61,8 @@ export async function startTestApp(opts = {}) {
   return {
     app,
     prisma,
+    queries,
+    fieldCipher,
     sms,
     email,
     clock,

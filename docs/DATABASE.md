@@ -1,6 +1,6 @@
 # Database
 
-Status: **Phase 1.** 27 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, OD-20, OD-21.
+Status: **Phase 2.** 43 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, OD-20, OD-21.
 
 | File | Purpose |
 |---|---|
@@ -9,10 +9,12 @@ Status: **Phase 1.** 27 of 98 designed tables are active (migrated). Decisions: 
 | [`prisma/schema.prisma`](../packages/database/prisma/schema.prisma) | **Generated** active schema (what Prisma migrates and the client uses). |
 | [`prisma/constraints.sql`](../packages/database/prisma/constraints.sql) | Partial unique indexes + CHECK constraints Prisma cannot express (all tables). |
 | `prisma/constraints.active.sql` | Generated subset for active tables, applied as a migration. |
-| `prisma/migrations/` | Migrations (Phase 1: init + constraints). |
+| `prisma/migrations/` | Migrations (Phase 1: init + constraints; Phase 2: catalog + constraints). |
 
 `pnpm --filter @jamzo/database schema:generate` regenerates the active files; `pnpm verify:schema` fails if they
-are stale, validates both schemas, applies both to PostgreSQL and exercises the constraints.
+are stale, validates both schemas, checks that the migration chain produces **exactly** the active schema
+and constraints (structural comparison of columns, indexes, constraints and enums), applies the full design
+to PostgreSQL and exercises the constraints.
 
 ## 1. Technology
 
@@ -34,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active in Phase 1 (migrated now). **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1 and Phase 2 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -60,11 +62,30 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | restaurants, restaurant_users | Needed now only for the **approval gate**: logging into the restaurant app must not imply being an approved restaurant member (OD-13). Full restaurant management is Phase 2. |
 | riders | Needed now only for the rider **approval gate** (onboarding status). Onboarding flows are Phase 6. |
 
-### 3.2 LATER PHASE (70 tables)
+### 3.1a CORE — Phase 2, restaurants & menus (16 tables)
+
+| Table | Why it exists |
+|---|---|
+| restaurant_branches | Location, zone, preparation time and the open / pause / busy state of each outlet (OD-6, D-38) |
+| restaurant_business_hours | Weekly opening intervals per branch; "no hours = closed" |
+| branch_delivery_areas | The branch's own reach (radius or polygon), one active per branch (D-19, D-41) |
+| restaurant_documents | FSSAI / PAN / GST … numbers, private files and review status for approval (D-34, D-36) |
+| restaurant_bank_accounts | Encrypted account number, last 4, IFSC, four-eyes verification (D-35) |
+| restaurant_settings | Per-restaurant capabilities that are not hierarchical settings (D-40) |
+| restaurant_zones | Zones where a restaurant is listed — discovery index for Phase 3 (D-41) |
+| categories | Platform food taxonomy for discovery and rule scoping (D-37) |
+| menu_categories | Each restaurant's own menu sections and their order |
+| products | Menu items: restaurant base price (never mutated by markup), food type, flags, status, sold-out switch, version |
+| product_variants | Sizes with full prices, exactly one default |
+| product_addon_groups, product_addons | Customisation with min/max selection and food-type consistency |
+| product_images | Ordered product images from the media library |
+| product_availability | Dated sold-out windows ("sold out for today") |
+| product_schedules | Recurring windows when a product can be ordered |
+
+### 3.2 LATER PHASE (54 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
-| 2 — Restaurants & menu | restaurant_branches, restaurant_business_hours, restaurant_documents, restaurant_bank_accounts, restaurant_settings, restaurant_zones, branch_delivery_areas, categories, menu_categories, products, product_variants, product_addon_groups, product_addons, product_images, product_availability, product_schedules | Branch-level operations and reach (OD-6), onboarding documents/bank details, full catalog with variants, add-ons, availability and schedules |
 | 3 — Customer discovery | customer_addresses, favorite_restaurants, consent_records, home_sections, banners, cms_pages | Saved addresses, favourites, legal consents, CMS-driven home page |
 | 4 — Pricing | markup_rules, commission_rules, tax_rules, platform_fee_rules, delivery_pricing_rules, surge_rules, coupons, promotions | Versioned commercial rules and promotions (OD-7..OD-10) |
 | 5 — Orders | orders, order_items, order_item_addons, order_status_history, order_pricing_snapshots, order_addresses, order_notes, order_cancellations, cancellation_rules, coupon_usages, notifications, notification_templates, notification_preferences, reviews | Order lifecycle, frozen financial snapshot, cancellations, notifications, ratings |
@@ -101,6 +122,10 @@ Enforced by PostgreSQL and exercised by `pnpm verify:schema` (each must fail wit
 | Guarantee | Guard | Active from |
 |---|---|---|
 | One unscoped default per setting key | partial unique `settings(key, scope) WHERE scopeRefId IS NULL` | Phase 1 |
+| One primary branch per restaurant; one default variant per product; one active delivery area per branch | partial unique indexes | Phase 2 |
+| Only a verified bank account can be primary; one primary per restaurant | CHECK + partial unique | Phase 2 |
+| Menu section names unique per restaurant (case-insensitive) | unique `(restaurantId, lower(name))` | Phase 2 |
+| Valid hours/schedule times, sold-out windows, prices, stock, prep time, add-on selection limits, IFSC | CHECKs | Phase 2 |
 | GLOBAL settings have no target; scoped ones must | CHECK `settings_scope_ref_present` | Phase 1 |
 | Valid geography / bbox / media size / OTP attempts | CHECKs | Phase 1 |
 | Two riders cannot both own an order | partial unique `order_assignments(orderId) WHERE status IN (ACCEPTED, COMPLETED)` | Phase 6 |
@@ -123,6 +148,7 @@ backed by indexes. Later phases add indexes driven by measured admin filter usag
 ## 7. Migrations
 
 - Phase 1: `…_phase1_init` (generated from the active schema) and `…_phase1_constraints` (from `constraints.active.sql`).
+- Phase 2: `…_phase2_catalog` (`prisma migrate diff` from the Phase 1 active schema to the Phase 2 one: 16 new tables, no changes to existing tables) and `…_phase2_constraints` (the constraint statements that became active).
 - Activating a table = add it to `active-models.json`, regenerate, `prisma migrate dev`, plus a constraints migration if new statements apply.
 - Production: forward-only, expand → migrate → contract across releases so older mobile versions keep working.
 

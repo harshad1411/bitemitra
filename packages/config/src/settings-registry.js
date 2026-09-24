@@ -10,6 +10,7 @@ const paise = z.number().int().min(0);
 const bps = z.number().int().min(0).max(10_000);
 
 const GEO_SCOPES = ['GLOBAL', 'COUNTRY', 'STATE', 'CITY', 'ZONE'];
+const DOCUMENT_KINDS = ['FSSAI', 'PAN', 'GST', 'SHOP_ACT', 'TRADE_LICENSE', 'CANCELLED_CHEQUE', 'OTHER'];
 const GEO_AND_RESTAURANT = [...GEO_SCOPES, 'RESTAURANT', 'BRANCH'];
 
 /**
@@ -150,7 +151,7 @@ const DEFINITIONS = [
     }),
     default: { maxPrepMinutes: 60, lateAfterMinutes: 15 },
     scopes: GEO_AND_RESTAURANT,
-    phase: 5,
+    phase: 2, // maxPrepMinutes bounds branch preparation time from Phase 2; lateAfterMinutes is read in Phase 5
   },
   {
     key: 'orders.limits',
@@ -163,6 +164,47 @@ const DEFINITIONS = [
       maxItems: z.number().int().min(1).max(500),
     }),
     default: { minOrderPaise: 0, maxOrderPaise: 5_000_000, maxItems: 50 },
+    scopes: GEO_AND_RESTAURANT,
+    phase: 4,
+    placeholder: true,
+  },
+
+  // ── Restaurants ──────────────────────────────────────────────────────────
+  {
+    key: 'restaurants.requiredDocuments',
+    section: 'Restaurants',
+    label: 'Documents required for approval',
+    description:
+      'Document kinds a restaurant must upload before review and have verified before approval (RESTAURANTS.md §2).',
+    schema: z.object({ kinds: z.array(z.enum(DOCUMENT_KINDS)).max(DOCUMENT_KINDS.length) }),
+    default: { kinds: ['FSSAI', 'PAN'] },
+    scopes: GEO_SCOPES,
+    phase: 2,
+    critical: true,
+    legalReview: true,
+  },
+  {
+    key: 'restaurants.operations',
+    section: 'Restaurants',
+    label: 'Pause and busy mode',
+    description:
+      'Longest pause a restaurant can set, and minutes busy mode adds to preparation time (Phase 5 ETAs).',
+    schema: z.object({
+      maxPauseMinutes: z.number().int().min(15).max(720),
+      busyExtraPrepMinutes: z.number().int().min(0).max(60),
+    }),
+    default: { maxPauseMinutes: 120, busyExtraPrepMinutes: 10 },
+    scopes: GEO_AND_RESTAURANT,
+    phase: 2,
+  },
+  {
+    key: 'restaurants.packaging',
+    section: 'Restaurants',
+    label: 'Default packaging charge',
+    description:
+      'Per-item packaging charge used when a product does not set its own. Passed through to the restaurant, no markup (A-10); tax treatment pending Q-3.',
+    schema: z.object({ perItemPaise: paise }),
+    default: { perItemPaise: 0 },
     scopes: GEO_AND_RESTAURANT,
     phase: 4,
     placeholder: true,

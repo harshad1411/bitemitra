@@ -32,6 +32,7 @@ export default async function globalSetup() {
     DATABASE_URL: url,
     JWT_ACCESS_SECRET: 'e2e-access-secret-that-is-long-enough-12345',
     OTP_PEPPER: 'e2e-otp-pepper-that-is-long-enough-1234567',
+    FIELD_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64'), // fixed E2E key, not a secret
     COOKIE_SECURE: 'false',
     MEDIA_LOCAL_DIR: mediaDir,
     LOG_LEVEL: 'warn',

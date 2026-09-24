@@ -419,6 +419,8 @@ importers:
         specifier: ^6.2.12
         version: 6.2.12
 
+  packages/catalog-engine: {}
+
   packages/config:
     dependencies:
       '@jamzo/shared-types':
@@ -433,6 +435,9 @@ importers:
       '@jamzo/auth':
         specifier: workspace:*
         version: link:../auth
+      '@jamzo/catalog-engine':
+        specifier: workspace:*
+        version: link:../catalog-engine
       '@jamzo/config':
         specifier: workspace:*
         version: link:../config
@@ -556,6 +561,9 @@ importers:
       '@jamzo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@jamzo/catalog-engine':
+        specifier: workspace:*
+        version: link:../../packages/catalog-engine
       '@jamzo/config':
         specifier: workspace:*
         version: link:../../packages/config

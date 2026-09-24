@@ -5,6 +5,7 @@ const good = {
   DATABASE_URL: 'postgresql://x',
   JWT_ACCESS_SECRET: 'x'.repeat(32),
   OTP_PEPPER: 'y'.repeat(32),
+  FIELD_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 };
 
 describe('env', () => {

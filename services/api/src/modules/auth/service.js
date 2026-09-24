@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   DUMMY_PASSWORD_HASH,
+  PARTNER_APP_RESTAURANT_STATUSES,
   generateOtp,
   generateRefreshToken,
   hashOtp,
@@ -361,18 +362,24 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
         include: { restaurant: true },
         orderBy: { createdAt: 'asc' },
       });
+      // approved = may use the partner app (APPROVED or ACTIVE, D-34); live = accepting orders (ACTIVE).
       const restaurants = memberships.map((m) => ({
         id: m.restaurant.id,
         name: m.restaurant.name,
         role: m.role,
         onboardingStatus: m.restaurant.onboardingStatus,
-        approved: m.isActive && m.restaurant.onboardingStatus === 'ACTIVE',
+        memberActive: m.isActive,
+        approved: m.isActive && PARTNER_APP_RESTAURANT_STATUSES.includes(m.restaurant.onboardingStatus),
+        live: m.isActive && m.restaurant.onboardingStatus === 'ACTIVE',
       }));
+      const blocked = (r) => !r.memberActive || r.onboardingStatus === 'SUSPENDED';
       const status = !restaurants.length
         ? 'NOT_REGISTERED'
         : restaurants.some((r) => r.approved)
           ? 'OK'
-          : 'PENDING_APPROVAL';
+          : restaurants.every(blocked)
+            ? 'BLOCKED'
+            : 'PENDING_APPROVAL';
       return { ...base, access: { status }, restaurants };
     }
     if (appId === 'RIDER') {

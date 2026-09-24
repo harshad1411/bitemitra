@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { adminLogin, bearer, headers, startTestApp } from './helpers.js';
+import { adminLogin, adminWithRole, bearer, headers, startTestApp } from './helpers.js';
 
 let ctx;
 let token;
@@ -216,5 +216,40 @@ describe('admin geography', () => {
     });
     expect(changed.statusCode).toBe(409);
     expect(changed.json().error.code).toBe('IDEMPOTENCY_CONFLICT');
+  });
+});
+
+describe('partial updates do not reset other fields (regression, Phase 2)', () => {
+  it('renaming a live city keeps it live, and a City Manager may rename their own city', async () => {
+    const unjha = await ctx.prisma.city.findUniqueOrThrow({ where: { slug: 'unjha' } });
+    let res = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/geo/cities/${unjha.id}`,
+      headers: bearer(token),
+      payload: { name: 'Unjha' },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json()).toMatchObject({ isActive: true, timezone: 'Asia/Kolkata' });
+    const manager = await adminWithRole(ctx, 'CITY_MANAGER', { cityId: unjha.id });
+    res = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/geo/cities/${unjha.id}`,
+      headers: bearer(manager.accessToken),
+      payload: { name: 'Unjha' },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+  });
+
+  it('renaming an inactive zone keeps it inactive', async () => {
+    const zone = await ctx.prisma.zone.findFirstOrThrow({ where: { slug: 'mehsana-central' } });
+    await ctx.prisma.zone.update({ where: { id: zone.id }, data: { isActive: false } });
+    const res = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/v1/admin/geo/zones/${zone.id}`,
+      headers: bearer(token),
+      payload: { name: 'Mehsana Central' },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().isActive).toBe(false);
   });
 });

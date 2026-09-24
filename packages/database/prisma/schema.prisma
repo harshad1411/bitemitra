@@ -86,6 +86,26 @@ enum RestaurantUserRole {
   STAFF
 }
 
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum FoodType {
+  VEG
+  NON_VEG
+  EGG
+  VEGAN
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 enum ActorType {
   CUSTOMER
   RESTAURANT_USER
@@ -337,6 +357,7 @@ model Zone {
 
   city         City             @relation(fields: [cityId], references: [id])
   serviceAreas ServiceArea[]
+  restaurants  RestaurantZone[]
 
   @@unique([cityId, slug])
   @@index([minLat, maxLat, minLng, maxLng])
@@ -404,10 +425,75 @@ model Restaurant {
   updatedAt        DateTime                   @updatedAt @db.Timestamptz(3)
 
   city           City                    @relation(fields: [cityId], references: [id])
+  branches       RestaurantBranch[]
   users          RestaurantUser[]
+  documents      RestaurantDocument[]
+  bankAccounts   RestaurantBankAccount[]
+  settings       RestaurantSettings?
+  zones          RestaurantZone[]
+  menuCategories MenuCategory[]
+  products       Product[]
 
   @@index([cityId, onboardingStatus])
   @@map("restaurants")
+}
+
+model RestaurantBranch {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  restaurantId    String    @db.Uuid
+  name            String
+  addressLine     String
+  area            String?
+  pincode         String?
+  lat             Decimal   @db.Decimal(9, 6)
+  lng             Decimal   @db.Decimal(9, 6)
+  zoneId          String?   @db.Uuid
+  isPrimary       Boolean   @default(true)
+  isOpen          Boolean   @default(true) // false = manually closed until reopened (D-38)
+  pausedUntil     DateTime? @db.Timestamptz(3) // temporary pause
+  busyMode        Boolean   @default(false)
+  prepTimeMinutes Int       @default(20)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+
+  restaurant    Restaurant                @relation(fields: [restaurantId], references: [id])
+  businessHours RestaurantBusinessHours[]
+  deliveryAreas BranchDeliveryArea[]
+
+  @@index([restaurantId])
+  @@index([lat, lng])
+  @@map("restaurant_branches")
+}
+
+/// A branch's own delivery reach ("Delivery Area" in the owner's hierarchy, DECISIONS D-19):
+/// radius or polygon. The customer must be inside BOTH a zone service area and a branch area.
+model BranchDeliveryArea {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  branchId  String   @db.Uuid
+  kind      String // RADIUS | POLYGON
+  radiusM   Int?
+  geometry  Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  branch RestaurantBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@map("branch_delivery_areas")
+}
+
+model RestaurantBusinessHours {
+  id        String @id @default(uuid(7)) @db.Uuid
+  branchId  String @db.Uuid
+  dayOfWeek Int // 0 = Sunday … 6 = Saturday
+  opensAt   String // "HH:mm" local time
+  closesAt  String // may be < opensAt for past-midnight hours
+
+  branch RestaurantBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, dayOfWeek])
+  @@map("restaurant_business_hours")
 }
 
 model RestaurantUser {
@@ -424,6 +510,234 @@ model RestaurantUser {
   @@unique([restaurantId, userId])
   @@index([userId])
   @@map("restaurant_users")
+}
+
+model RestaurantDocument {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  restaurantId String         @db.Uuid
+  kind         String // FSSAI, GST, PAN, SHOP_ACT, CANCELLED_CHEQUE …
+  number       String?
+  mediaId      String?        @db.Uuid
+  status       DocumentStatus @default(PENDING)
+  expiresOn    DateTime?      @db.Date
+  reviewedById String?        @db.Uuid
+  reviewedAt   DateTime?      @db.Timestamptz(3)
+  reviewNote   String?
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@index([restaurantId])
+  @@map("restaurant_documents")
+}
+
+/// Bank details. Account number stored encrypted at the application layer (AES-GCM,
+/// key from env) plus last-4 for display. Changes are audit-logged (spec §43).
+model RestaurantBankAccount {
+  id                     String    @id @default(uuid(7)) @db.Uuid
+  restaurantId           String    @db.Uuid
+  accountHolderName      String
+  accountNumberEncrypted String
+  accountNumberLast4     String
+  ifsc                   String
+  bankName               String?
+  upiId                  String?
+  isPrimary              Boolean   @default(false) // becomes true only on verification (D-35)
+  createdById            String?   @db.Uuid // admin who entered the details
+  verifiedById           String?   @db.Uuid // a different admin (four-eyes)
+  verifiedAt             DateTime? @db.Timestamptz(3)
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime  @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@index([restaurantId])
+  @@map("restaurant_bank_accounts")
+}
+
+/// Per-restaurant capabilities that are not hierarchical. Hierarchical values (minimum order, COD,
+/// acceptance timeout, settlement schedule, packaging…) are settings with RESTAURANT/BRANCH scope (D-40).
+model RestaurantSettings {
+  restaurantId String   @id @db.Uuid
+  autoAccept   Boolean  @default(false) // Phase 5
+  selfEditMenu Boolean  @default(false) // also needs flag restaurant_self_edit_menu (D-39)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_settings")
+}
+
+model RestaurantZone {
+  restaurantId String @db.Uuid
+  zoneId       String @db.Uuid
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  zone       Zone       @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@id([restaurantId, zoneId])
+  @@map("restaurant_zones")
+}
+
+/// Platform-wide food taxonomy (Pizza, Biryani, Desserts…) used for discovery + rule scoping.
+model Category {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  slug        String   @unique
+  name        String
+  iconMediaId String?  @db.Uuid
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  products Product[]
+
+  @@map("categories")
+}
+
+/// A restaurant's own menu section ("Starters", "Combos").
+model MenuCategory {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  restaurantId String   @db.Uuid
+  name         String
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+  products   Product[]
+
+  @@index([restaurantId, sortOrder])
+  @@map("menu_categories")
+}
+
+model Product {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  restaurantId         String        @db.Uuid
+  menuCategoryId       String?       @db.Uuid
+  categoryId           String?       @db.Uuid
+  name                 String
+  description          String?
+  foodType             FoodType      @default(VEG)
+  basePricePaise       Int // restaurant's price; NEVER mutated by markup
+  packagingChargePaise Int? // per unit; null = inherit restaurant/global packaging config
+  taxInclusive         Boolean? // null = inherit from TaxRule
+  prepTimeMinutes      Int?
+  isBestseller         Boolean       @default(false)
+  isRecommended        Boolean       @default(false)
+  isFeatured           Boolean       @default(false)
+  status               ProductStatus @default(ACTIVE)
+  isAvailable          Boolean       @default(true) // sold-out toggle
+  stockQuantity        Int? // null = not stock-tracked
+  sortOrder            Int           @default(0)
+  searchText           String? // denormalised for Postgres full-text search
+  version              Int           @default(0) // optimistic concurrency (D-37)
+  createdAt            DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
+
+  restaurant   Restaurant            @relation(fields: [restaurantId], references: [id])
+  menuCategory MenuCategory?         @relation(fields: [menuCategoryId], references: [id])
+  category     Category?             @relation(fields: [categoryId], references: [id])
+  variants     ProductVariant[]
+  addonGroups  ProductAddonGroup[]
+  images       ProductImage[]
+  availability ProductAvailability[]
+  schedules    ProductSchedule[]
+
+  @@index([restaurantId, status, isAvailable])
+  @@index([menuCategoryId, sortOrder])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id             String  @id @default(uuid(7)) @db.Uuid
+  productId      String  @db.Uuid
+  name           String // "Half", "Full", "Medium 10\""
+  basePricePaise Int
+  isDefault      Boolean @default(false)
+  isAvailable    Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductAddonGroup {
+  id        String @id @default(uuid(7)) @db.Uuid
+  productId String @db.Uuid
+  name      String // "Choose your toppings"
+  minSelect Int    @default(0)
+  maxSelect Int    @default(1)
+  sortOrder Int    @default(0)
+
+  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  addons  ProductAddon[]
+
+  @@index([productId])
+  @@map("product_addon_groups")
+}
+
+model ProductAddon {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  groupId        String   @db.Uuid
+  name           String
+  basePricePaise Int      @default(0)
+  foodType       FoodType @default(VEG)
+  isAvailable    Boolean  @default(true)
+  sortOrder      Int      @default(0)
+
+  group ProductAddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("product_addons")
+}
+
+model ProductImage {
+  id        String @id @default(uuid(7)) @db.Uuid
+  productId String @db.Uuid
+  mediaId   String @db.Uuid
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id])
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+/// Date-bounded availability overrides (e.g. sold out until tomorrow).
+model ProductAvailability {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  productId   String    @db.Uuid
+  isAvailable Boolean
+  startsAt    DateTime  @db.Timestamptz(3)
+  endsAt      DateTime? @db.Timestamptz(3)
+  reason      String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, startsAt])
+  @@map("product_availability")
+}
+
+/// Recurring windows when a product can be ordered (e.g. breakfast 07:00–11:00).
+model ProductSchedule {
+  id        String @id @default(uuid(7)) @db.Uuid
+  productId String @db.Uuid
+  dayOfWeek Int
+  startsAt  String // HH:mm
+  endsAt    String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, dayOfWeek])
+  @@map("product_schedules")
 }
 
 model Rider {
@@ -538,6 +852,7 @@ model Media {
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
 
+  productImages ProductImage[]
 
   @@index([kind, createdAt])
   @@map("media")

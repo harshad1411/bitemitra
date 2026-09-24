@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@jamzo/auth": "workspace:*",
+    "@jamzo/catalog-engine": "workspace:*",
     "@jamzo/config": "workspace:*",
     "@jamzo/delivery-engine": "workspace:*",
     "@jamzo/shared-types": "workspace:*",

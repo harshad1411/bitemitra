@@ -806,7 +806,7 @@ model RestaurantBranch {
   lng             Decimal   @db.Decimal(9, 6)
   zoneId          String?   @db.Uuid
   isPrimary       Boolean   @default(true)
-  isOpen          Boolean   @default(false) // live open/closed toggle
+  isOpen          Boolean   @default(true) // false = manually closed until reopened (D-38)
   pausedUntil     DateTime? @db.Timestamptz(3) // temporary pause
   busyMode        Boolean   @default(false)
   prepTimeMinutes Int       @default(20)
@@ -878,6 +878,7 @@ model RestaurantDocument {
   status       DocumentStatus @default(PENDING)
   expiresOn    DateTime?      @db.Date
   reviewedById String?        @db.Uuid
+  reviewedAt   DateTime?      @db.Timestamptz(3)
   reviewNote   String?
   createdAt    DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime       @updatedAt @db.Timestamptz(3)
@@ -899,7 +900,9 @@ model RestaurantBankAccount {
   ifsc                   String
   bankName               String?
   upiId                  String?
-  isPrimary              Boolean   @default(true)
+  isPrimary              Boolean   @default(false) // becomes true only on verification (D-35)
+  createdById            String?   @db.Uuid // admin who entered the details
+  verifiedById           String?   @db.Uuid // a different admin (four-eyes)
   verifiedAt             DateTime? @db.Timestamptz(3)
   createdAt              DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @db.Timestamptz(3)
@@ -910,18 +913,13 @@ model RestaurantBankAccount {
   @@map("restaurant_bank_accounts")
 }
 
-/// Operational (non-commercial) settings. Commercial values live in rule tables.
+/// Per-restaurant capabilities that are not hierarchical. Hierarchical values (minimum order, COD,
+/// acceptance timeout, settlement schedule, packaging…) are settings with RESTAURANT/BRANCH scope (D-40).
 model RestaurantSettings {
-  restaurantId         String             @id @db.Uuid
-  acceptanceTimeoutSec Int? // null = inherit from config
-  autoAccept           Boolean            @default(false)
-  settlementSchedule   SettlementSchedule @default(WEEKLY)
-  selfEditMenu         Boolean            @default(false)
-  packagingChargePaise Int? // null = inherit
-  minOrderPaise        Int?
-  deliveryRadiusM      Int?
-  codEnabled           Boolean            @default(true)
-  updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+  restaurantId String   @id @db.Uuid
+  autoAccept   Boolean  @default(false) // Phase 5
+  selfEditMenu Boolean  @default(false) // also needs flag restaurant_self_edit_menu (D-39)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
@@ -950,6 +948,7 @@ model Category {
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   products Product[]
 
@@ -993,6 +992,7 @@ model Product {
   stockQuantity        Int? // null = not stock-tracked
   sortOrder            Int           @default(0)
   searchText           String? // denormalised for Postgres full-text search
+  version              Int           @default(0) // optimistic concurrency (D-37)
   createdAt            DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
 
@@ -1077,6 +1077,7 @@ model ProductAvailability {
   startsAt    DateTime  @db.Timestamptz(3)
   endsAt      DateTime? @db.Timestamptz(3)
   reason      String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 

@@ -3,6 +3,7 @@
 import { MOBILE_APPS } from '@jamzo/config';
 import { PERMISSIONS, SYSTEM_ROLES, hashPassword } from '@jamzo/auth';
 import { bboxOf } from '@jamzo/delivery-engine';
+import { seedCatalog } from './catalog.js';
 
 /** Feature flags (CONFIGURATION.md §4). Values are development defaults. */
 export const DEFAULT_FLAGS = [
@@ -86,9 +87,18 @@ export const DEMO_ACCOUNTS = {
 
 /**
  * @param {import('@jamzo/database').Db} prisma
- * @param {{ admin?: { email: string, password: string, name?: string }, demo?: boolean, log?: (msg: string) => void }} [options]
+ * @param {{
+ *   admin?: { email: string, password: string, name?: string },
+ *   demo?: boolean,
+ *   catalog?: boolean,
+ *   fieldCipher?: { encrypt: (v: string) => string },
+ *   log?: (msg: string) => void,
+ * }} [options] catalog = demo restaurants and menus (needs demo); fieldCipher enables demo bank accounts
  */
-export async function seed(prisma, { admin, demo = false, log = () => {} } = {}) {
+export async function seed(
+  prisma,
+  { admin, demo = false, catalog = false, fieldCipher, log = () => {} } = {},
+) {
   // ── Permissions (code is the source of truth) ──
   for (const p of PERMISSIONS) {
     await prisma.permission.upsert({
@@ -165,7 +175,10 @@ export async function seed(prisma, { admin, demo = false, log = () => {} } = {})
     }
   }
 
-  if (demo) await seedDemo(prisma, log);
+  if (demo) {
+    const cityIds = await seedDemo(prisma, log);
+    if (catalog) await seedCatalog(prisma, { cityId: cityIds.unjha, log, fieldCipher });
+  }
 }
 
 /** @param {import('@jamzo/database').Db} prisma @param {(m: string) => void} log */
@@ -260,4 +273,5 @@ async function seedDemo(prisma, log) {
     update: {},
   });
   log('demo partner accounts');
+  return cityIds;
 }

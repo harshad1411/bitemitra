@@ -5,8 +5,12 @@ import {
   AUTH_PROVIDERS,
   CONFIG_SCOPES,
   DEVICE_PLATFORMS,
+  FOOD_TYPES,
   OTP_CHANNELS,
+  PRODUCT_STATUSES,
+  RESTAURANT_DOCUMENT_KINDS,
   RESTAURANT_ONBOARDING_STATUSES,
+  RESTAURANT_USER_ROLES,
   RIDER_ONBOARDING_STATUSES,
 } from '@jamzo/shared-types';
 
@@ -14,6 +18,21 @@ const values = (/** @type {Record<string,string>} */ e) =>
   /** @type {[string, ...string[]]} */ (Object.keys(e));
 
 // ── Primitives ──────────────────────────────────────────────────────────────
+
+/**
+ * PATCH body from a create schema: every field optional and **no defaults applied**. zod's `.partial()`
+ * keeps field defaults, so an omitted field would be silently overwritten with its default (e.g. renaming
+ * a live city would send isActive=false). Bug found in Phase 2; every update schema uses this helper.
+ * @template {import('zod').ZodRawShape} T
+ * @param {import('zod').ZodObject<T>} schema
+ * @returns {ReturnType<import('zod').ZodObject<T>['partial']>} (type approximation: defaults are removed at runtime)
+ */
+export function patchOf(schema) {
+  const shape = Object.fromEntries(
+    Object.entries(schema.shape).map(([k, v]) => [k, v instanceof z.ZodDefault ? v.unwrap() : v]),
+  );
+  return /** @type {any} */ (z.object(shape).partial());
+}
 
 export const uuid = z.uuid();
 export const slug = z
@@ -142,7 +161,7 @@ export const cityCreateBody = z.object({
   centerLng: longitude,
   isActive: z.boolean().default(false),
 });
-export const cityUpdateBody = cityCreateBody.omit({ stateId: true }).partial();
+export const cityUpdateBody = patchOf(cityCreateBody.omit({ stateId: true }));
 export const zoneCreateBody = z.object({
   cityId: uuid,
   slug,
@@ -150,7 +169,7 @@ export const zoneCreateBody = z.object({
   geometry: areaGeometry,
   isActive: z.boolean().default(true),
 });
-export const zoneUpdateBody = zoneCreateBody.omit({ cityId: true }).partial();
+export const zoneUpdateBody = patchOf(zoneCreateBody.omit({ cityId: true }));
 export const serviceAreaCreateBody = z.discriminatedUnion('kind', [
   z.object({
     zoneId: uuid,
@@ -198,7 +217,7 @@ export const roleCreateBody = z.object({
   description: z.string().trim().max(300).optional(),
   permissions: z.array(permissionKey).max(200),
 });
-export const roleUpdateBody = roleCreateBody.omit({ key: true }).partial();
+export const roleUpdateBody = patchOf(roleCreateBody.omit({ key: true }));
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
@@ -256,6 +275,260 @@ export const auditQuery = pageQuery.extend({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
 });
+
+// ── Restaurants & menus (Phase 2 — docs/RESTAURANTS.md) ─────────────────────
+
+const text = (min, max) => z.string().trim().min(min).max(max);
+const optionalText = (max) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional();
+export const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:mm (24-hour)');
+export const hhmmOrEndOfDay = z
+  .string()
+  .regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/, 'Use HH:mm (24-hour) or 24:00');
+/** Menu prices: whole paise, at most ₹1,00,000 per item. */
+export const pricePaise = z.number().int('Use whole paise').min(0).max(10_000_000);
+export const pincode = z.string().regex(/^[1-9]\d{5}$/, 'Enter a 6-digit PIN code');
+export const gstin = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, 'Enter a valid 15-character GSTIN');
+export const pan = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{5}\d{4}[A-Z]$/, 'Enter a valid PAN, e.g. ABCDE1234F');
+export const fssaiNumber = z
+  .string()
+  .trim()
+  .regex(/^\d{14}$/, 'FSSAI numbers have 14 digits');
+export const ifsc = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Enter a valid IFSC, e.g. HDFC0001234');
+export const bankAccountNumber = z
+  .string()
+  .transform((v) => v.replace(/[\s-]/g, ''))
+  .pipe(z.string().regex(/^\d{9,18}$/, 'Account numbers have 9 to 18 digits'));
+export const upiId = z
+  .string()
+  .trim()
+  .regex(/^[\w.-]{2,256}@[a-zA-Z]{2,64}$/, 'Enter a valid UPI ID, e.g. name@bank');
+export const foodType = z.enum(values(FOOD_TYPES));
+export const productStatus = z.enum(values(PRODUCT_STATUSES));
+export const restaurantDocumentKind = z.enum(values(RESTAURANT_DOCUMENT_KINDS));
+export const restaurantUserRole = z.enum(values(RESTAURANT_USER_ROLES));
+export const restaurantStatus = z.enum(values(RESTAURANT_ONBOARDING_STATUSES));
+const localDate = z.iso.date('Use YYYY-MM-DD');
+
+export const restaurantCreateBody = z.object({
+  cityId: uuid,
+  name: text(2, 80),
+  slug,
+  legalName: optionalText(120),
+  description: optionalText(500),
+  cuisines: z.array(text(2, 40)).max(10).default([]),
+  isPureVeg: z.boolean().default(false),
+  phone: phone.nullable().optional(),
+  email: email.nullable().optional(),
+});
+export const restaurantUpdateBody = patchOf(restaurantCreateBody.omit({ cityId: true })).extend({
+  gstin: gstin.nullable().optional(),
+  pan: pan.nullable().optional(),
+  fssaiNumber: fssaiNumber.nullable().optional(),
+  fssaiExpiresOn: localDate.nullable().optional(),
+  logoMediaId: uuid.nullable().optional(),
+  coverMediaId: uuid.nullable().optional(),
+  isPromoted: z.boolean().optional(),
+  sortWeight: z.number().int().min(-1000).max(1000).optional(),
+});
+export const restaurantListQuery = pageQuery.extend({
+  cityId: uuid.optional(),
+  status: restaurantStatus.optional(),
+});
+export const restaurantTransitionBody = z.object({
+  to: restaurantStatus,
+  reason: z.string().trim().min(3).max(500).optional(),
+});
+export const restaurantZonesBody = z.object({ zoneIds: z.array(uuid).max(50) });
+export const restaurantSettingsBody = z
+  .object({ autoAccept: z.boolean().optional(), selfEditMenu: z.boolean().optional() })
+  .refine((b) => Object.keys(b).length > 0, 'Nothing to change');
+export const restaurantMemberCreateBody = z.object({
+  phone,
+  name: optionalText(80),
+  role: restaurantUserRole,
+});
+export const restaurantMemberUpdateBody = z.object({
+  role: restaurantUserRole.optional(),
+  isActive: z.boolean().optional(),
+  reason: z.string().trim().min(3).max(500).optional(),
+});
+
+export const branchCreateBody = z.object({
+  name: text(2, 80),
+  addressLine: text(5, 200),
+  area: optionalText(80),
+  pincode: pincode.nullable().optional(),
+  lat: latitude,
+  lng: longitude,
+  prepTimeMinutes: z.number().int().min(1).max(240).default(20),
+});
+/** pauseMinutes: 0 resumes now; otherwise the branch is paused for that many minutes. */
+export const branchUpdateBody = patchOf(branchCreateBody).extend({
+  isOpen: z.boolean().optional(),
+  pauseMinutes: z.number().int().min(0).max(720).optional(),
+  busyMode: z.boolean().optional(),
+});
+export const businessHoursBody = z.object({
+  hours: z
+    .array(z.object({ dayOfWeek: z.number().int().min(0).max(6), opensAt: hhmm, closesAt: hhmmOrEndOfDay }))
+    .max(28),
+});
+export const deliveryAreaBody = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('RADIUS'), radiusM: z.number().int().min(100).max(50_000) }),
+  z.object({ kind: z.literal('POLYGON'), geometry: areaGeometry }),
+]);
+export const partnerBranchStatusBody = z
+  .object({
+    isOpen: z.boolean().optional(),
+    pauseMinutes: z.number().int().min(0).max(720).optional(),
+    busyMode: z.boolean().optional(),
+    prepTimeMinutes: z.number().int().min(1).max(240).optional(),
+  })
+  .refine((b) => Object.keys(b).length > 0, 'Nothing to change');
+
+/** Multipart text fields of a document upload (the file itself is optional). */
+export const restaurantDocumentFields = z.object({
+  kind: restaurantDocumentKind,
+  number: optionalText(60),
+  expiresOn: localDate.nullable().optional(),
+});
+export const restaurantDocumentReviewBody = z
+  .object({ status: z.enum(['VERIFIED', 'REJECTED']), note: optionalText(500) })
+  .refine((b) => b.status !== 'REJECTED' || Boolean(b.note), {
+    message: 'Say why the document is rejected',
+    path: ['note'],
+  });
+export const bankAccountCreateBody = z
+  .object({
+    accountHolderName: text(2, 100),
+    accountNumber: bankAccountNumber,
+    confirmAccountNumber: bankAccountNumber,
+    ifsc,
+    bankName: optionalText(100),
+    upiId: upiId.nullable().optional(),
+  })
+  .refine((b) => b.accountNumber === b.confirmAccountNumber, {
+    message: 'Account numbers do not match',
+    path: ['confirmAccountNumber'],
+  });
+
+export const categoryCreateBody = z.object({
+  slug,
+  name: text(2, 60),
+  iconMediaId: uuid.nullable().optional(),
+  sortOrder: z.number().int().min(-1000).max(1000).default(0),
+  isActive: z.boolean().default(true),
+});
+export const categoryUpdateBody = patchOf(categoryCreateBody);
+export const menuCategoryCreateBody = z.object({ name: text(1, 60), isActive: z.boolean().default(true) });
+export const menuCategoryUpdateBody = patchOf(menuCategoryCreateBody);
+export const idOrderBody = z.object({ ids: z.array(uuid).min(1).max(500) });
+
+export const productVariantInput = z.object({
+  id: uuid.optional(),
+  name: text(1, 40),
+  basePricePaise: pricePaise,
+  isDefault: z.boolean().default(false),
+  isAvailable: z.boolean().default(true),
+});
+export const productAddonInput = z.object({
+  id: uuid.optional(),
+  name: text(1, 60),
+  basePricePaise: pricePaise.default(0),
+  foodType: foodType.default('VEG'),
+  isAvailable: z.boolean().default(true),
+});
+export const productAddonGroupInput = z.object({
+  id: uuid.optional(),
+  name: text(1, 60),
+  minSelect: z.number().int().min(0).max(50).default(0),
+  maxSelect: z.number().int().min(1).max(50).default(1),
+  addons: z.array(productAddonInput).max(50),
+});
+export const productScheduleInput = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  startsAt: hhmm,
+  endsAt: hhmmOrEndOfDay,
+});
+const productFields = {
+  menuCategoryId: uuid.nullable().optional(),
+  categoryId: uuid.nullable().optional(),
+  name: text(2, 100),
+  description: optionalText(1000),
+  foodType: foodType.default('VEG'),
+  basePricePaise: pricePaise.nullable().optional(),
+  packagingChargePaise: pricePaise.nullable().optional(),
+  taxInclusive: z.boolean().nullable().optional(),
+  prepTimeMinutes: z.number().int().min(1).max(240).nullable().optional(),
+  isBestseller: z.boolean().default(false),
+  isRecommended: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
+  status: productStatus.default('ACTIVE'),
+  isAvailable: z.boolean().default(true),
+  stockQuantity: z.number().int().min(0).max(100_000).nullable().optional(),
+  sortOrder: z.number().int().min(-100_000).max(100_000).default(0),
+  variants: z.array(productVariantInput).max(20).default([]),
+  addonGroups: z.array(productAddonGroupInput).max(20).default([]),
+  imageMediaIds: z.array(uuid).max(10).default([]),
+  schedules: z.array(productScheduleInput).max(21).default([]),
+};
+export const productCreateBody = z.object({ restaurantId: uuid, ...productFields });
+export const productUpdateBody = z.object({ version: z.number().int().min(0), ...productFields });
+export const productListQuery = pageQuery.extend({
+  restaurantId: uuid.optional(),
+  cityId: uuid.optional(),
+  menuCategoryId: uuid.optional(),
+  categoryId: uuid.optional(),
+  status: productStatus.optional(),
+  foodType: foodType.optional(),
+  available: z.enum(['true', 'false']).optional(),
+});
+/**
+ * Sold-out / back-in-stock for a product, or for one of its variants or add-ons. `until` only applies to
+ * the product: "END_OF_DAY" (city timezone) or an ISO date-time; omitted = until switched back on.
+ */
+export const availabilityBody = z
+  .object({
+    isAvailable: z.boolean(),
+    variantId: uuid.optional(),
+    addonId: uuid.optional(),
+    until: z.union([z.literal('END_OF_DAY'), z.iso.datetime({ offset: true })]).optional(),
+    reason: optionalText(200),
+  })
+  .refine((b) => !(b.variantId && b.addonId), 'Choose a variant or an add-on, not both')
+  .refine((b) => !b.until || (!b.isAvailable && !b.variantId && !b.addonId), {
+    message: '"until" only applies when marking a whole product sold out',
+    path: ['until'],
+  });
+export const productBulkBody = z
+  .object({
+    ids: z.array(uuid).min(1).max(200),
+    action: z.enum(['SOLD_OUT', 'AVAILABLE', 'ACTIVATE', 'DRAFT', 'ARCHIVE', 'MOVE_SECTION']),
+    menuCategoryId: uuid.nullable().optional(),
+  })
+  .refine((b) => b.action !== 'MOVE_SECTION' || b.menuCategoryId !== undefined, {
+    message: 'Choose the section to move to',
+    path: ['menuCategoryId'],
+  });
 
 export const onboardingStatus = {
   restaurant: z.enum(values(RESTAURANT_ONBOARDING_STATUSES)),

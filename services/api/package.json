@@ -2,7 +2,7 @@
   "name": "@jamzo/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Jamzo HTTP API — modular monolith (Fastify, Prisma 6, PostgreSQL).",
+  "description": "Jamzo HTTP API \u2014 modular monolith (Fastify, Prisma 6, PostgreSQL).",
   "type": "module",
   "main": "src/server.js",
   "exports": {
@@ -21,6 +21,7 @@
     "@fastify/multipart": "^10.1.2",
     "@fastify/rate-limit": "^11.2.0",
     "@jamzo/auth": "workspace:*",
+    "@jamzo/catalog-engine": "workspace:*",
     "@jamzo/config": "workspace:*",
     "@jamzo/database": "workspace:*",
     "@jamzo/delivery-engine": "workspace:*",
