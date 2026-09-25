@@ -229,6 +229,10 @@ describe('dispatch and delivery (D-75 … D-78)', () => {
     expect(cust.delivery.rider).toMatchObject({ firstName: 'Ravi', vehicle: 'MOTORCYCLE' });
     expect(cust.delivery.code).toBe(deliveryCode(TEST_FIELD_KEY, order.id));
     expect(JSON.stringify(cust.delivery)).not.toContain(near.me.user.phone ?? '+9196600');
+    // Arrival estimate (D-79): a range, labelled as an estimate and with its distance source (no maps key here).
+    expect(cust.delivery.eta).toMatchObject({ estimate: true, source: 'FALLBACK' });
+    expect(cust.delivery.eta.minMinutes).toBeGreaterThan(0);
+    expect(cust.delivery.eta.maxMinutes).toBeGreaterThan(cust.delivery.eta.minMinutes);
     const rest = (
       await call('GET', `/v1/restaurant/orders/${order.id}`, owner, undefined, 'RESTAURANT')
     ).json();
@@ -255,6 +259,10 @@ describe('dispatch and delivery (D-75 … D-78)', () => {
     expect(res.json()).toMatchObject({ deliveryStatus: 'ON_THE_WAY', restaurantStatus: 'COMPLETED' });
     res = await call('POST', `/v1/rider/trips/${order.id}/arrived`, near);
     expect(res.json().deliveryStatus).toBe('ARRIVED');
+    const arriving = (
+      await call('GET', `/v1/customer/orders/${order.id}`, customer, undefined, 'CUSTOMER')
+    ).json();
+    expect(arriving.delivery.eta).toMatchObject({ arrivingNow: true, minMinutes: 0 });
 
     res = await call('POST', `/v1/rider/trips/${order.id}/delivered`, near, {
       otp: '0000',

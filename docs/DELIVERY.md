@@ -91,6 +91,7 @@ Where this differs from §2–§6 above, this section and DECISIONS D-73..D-81 w
 - **Cash (D-77):** delivery writes a `payments` row (provider `cod`); the rider's cash balance and limit are shown in Admin. Deposits are Phase 8.
 - **Earnings (D-78):** `riderEarningFinal` in `@jamzo/pricing-engine` → one `rider_earnings` row; a cancelled trip after acceptance pays the trip estimate (`CANCELLED_TRIP`).
 - **Distance (D-81):** `createDistanceProvider` in `modules/delivery/distance.js`: Google Routes API (two-wheeler) when Admin → Delivery → Maps provider is GOOGLE **and** `GOOGLE_MAPS_API_KEY` is set; answers cached ~10 min by ~100 m cells, 1.5 s timeout, any failure → labelled fallback. **Tested against a fake endpoint only; not verified with Google.**
+- **Customer arrival estimate (D-79):** `arrivalEstimate` (pure) + `arrivalFor` in the orders module; returned as `delivery.eta` `{minMinutes, maxMinutes, estimate, source}` or `arrivingNow` once the partner has arrived.
 - **Contact (D-80):** support-routed only; the customer app shows the call button only when a support number is configured. Masked calling: Q-21.
 
 ## 7. Tests

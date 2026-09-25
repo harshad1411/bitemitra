@@ -18,7 +18,9 @@ import {
   uuid,
 } from '@jamzo/validation';
 import { canCancel, cancel } from '@jamzo/order-engine';
+import { arrivalEstimate } from '@jamzo/delivery-engine';
 import { deliveryCode } from '../dispatch/otp.js';
+import { deliveryDistance } from '../delivery/distance.js';
 import { firstName } from '../riders/service.js';
 import { restaurantRoleCan } from '@jamzo/auth';
 import { CLIENT_HEADERS } from '@jamzo/shared-types';
@@ -120,12 +122,12 @@ export default async function orderRoutes(app) {
 
   /**
    * What the customer sees of the delivery (D-79): the rider's first name, vehicle and a rounded position
-   * from acceptance to delivery, the delivery code when the flag is on, and support's number for calls
-   * (D-80). Never the rider's phone.
+   * from acceptance to delivery, an arrival estimate, the delivery code when the flag is on, and support's
+   * number for calls (D-80). Never the rider's phone.
    */
   async function deliveryInfo(o) {
     if (!RIDER_VISIBLE.includes(o.deliveryStatus) || !o.riderId)
-      return { rider: null, code: null, contact: null };
+      return { rider: null, eta: null, code: null, contact: null };
     const [rider, flags, support] = await Promise.all([
       prisma.rider.findUnique({
         where: { id: o.riderId },
@@ -135,7 +137,10 @@ export default async function orderRoutes(app) {
       config.resolve('support.contact'),
     ]);
     const av = rider?.availability;
+    const eta =
+      av?.lastLat != null ? await arrivalFor(o, { lat: Number(av.lastLat), lng: Number(av.lastLng) }) : null;
     return {
+      eta,
       rider: rider && {
         firstName: firstName(rider.user.name),
         vehicle: rider.vehicles[0]?.type ?? null,
@@ -151,6 +156,40 @@ export default async function orderRoutes(app) {
       code: flags.delivery_otp ? deliveryCode(app.services.otpSecret, o.id) : null,
       contact: { via: 'SUPPORT', phone: support.value.phone },
     };
+  }
+
+  /**
+   * Arrival estimate from the partner's exact position (the customer only ever gets the rounded one). The
+   * restaurant → customer leg is the quoted distance from the order snapshot; partner legs use the distance
+   * provider (road when the maps provider is on, otherwise the labelled fallback — `source`).
+   */
+  async function arrivalFor(o, at) {
+    const city = o.restaurant.city;
+    const ctx = { stateId: city.stateId, cityId: city.id, zoneId: o.zoneId ?? undefined };
+    const [branch, snap, distanceSetting, etaSetting] = await Promise.all([
+      prisma.restaurantBranch.findUnique({ where: { id: o.branchId }, select: { lat: true, lng: true } }),
+      prisma.orderPricingSnapshot.findUnique({ where: { orderId: o.id }, select: { distanceM: true } }),
+      config.resolve('delivery.distance', ctx),
+      config.resolve('delivery.eta', ctx),
+    ]);
+    const restaurant = { lat: Number(branch.lat), lng: Number(branch.lng) };
+    const customer = { lat: Number(o.address.lat), lng: Number(o.address.lng) };
+    const measure = async (from, to) => {
+      const d = await deliveryDistance(app.services.distance, distanceSetting.value, from, to);
+      return 'unavailable' in d ? null : d;
+    };
+    const before = ['ACCEPTED', 'AT_RESTAURANT'].includes(o.deliveryStatus);
+    const leg = o.deliveryStatus === 'ARRIVED' ? null : await measure(at, before ? restaurant : customer);
+    const est = arrivalEstimate({
+      deliveryStatus: o.deliveryStatus,
+      now: app.clock.now(),
+      readyAt: o.readyAt ?? o.estimatedPickupAt ?? null,
+      toRestaurantM: before ? (o.deliveryStatus === 'AT_RESTAURANT' ? 0 : (leg?.distanceM ?? null)) : null,
+      restaurantToCustomerM: snap?.distanceM ?? null,
+      toCustomerM: before ? null : (leg?.distanceM ?? null),
+      settings: etaSetting.value,
+    });
+    return est && { ...est, estimate: true, source: leg?.source ?? null };
   }
 
   app.post(

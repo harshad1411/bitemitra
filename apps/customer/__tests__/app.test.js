@@ -208,6 +208,13 @@ describe('customer app', () => {
       screen.getByText(`Share this delivery code with ${name} at the door: ${track.delivery.code}`),
     ).toBeTruthy();
     expect(screen.getByText(/^Location updated /)).toBeTruthy();
+    const { minMinutes, maxMinutes } = track.delivery.eta;
+    expect(screen.getByText(`Arriving in about ${minMinutes}–${maxMinutes} min (estimate)`)).toBeTruthy();
+    const { Linking } = require('react-native');
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await fireEvent.press(screen.getByLabelText('See on map'));
+    const { lat, lng } = track.delivery.rider.position;
+    expect(open).toHaveBeenCalledWith(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
     // Calls go through Jamzo support only; no support number is configured in dev, so no call button.
     expect(track.delivery.contact).toEqual({ via: 'SUPPORT', phone: null });
     expect(screen.queryByText('Call your delivery partner (via Jamzo support)')).toBeNull();

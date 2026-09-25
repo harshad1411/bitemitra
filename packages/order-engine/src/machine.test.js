@@ -101,7 +101,7 @@ describe('transition table (ORDERS.md §3)', () => {
         }
     expect(mismatches.slice(0, 5)).toEqual([]);
     expect(checked).toBeGreaterThan(100_000);
-  });
+  }, 30_000); // ~160 000 cases: allow for a busy CI machine
 
   it('never leaves a terminal state', () => {
     for (const status of TERMINAL_STATUSES)

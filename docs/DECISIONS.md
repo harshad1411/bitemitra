@@ -599,10 +599,13 @@ to about 100 m, the delivery status and an ETA. Never the rider's phone number: 
 `CallBridge` interface; until a masked-calling provider is chosen, both apps show Jamzo support's number
 (D-80). In-app live maps for customers need the maps key (Google Maps on Android; Q-14): Phase 6 shows
 distance and ETA text and an "open in maps" link; the map view is switched on when the key exists.
-*As built in Phase 6:* first name, vehicle, the rounded position with the time it was taken, and the
-delivery code. **Not built yet:** a customer ETA and the customer "open in maps" link. Both need road ETAs
-from the maps provider (D-81, Q-14) and follow when the key exists. The rider app does open Google Maps /
-Apple Maps for navigation.
+*As built in Phase 6:* first name, vehicle, the rounded position with the time it was taken, the
+delivery code, a **"See on map"** link (Google Maps pin at the rounded position; needs no key) and an
+**arrival estimate** (`arrivalEstimate` in `@jamzo/delivery-engine`): before pickup, the later of the
+partner reaching the restaurant and the food being ready, plus the quoted restaurant → customer distance;
+after pickup, partner → customer; travel at `delivery.eta.avgSpeedKmph` + buffer, shown as a range
+labelled "estimate". Partner legs use road distance when the maps provider is on, otherwise the labelled
+fallback (`source`). No traffic data until a maps key exists; the in-app live map also waits for the key.
 
 ### D-80. Contact between customer and rider
 `CallBridge` interface with a `support-routed` implementation (shows support.contact) until a masked-number

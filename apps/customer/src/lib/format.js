@@ -18,6 +18,17 @@ export function openLabel(open) {
 }
 
 export const etaLabel = (eta) => (eta ? `${eta.minMinutes}–${eta.maxMinutes} min` : null);
+/** Arrival estimate for an order on its way (D-79): always shown as an estimate. */
+export const arrivalLabel = (eta) =>
+  !eta
+    ? null
+    : eta.arrivingNow
+      ? 'Arriving now'
+      : `Arriving in about ${eta.minMinutes}–${eta.maxMinutes} min (estimate)`;
+
+/** A map pin at the partner's rounded position (opens Google Maps in the app or browser; no key needed). */
+export const mapPinUrl = (p) => `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
+
 export const distanceLabel = (m) => (m == null ? null : m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`);
 
 /** Why a location cannot be served, in plain words. */

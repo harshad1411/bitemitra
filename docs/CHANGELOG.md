@@ -12,14 +12,14 @@ release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.
 - Cash on delivery: payment row at delivery, per-rider cash balance, limit and switch.
 - Database: rider tables activated (documents, vehicles, availability, shifts, locations, assignments, earnings, payments for COD); 2 migrations; new database rules.
 - Jamzo Admin: Delivery partners (list, document review, approve/suspend, cash settings), Dispatch board, Delivery card with assign/take back on the order.
-- Customer app: delivery partner's name, vehicle, location time and the delivery code. Restaurant Partner app: who collects the order and when they are at the counter.
+- Customer app: delivery partner's name, vehicle, arrival estimate (labelled), location time with "See on map", and the delivery code. Restaurant Partner app: who collects the order and when they are at the counter.
 - Road distance from Google Maps behind the admin setting Maps provider (off until the key exists; tested against a fake endpoint only).
 
 ### Changed
 - Add-on prices get the same markup as items (Q-19); free add-ons stay free.
 - Cancellation: rider compensation is paid only when a rider was engaged; new fee type "full amount" (OD-38).
 - The "ready" status text for customers now says the food is waiting for a delivery partner.
-- Decisions D-76 and D-79 corrected to what was built (delivery code derived, never stored; no customer ETA or maps link yet).
+- Decision D-76 corrected to what was built (delivery code derived, never stored); D-79 records how the arrival estimate is worked out.
 
 ## Phase 5 — Orders (2026-09-25) — accepted
 

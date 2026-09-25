@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useJamzo, useRealtime, userMessage } from '@jamzo/mobile-foundation';
 import { Banner, Button, Card, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { VegMark } from '../../components/bits';
-import { money } from '../../lib/format';
+import { arrivalLabel, mapPinUrl, money } from '../../lib/format';
 import { CANCEL_REASONS, TIMELINE_LABEL, statusText } from '../../lib/order-status';
 import { useOrder } from '../../lib/queries';
 
@@ -76,8 +76,16 @@ export default function OrderScreen() {
           {o.delivery.code ? (
             <Banner tone="info">{`Share this delivery code with ${o.delivery.rider.firstName} at the door: ${o.delivery.code}`}</Banner>
           ) : null}
+          {o.delivery.eta ? <Text>{arrivalLabel(o.delivery.eta)}</Text> : null}
           {o.delivery.rider.position ? (
-            <Text variant="small">{`Location updated ${time(o.delivery.rider.position.at)}`}</Text>
+            <>
+              <Text variant="small">{`Location updated ${time(o.delivery.rider.position.at)}`}</Text>
+              <Button
+                title="See on map"
+                variant="secondary"
+                onPress={() => Linking.openURL(mapPinUrl(o.delivery.rider.position))}
+              />
+            </>
           ) : null}
           {o.delivery.contact?.phone ? (
             <Button
@@ -86,7 +94,7 @@ export default function OrderScreen() {
               onPress={() => Linking.openURL(`tel:${o.delivery.contact.phone}`)}
             />
           ) : null}
-          <Text variant="small">A live map appears here once maps are switched on.</Text>
+          <Text variant="small">A live map inside the app follows once maps are switched on.</Text>
         </Card>
       ) : null}
 

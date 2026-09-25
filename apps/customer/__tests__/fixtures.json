@@ -2041,8 +2041,8 @@
   },
   "delivery": {
     "tracking": {
-      "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
-      "orderNumber": "UNJ-260925-00005",
+      "id": "01a0d8b1-c2a5-72e1-9de8-64e4e088c70f",
+      "orderNumber": "UNJ-260925-00006",
       "status": "RESTAURANT_ACCEPTED",
       "restaurantStatus": "ACCEPTED",
       "deliveryStatus": "ACCEPTED",
@@ -2051,13 +2051,13 @@
         "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
         "name": "Pizza Point"
       },
-      "placedAt": "2026-09-25T10:31:32.343Z",
-      "createdAt": "2026-09-25T10:31:32.343Z",
-      "acceptedAt": "2026-09-25T10:31:33.315Z",
+      "placedAt": "2026-09-25T13:12:02.937Z",
+      "createdAt": "2026-09-25T13:12:02.937Z",
+      "acceptedAt": "2026-09-25T13:12:04.776Z",
       "readyAt": null,
       "cancelledAt": null,
       "prepTimeMinutes": 15,
-      "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+      "estimatedReadyAt": "2026-09-25T13:27:04.776Z",
       "items": [
         {
           "name": "Garlic Bread",
@@ -2123,17 +2123,17 @@
       "timeline": [
         {
           "status": "CREATED",
-          "at": "2026-09-25T10:31:32.343Z",
+          "at": "2026-09-25T13:12:02.937Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "PLACED",
-          "at": "2026-09-25T10:31:32.344Z",
+          "at": "2026-09-25T13:12:02.938Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "RESTAURANT_ACCEPTED",
-          "at": "2026-09-25T10:31:33.312Z",
+          "at": "2026-09-25T13:12:04.773Z",
           "actorType": "RESTAURANT_USER"
         }
       ],
@@ -2151,16 +2151,22 @@
         }
       },
       "delivery": {
+        "eta": {
+          "minMinutes": 13,
+          "maxMinutes": 23,
+          "estimate": true,
+          "source": "FALLBACK"
+        },
         "rider": {
           "firstName": "Demo",
           "vehicle": "MOTORCYCLE",
           "position": {
             "lat": 23.801,
             "lng": 72.391,
-            "at": "2026-09-25T10:31:31.080Z"
+            "at": "2026-09-25T13:12:01.219Z"
           }
         },
-        "code": "9949",
+        "code": "0903",
         "contact": {
           "via": "SUPPORT",
           "phone": null
@@ -2168,8 +2174,8 @@
       }
     },
     "arrived": {
-      "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
-      "orderNumber": "UNJ-260925-00005",
+      "id": "01a0d8b1-c2a5-72e1-9de8-64e4e088c70f",
+      "orderNumber": "UNJ-260925-00006",
       "status": "ARRIVED",
       "restaurantStatus": "COMPLETED",
       "deliveryStatus": "ARRIVED",
@@ -2178,13 +2184,13 @@
         "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
         "name": "Pizza Point"
       },
-      "placedAt": "2026-09-25T10:31:32.343Z",
-      "createdAt": "2026-09-25T10:31:32.343Z",
-      "acceptedAt": "2026-09-25T10:31:33.315Z",
-      "readyAt": "2026-09-25T10:31:34.144Z",
+      "placedAt": "2026-09-25T13:12:02.937Z",
+      "createdAt": "2026-09-25T13:12:02.937Z",
+      "acceptedAt": "2026-09-25T13:12:04.776Z",
+      "readyAt": "2026-09-25T13:12:05.651Z",
       "cancelledAt": null,
       "prepTimeMinutes": 15,
-      "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+      "estimatedReadyAt": "2026-09-25T13:27:04.776Z",
       "items": [
         {
           "name": "Garlic Bread",
@@ -2250,37 +2256,37 @@
       "timeline": [
         {
           "status": "CREATED",
-          "at": "2026-09-25T10:31:32.343Z",
+          "at": "2026-09-25T13:12:02.937Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "PLACED",
-          "at": "2026-09-25T10:31:32.344Z",
+          "at": "2026-09-25T13:12:02.938Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "RESTAURANT_ACCEPTED",
-          "at": "2026-09-25T10:31:33.312Z",
+          "at": "2026-09-25T13:12:04.773Z",
           "actorType": "RESTAURANT_USER"
         },
         {
           "status": "RIDER_AT_RESTAURANT",
-          "at": "2026-09-25T10:31:34.142Z",
+          "at": "2026-09-25T13:12:05.649Z",
           "actorType": "RESTAURANT_USER"
         },
         {
           "status": "PICKED_UP",
-          "at": "2026-09-25T10:31:34.175Z",
+          "at": "2026-09-25T13:12:05.745Z",
           "actorType": "RIDER"
         },
         {
           "status": "ON_THE_WAY",
-          "at": "2026-09-25T10:31:34.175Z",
+          "at": "2026-09-25T13:12:05.745Z",
           "actorType": "SYSTEM"
         },
         {
           "status": "ARRIVED",
-          "at": "2026-09-25T10:31:34.193Z",
+          "at": "2026-09-25T13:12:05.846Z",
           "actorType": "RIDER"
         }
       ],
@@ -2288,16 +2294,23 @@
       "canCancel": false,
       "cancelTerms": null,
       "delivery": {
+        "eta": {
+          "minMinutes": 0,
+          "maxMinutes": 0,
+          "arrivingNow": true,
+          "estimate": true,
+          "source": null
+        },
         "rider": {
           "firstName": "Demo",
           "vehicle": "MOTORCYCLE",
           "position": {
             "lat": 23.801,
             "lng": 72.391,
-            "at": "2026-09-25T10:31:31.080Z"
+            "at": "2026-09-25T13:12:01.219Z"
           }
         },
-        "code": "9949",
+        "code": "0903",
         "contact": {
           "via": "SUPPORT",
           "phone": null
@@ -2305,8 +2318,8 @@
       }
     },
     "delivered": {
-      "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
-      "orderNumber": "UNJ-260925-00005",
+      "id": "01a0d8b1-c2a5-72e1-9de8-64e4e088c70f",
+      "orderNumber": "UNJ-260925-00006",
       "status": "DELIVERED",
       "restaurantStatus": "COMPLETED",
       "deliveryStatus": "DELIVERED",
@@ -2315,13 +2328,13 @@
         "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
         "name": "Pizza Point"
       },
-      "placedAt": "2026-09-25T10:31:32.343Z",
-      "createdAt": "2026-09-25T10:31:32.343Z",
-      "acceptedAt": "2026-09-25T10:31:33.315Z",
-      "readyAt": "2026-09-25T10:31:34.144Z",
+      "placedAt": "2026-09-25T13:12:02.937Z",
+      "createdAt": "2026-09-25T13:12:02.937Z",
+      "acceptedAt": "2026-09-25T13:12:04.776Z",
+      "readyAt": "2026-09-25T13:12:05.651Z",
       "cancelledAt": null,
       "prepTimeMinutes": 15,
-      "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+      "estimatedReadyAt": "2026-09-25T13:27:04.776Z",
       "items": [
         {
           "name": "Garlic Bread",
@@ -2387,42 +2400,42 @@
       "timeline": [
         {
           "status": "CREATED",
-          "at": "2026-09-25T10:31:32.343Z",
+          "at": "2026-09-25T13:12:02.937Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "PLACED",
-          "at": "2026-09-25T10:31:32.344Z",
+          "at": "2026-09-25T13:12:02.938Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "RESTAURANT_ACCEPTED",
-          "at": "2026-09-25T10:31:33.312Z",
+          "at": "2026-09-25T13:12:04.773Z",
           "actorType": "RESTAURANT_USER"
         },
         {
           "status": "RIDER_AT_RESTAURANT",
-          "at": "2026-09-25T10:31:34.142Z",
+          "at": "2026-09-25T13:12:05.649Z",
           "actorType": "RESTAURANT_USER"
         },
         {
           "status": "PICKED_UP",
-          "at": "2026-09-25T10:31:34.175Z",
+          "at": "2026-09-25T13:12:05.745Z",
           "actorType": "RIDER"
         },
         {
           "status": "ON_THE_WAY",
-          "at": "2026-09-25T10:31:34.175Z",
+          "at": "2026-09-25T13:12:05.745Z",
           "actorType": "SYSTEM"
         },
         {
           "status": "ARRIVED",
-          "at": "2026-09-25T10:31:34.193Z",
+          "at": "2026-09-25T13:12:05.846Z",
           "actorType": "RIDER"
         },
         {
           "status": "DELIVERED",
-          "at": "2026-09-25T10:31:34.221Z",
+          "at": "2026-09-25T13:12:06.095Z",
           "actorType": "RIDER"
         }
       ],
@@ -2431,6 +2444,7 @@
       "cancelTerms": null,
       "delivery": {
         "rider": null,
+        "eta": null,
         "code": null,
         "contact": null
       }
