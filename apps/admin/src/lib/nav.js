@@ -16,6 +16,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingBag,
+  Tags,
   Truck,
   UserRound,
   Users,
@@ -36,8 +37,9 @@ export const NAV = [
   {
     section: 'Partners & customers',
     items: [
-      { label: 'Restaurants', icon: Building2, phase: 2 },
-      { label: 'Menus', icon: UtensilsCrossed, phase: 2 },
+      { href: '/restaurants', label: 'Restaurants', icon: Building2, permission: 'restaurants.view' },
+      { href: '/products', label: 'Products', icon: UtensilsCrossed, permission: 'restaurants.view' },
+      { href: '/categories', label: 'Food categories', icon: Tags, permission: 'restaurants.view' },
       { label: 'Delivery partners', icon: Bike, phase: 6 },
       { label: 'Customers', icon: UserRound, phase: 3 },
     ],

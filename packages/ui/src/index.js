@@ -129,3 +129,32 @@ export function formatPaise(paise) {
   if (!Number.isSafeInteger(paise)) throw new TypeError('formatPaise expects integer paise');
   return inr.format(paise / 100);
 }
+
+/**
+ * Parses a rupee amount typed by a person ("180", "180.5", "1,80.50", "₹ 99") into integer paise without
+ * floating-point arithmetic. Returns null when the text is not a valid amount (max two decimals).
+ * @param {string} text
+ * @returns {number | null}
+ */
+export function parseRupeesToPaise(text) {
+  const clean = String(text ?? '')
+    .replace(/[₹,\s]/g, '')
+    .trim();
+  const m = /^(\d{1,9})(?:\.(\d{0,2}))?$/.exec(clean);
+  if (!m) return null;
+  const paise = Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));
+  return Number.isSafeInteger(paise) ? paise : null;
+}
+
+/**
+ * Integer paise → plain rupee text for an input field ("18050" → "180.50", "18000" → "180").
+ * @param {number | null | undefined} paise
+ */
+export function paiseToRupeeInput(paise) {
+  if (paise == null) return '';
+  if (!Number.isSafeInteger(paise) || paise < 0)
+    throw new TypeError('paiseToRupeeInput expects non-negative integer paise');
+  const rupees = Math.floor(paise / 100);
+  const rest = paise % 100;
+  return rest ? `${rupees}.${String(rest).padStart(2, '0')}` : String(rupees);
+}

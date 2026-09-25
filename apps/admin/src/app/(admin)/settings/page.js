@@ -54,7 +54,7 @@ export default function ConfigurationPage() {
     <>
       <PageHeader
         title="Configuration"
-        description="Business rules live here, not in code. The most specific value wins: Global → Country → State → City → Zone → Restaurant (Phase 2)."
+        description="Business rules live here, not in code. The most specific value wins: Global → Country → State → City → Zone → Restaurant → Branch. Restaurant and branch overrides are set on the restaurant’s page."
       />
       <Suspense>
         <ConfigurationContent />

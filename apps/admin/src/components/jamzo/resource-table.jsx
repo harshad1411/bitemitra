@@ -5,6 +5,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EmptyState, ErrorState, LoadingRows } from './states';
@@ -12,7 +13,8 @@ import { EmptyState, ErrorState, LoadingRows } from './states';
 /**
  * Dense, server-paginated table (spec §28/§29, OD-25). All filtering, search and paging happen on the
  * API with keyset cursors, so it stays fast on large datasets. `fetchPage({ cursor, q, limit, ...filters })`
- * must return `{ items, nextCursor }`.
+ * must return `{ items, nextCursor }`. `selection` = { selected: string[], onChange(ids) } adds row checkboxes
+ * (for bulk actions on the current page).
  */
 export function ResourceTable({
   queryKey,
@@ -25,6 +27,7 @@ export function ResourceTable({
   rowLabel,
   empty,
   pageSize = 25,
+  selection,
 }) {
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -48,7 +51,49 @@ export function ResourceTable({
       }),
     placeholderData: keepPreviousData,
   });
-  const table = useReactTable({ data: query.data?.items ?? [], columns, getCoreRowModel: getCoreRowModel() });
+  const items = query.data?.items ?? [];
+  const selectColumn = selection
+    ? [
+        {
+          id: '_select',
+          header: () => {
+            const all = items.length > 0 && items.every((r) => selection.selected.includes(r.id));
+            return (
+              <Checkbox
+                aria-label="Select all on this page"
+                checked={all}
+                onCheckedChange={(v) =>
+                  selection.onChange(
+                    v
+                      ? [...new Set([...selection.selected, ...items.map((r) => r.id)])]
+                      : selection.selected.filter((id) => !items.some((r) => r.id === id)),
+                  )
+                }
+              />
+            );
+          },
+          cell: ({ row }) => (
+            <Checkbox
+              aria-label={`Select ${row.original.name ?? row.original.id}`}
+              checked={selection.selected.includes(row.original.id)}
+              onClick={(e) => e.stopPropagation()}
+              onCheckedChange={(v) =>
+                selection.onChange(
+                  v
+                    ? [...selection.selected, row.original.id]
+                    : selection.selected.filter((id) => id !== row.original.id),
+                )
+              }
+            />
+          ),
+        },
+      ]
+    : [];
+  const table = useReactTable({
+    data: items,
+    columns: [...selectColumn, ...columns],
+    getCoreRowModel: getCoreRowModel(),
+  });
 
   return (
     <div className="overflow-hidden rounded-lg border bg-card">

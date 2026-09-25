@@ -8,6 +8,7 @@ import { createPrismaClient } from '@jamzo/database';
 import { startPostgresServer } from '@jamzo/database/postgres-server';
 import { createTemplateDatabase, urlForDatabase } from '@jamzo/database/testing';
 import { seed } from '@jamzo/database/seed';
+import { createFieldCipher } from '@jamzo/auth';
 import { createConsoleEmailProvider, createConsoleSmsProvider } from '@jamzo/notifications';
 import { buildApp } from '@jamzo/api/app';
 import { createLocalStorage } from '@jamzo/api/media-storage';
@@ -24,7 +25,8 @@ export default async function globalSetup() {
   await createTemplateDatabase(pg.adminUrl, 'jamzo_e2e');
   const url = urlForDatabase(pg.adminUrl, 'jamzo_e2e');
   const prisma = createPrismaClient({ url });
-  await seed(prisma, { admin: E2E_ADMIN, demo: true });
+  const fieldKey = Buffer.alloc(32, 9).toString('base64'); // fixed E2E key, not a secret
+  await seed(prisma, { admin: E2E_ADMIN, demo: true, catalog: true, fieldCipher: createFieldCipher(fieldKey) });
 
   const mediaDir = await mkdtemp(path.join(os.tmpdir(), 'jamzo-e2e-media-'));
   const env = loadEnv(apiEnvSchema, {
@@ -32,7 +34,7 @@ export default async function globalSetup() {
     DATABASE_URL: url,
     JWT_ACCESS_SECRET: 'e2e-access-secret-that-is-long-enough-12345',
     OTP_PEPPER: 'e2e-otp-pepper-that-is-long-enough-1234567',
-    FIELD_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64'), // fixed E2E key, not a secret
+    FIELD_ENCRYPTION_KEY: fieldKey,
     COOKIE_SECURE: 'false',
     MEDIA_LOCAL_DIR: mediaDir,
     LOG_LEVEL: 'warn',

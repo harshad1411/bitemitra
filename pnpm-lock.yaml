@@ -178,6 +178,9 @@ importers:
       '@jamzo/api':
         specifier: workspace:*
         version: link:../../services/api
+      '@jamzo/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@jamzo/config':
         specifier: workspace:*
         version: link:../../packages/config

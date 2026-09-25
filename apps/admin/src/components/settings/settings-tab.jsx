@@ -171,7 +171,8 @@ function ScopePicker({ scope, scopeRefId, onChange }) {
   );
 }
 
-export function SettingsTab({ scope, scopeRefId, onScopeChange }) {
+/** fixedScope: embedded for one restaurant/branch — the scope picker is hidden. */
+export function SettingsTab({ scope, scopeRefId, onScopeChange, fixedScope = false }) {
   const { can } = useAuth();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null);
@@ -201,7 +202,13 @@ export function SettingsTab({ scope, scopeRefId, onScopeChange }) {
   return (
     <div className="grid gap-4">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <ScopePicker scope={scope} scopeRefId={scopeRefId} onChange={onScopeChange} />
+        {fixedScope ? (
+          <p className="text-sm text-muted-foreground">
+            Values set here apply to this {scope.toLowerCase()} only; everything else is inherited.
+          </p>
+        ) : (
+          <ScopePicker scope={scope} scopeRefId={scopeRefId} onChange={onScopeChange} />
+        )}
         <div className="relative lg:w-72">
           <Search
             className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"

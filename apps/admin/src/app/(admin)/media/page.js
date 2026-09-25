@@ -20,7 +20,8 @@ import { StatusBadge } from '@/components/jamzo/status-badge';
 import { ConfirmDialog } from '@/components/jamzo/confirm-dialog';
 import { EmptyState } from '@/components/jamzo/states';
 import { FormField } from '@/components/jamzo/form-field';
-import { api, apiUrl, getAccessTokenForUpload } from '@/lib/api';
+import { api, apiUrl } from '@/lib/api';
+import { uploadForm } from '@/lib/upload';
 import { useAuth } from '@/lib/auth';
 import { useApiMutation } from '@/lib/mutation';
 import { formatDateTime } from '@/lib/format';
@@ -180,22 +181,7 @@ export default function MediaPage() {
       body.set('file', file);
       body.set('title', file.name);
       try {
-        const idempotencyKey = crypto.randomUUID();
-        const send = () =>
-          fetch(apiUrl('/v1/admin/media'), {
-            method: 'POST',
-            body,
-            headers: {
-              'x-app-id': 'ADMIN',
-              'x-platform': 'WEB',
-              authorization: `Bearer ${getAccessTokenForUpload()}`,
-              'idempotency-key': idempotencyKey,
-            },
-          });
-        let res = await send();
-        if (res.status === 401 && (await api.refreshSession())) res = await send(); // access token expired: refresh once, same key
-        const json = await res.json();
-        if (!res.ok) throw Object.assign(new Error(json.error?.message ?? 'Upload failed'), json.error);
+        await uploadForm('/v1/admin/media', body);
         toast.success(`${file.name} uploaded — renditions are generated in the background`);
       } catch (err) {
         toast.error(`${file.name}: ${err.message}`, {

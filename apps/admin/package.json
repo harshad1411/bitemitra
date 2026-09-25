@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@jamzo/api": "workspace:*",
+    "@jamzo/auth": "workspace:*",
     "@jamzo/config": "workspace:*",
     "@jamzo/database": "workspace:*",
     "@jamzo/notifications": "workspace:*",
@@ -37,5 +38,5 @@
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
   },
-  "description": "Jamzo Admin — Next.js (JavaScript) + Tailwind CSS + shadcn/ui."
+  "description": "Jamzo Admin \u2014 Next.js (JavaScript) + Tailwind CSS + shadcn/ui."
 }

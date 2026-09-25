@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { colors, formatPaise, statusTones } from './index.js';
+import { colors, formatPaise, paiseToRupeeInput, parseRupeesToPaise, statusTones } from './index.js';
 
 /** WCAG relative luminance contrast. */
 function contrast(a, b) {
@@ -27,5 +27,32 @@ describe('tokens', () => {
     expect(formatPaise(47_900)).toBe('₹479.00');
     expect(formatPaise(12_345_678)).toBe('₹1,23,456.78');
     expect(() => formatPaise(1.5)).toThrow();
+  });
+});
+
+describe('rupee input ↔ paise (no floating point)', () => {
+  it.each([
+    ['180', 18000],
+    ['180.5', 18050],
+    ['180.50', 18050],
+    ['0.1', 10],
+    ['0.07', 7],
+    ['₹ 1,23,456.78', 12345678],
+    ['12.', 1200],
+    ['', null],
+    ['12.345', null],
+    ['-5', null],
+    ['abc', null],
+  ])('%s → %s', (text, paise) => {
+    expect(parseRupeesToPaise(text)).toBe(paise);
+  });
+
+  it('formats back for inputs', () => {
+    expect(paiseToRupeeInput(18050)).toBe('180.50');
+    expect(paiseToRupeeInput(18000)).toBe('180');
+    expect(paiseToRupeeInput(7)).toBe('0.07');
+    expect(paiseToRupeeInput(null)).toBe('');
+    // 0.1 + 0.2 style float errors cannot happen: every value round-trips exactly.
+    for (let p = 0; p < 5000; p += 7) expect(parseRupeesToPaise(paiseToRupeeInput(p))).toBe(p);
   });
 });
