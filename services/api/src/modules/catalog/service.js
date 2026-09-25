@@ -124,6 +124,8 @@ export function productSummary(p, { now, timeZone, mediaBase }) {
     addonGroups: (p.addonGroups ?? []).map((g) => ({
       id: g.id,
       name: g.name,
+      minSelect: g.minSelect,
+      maxSelect: g.maxSelect,
       addons: g.addons.map(({ id, name, basePricePaise, isAvailable }) => ({
         id,
         name,

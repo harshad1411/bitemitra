@@ -16,6 +16,8 @@ import { DocumentsTab } from '@/components/restaurants/documents-tab';
 import { BankTab } from '@/components/restaurants/bank-tab';
 import { TeamTab } from '@/components/restaurants/team-tab';
 import { RestaurantSettingsTab } from '@/components/restaurants/settings-tab';
+import { RestaurantPricingTab } from '@/components/restaurants/pricing-tab';
+import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { useApiMutation } from '@/lib/mutation';
 import { STATUS } from '@/lib/restaurants';
@@ -81,6 +83,7 @@ function StatusActions({ restaurant }) {
 }
 
 function RestaurantContent({ id }) {
+  const { can } = useAuth();
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -112,6 +115,7 @@ function RestaurantContent({ id }) {
           <TabsTrigger value="documents">Documents{failingDocs ? ' •' : ''}</TabsTrigger>
           <TabsTrigger value="bank">Bank accounts</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
+          {can('pricing.view') ? <TabsTrigger value="pricing">Pricing</TabsTrigger> : null}
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
@@ -132,6 +136,11 @@ function RestaurantContent({ id }) {
         <TabsContent value="team">
           <TeamTab restaurant={r} />
         </TabsContent>
+        {can('pricing.view') ? (
+          <TabsContent value="pricing">
+            <RestaurantPricingTab restaurant={r} />
+          </TabsContent>
+        ) : null}
         <TabsContent value="settings">
           <RestaurantSettingsTab restaurant={r} />
         </TabsContent>
