@@ -125,6 +125,11 @@ Stage is computed from the tracks at the moment of cancellation:
 | AFTER_PREPARING | kitchen PREPARING/READY_FOR_PICKUP, not picked up | customer only if rule allows; restaurant; admin |
 | AFTER_PICKUP | delivery PICKED_UP or later | admin / support only (→ ADMIN_CANCELLED or RIDER_ISSUE) |
 
+**Owner rule (OD-38, D-70):** after acceptance the customer may still cancel but gets no refund of an online
+payment, and Jamzo pays the restaurant its food value; restaurant or Jamzo cancellations refund in full;
+cash-on-delivery customers lose cash on delivery after `cod.maxRefusedOrders` (2) cancellations after
+acceptance.
+
 `cancellation_rules.params` per (stage, actor): customer fee (fixed/% of food), refund policy
 (FULL/PARTIAL/NONE), restaurant compensation (e.g. food value if prepared), rider compensation (e.g. trip
 earning if rider was at restaurant), who absorbs the rest (platform loss). The outcome is written to

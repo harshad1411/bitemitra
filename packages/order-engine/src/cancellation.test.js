@@ -191,3 +191,55 @@ describe('money outcome', () => {
     ).toThrow();
   });
 });
+
+describe('owner rule OD-38: no refund after acceptance, Jamzo pays the restaurant', () => {
+  const late = rule(true, {
+    customerFee: { type: 'FULL_AMOUNT' },
+    restaurantCompensation: { type: 'FOOD_VALUE' },
+  });
+  const OD38 = {
+    ...DEFAULT,
+    AFTER_ACCEPT: stage(late, rule(true), rule(true)),
+    AFTER_PREPARING: stage(late, rule(true), rule(true)),
+  };
+  const run38 = (o, by, amounts) =>
+    cancel(o, { by, reasonCode: 'X', now, rule: { id: 'od38', params: OD38 }, amounts });
+  it('online payment: the customer keeps nothing back; the payment covers the restaurant', () => {
+    const r = run38(base('ACCEPTED'), 'CUSTOMER', {
+      paidPaise: 32_100,
+      foodValuePaise: 24_920,
+      tripEstimatePaise: 2_500,
+    });
+    expect(r.outcome).toMatchObject({
+      customerFeePaise: 32_100,
+      refundDuePaise: 0,
+      restaurantCompensationPaise: 24_920,
+      platformLossPaise: 0,
+    });
+  });
+  it('cash on delivery: nothing was paid, so Jamzo absorbs the food value', () => {
+    const r = run38(base('PREPARING'), 'CUSTOMER', {
+      paidPaise: 0,
+      foodValuePaise: 24_920,
+      tripEstimatePaise: 2_500,
+    });
+    expect(r.outcome).toMatchObject({
+      customerFeePaise: 0,
+      refundDuePaise: 0,
+      restaurantCompensationPaise: 24_920,
+      platformLossPaise: 24_920,
+    });
+  });
+  it('restaurant or Jamzo cancelling refunds everything; before acceptance the customer cancels free', () => {
+    const paid = { paidPaise: 32_100, foodValuePaise: 24_920, tripEstimatePaise: 0 };
+    expect(run38(base('ACCEPTED'), 'RESTAURANT', paid).outcome).toMatchObject({
+      refundDuePaise: 32_100,
+      customerFeePaise: 0,
+    });
+    expect(run38(base('ACCEPTED'), 'ADMIN', paid).outcome).toMatchObject({ refundDuePaise: 32_100 });
+    expect(run38(base('NEW'), 'CUSTOMER', paid).outcome).toMatchObject({
+      refundDuePaise: 32_100,
+      restaurantCompensationPaise: 0,
+    });
+  });
+});

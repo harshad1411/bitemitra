@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (152 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (153 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -127,6 +127,7 @@ _Generated from the route definitions by `pnpm docs:api` (152 endpoints). Do not
 | `PATCH` | `/v1/admin/coupons/:id` | admin token | ADMIN | `promotions.manage` |  |
 | `GET` | `/v1/admin/customers` | admin token | ADMIN | `customers.view` |  |
 | `GET` | `/v1/admin/customers/:id` | admin token | ADMIN | `customers.view` |  |
+| `PATCH` | `/v1/admin/customers/:id/cod` | admin token | ADMIN | `customers.manage` |  |
 | `POST` | `/v1/admin/customers/:id/reveal` | admin token | ADMIN | `customers.view + customers.pii` |  |
 | `GET` | `/v1/admin/dashboard` | admin token | ADMIN | `dashboard.view` |  |
 | `GET` | `/v1/admin/flags` | admin token | ADMIN | `config.view` |  |

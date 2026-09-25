@@ -30,9 +30,14 @@ const riderAmount = z.discriminatedUnion('type', [
   z.object({ type: z.literal('TRIP_ESTIMATE') }),
   z.object({ type: z.literal('FIXED'), valuePaise: z.number().int().min(0).max(10_000_000) }),
 ]);
+/** The customer fee may also be "everything paid" (no refund — OD-38). */
+const feeAmount = z.discriminatedUnion('type', [
+  ...amount.options,
+  z.object({ type: z.literal('FULL_AMOUNT') }),
+]);
 const outcomeRule = z.object({
   allowed: z.boolean(),
-  customerFee: amount.default({ type: 'NONE' }),
+  customerFee: feeAmount.default({ type: 'NONE' }),
   restaurantCompensation: restaurantAmount.default({ type: 'NONE' }),
   riderCompensation: riderAmount.default({ type: 'NONE' }),
 });
@@ -62,8 +67,10 @@ const RESULT_STATUS = {
 };
 
 const pct = (base, bps) => Math.floor((base * bps) / 10_000);
-function money(spec, { foodValuePaise, tripEstimatePaise }) {
+function money(spec, { foodValuePaise, tripEstimatePaise, paidPaise }) {
   switch (spec.type) {
+    case 'FULL_AMOUNT':
+      return paidPaise;
     case 'FIXED':
       return spec.valuePaise;
     case 'PERCENT_OF_FOOD':

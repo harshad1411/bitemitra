@@ -107,6 +107,21 @@ export default function OrderScreen() {
       {o.canCancel ? (
         asking ? (
           <Card>
+            {o.cancelTerms?.noRefundAfterAccept ? (
+              <Banner tone="warning">
+                {[
+                  `${o.restaurant.name} has already accepted your order.`,
+                  o.payment.method === 'COD'
+                    ? 'You will not be charged, but Jamzo pays the restaurant for the food.'
+                    : `You will not get a refund${o.cancelTerms.keptPaise ? ` of ${money(o.cancelTerms.keptPaise)}` : ''}.`,
+                  o.cancelTerms.codCancellation
+                    ? `After ${o.cancelTerms.codCancellation.limit} cancellations like this, cash on delivery is switched off for your account (this would be ${o.cancelTerms.codCancellation.used + 1} of ${o.cancelTerms.codCancellation.limit}).`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              </Banner>
+            ) : null}
             <Text variant="heading">Why are you cancelling?</Text>
             {CANCEL_REASONS.map(([code, label]) => (
               <Button key={code} title={label} variant="secondary" busy={busy} onPress={() => cancel(code)} />

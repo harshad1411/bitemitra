@@ -1670,8 +1670,8 @@
   "orders": {
     "placed": {
       "order": {
-        "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
-        "orderNumber": "UNJ-260925-00001",
+        "id": "01a0d726-3f2a-7f52-a660-3748bcbbd7ea",
+        "orderNumber": "UNJ-260925-00003",
         "status": "PLACED",
         "restaurantStatus": "NEW",
         "deliveryStatus": "NOT_STARTED",
@@ -1680,8 +1680,8 @@
           "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
           "name": "Pizza Point"
         },
-        "placedAt": "2026-09-25T05:32:36.622Z",
-        "createdAt": "2026-09-25T05:32:36.622Z",
+        "placedAt": "2026-09-25T06:00:03.095Z",
+        "createdAt": "2026-09-25T06:00:03.095Z",
         "acceptedAt": null,
         "readyAt": null,
         "cancelledAt": null,
@@ -1752,23 +1752,30 @@
         "timeline": [
           {
             "status": "CREATED",
-            "at": "2026-09-25T05:32:36.622Z",
+            "at": "2026-09-25T06:00:03.095Z",
             "actorType": "CUSTOMER"
           },
           {
             "status": "PLACED",
-            "at": "2026-09-25T05:32:36.623Z",
+            "at": "2026-09-25T06:00:03.096Z",
             "actorType": "CUSTOMER"
           }
         ],
         "cancellation": null,
-        "canCancel": true
+        "canCancel": true,
+        "cancelTerms": {
+          "stage": "BEFORE_ACCEPT",
+          "refundDuePaise": 0,
+          "keptPaise": 0,
+          "noRefundAfterAccept": false,
+          "codCancellation": null
+        }
       },
       "created": true
     },
     "accepted": {
-      "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
-      "orderNumber": "UNJ-260925-00001",
+      "id": "01a0d726-3f2a-7f52-a660-3748bcbbd7ea",
+      "orderNumber": "UNJ-260925-00003",
       "status": "RESTAURANT_ACCEPTED",
       "restaurantStatus": "ACCEPTED",
       "deliveryStatus": "NOT_STARTED",
@@ -1777,13 +1784,13 @@
         "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
         "name": "Pizza Point"
       },
-      "placedAt": "2026-09-25T05:32:36.622Z",
-      "createdAt": "2026-09-25T05:32:36.622Z",
-      "acceptedAt": "2026-09-25T05:32:37.000Z",
+      "placedAt": "2026-09-25T06:00:03.095Z",
+      "createdAt": "2026-09-25T06:00:03.095Z",
+      "acceptedAt": "2026-09-25T06:00:03.477Z",
       "readyAt": null,
       "cancelledAt": null,
       "prepTimeMinutes": 20,
-      "estimatedReadyAt": "2026-09-25T05:52:37.000Z",
+      "estimatedReadyAt": "2026-09-25T06:20:03.477Z",
       "items": [
         {
           "name": "Margherita",
@@ -1849,26 +1856,37 @@
       "timeline": [
         {
           "status": "CREATED",
-          "at": "2026-09-25T05:32:36.622Z",
+          "at": "2026-09-25T06:00:03.095Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "PLACED",
-          "at": "2026-09-25T05:32:36.623Z",
+          "at": "2026-09-25T06:00:03.096Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "RESTAURANT_ACCEPTED",
-          "at": "2026-09-25T05:32:36.999Z",
+          "at": "2026-09-25T06:00:03.475Z",
           "actorType": "RESTAURANT_USER"
         }
       ],
       "cancellation": null,
-      "canCancel": false
+      "canCancel": true,
+      "cancelTerms": {
+        "stage": "AFTER_ACCEPT",
+        "refundDuePaise": 0,
+        "keptPaise": 0,
+        "noRefundAfterAccept": true,
+        "codCancellation": {
+          "countsTowardsLimit": true,
+          "used": 0,
+          "limit": 2
+        }
+      }
     },
     "cancelled": {
-      "id": "01a0d70d-2127-7881-9c4d-0297c89ca9be",
-      "orderNumber": "UNJ-260925-00002",
+      "id": "01a0d726-40b4-72b0-8417-a94ed154f0a8",
+      "orderNumber": "UNJ-260925-00004",
       "status": "CUSTOMER_CANCELLED",
       "restaurantStatus": "CANCELLED",
       "deliveryStatus": "CANCELLED",
@@ -1877,11 +1895,11 @@
         "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
         "name": "Pizza Point"
       },
-      "placedAt": "2026-09-25T05:32:37.018Z",
-      "createdAt": "2026-09-25T05:32:37.018Z",
+      "placedAt": "2026-09-25T06:00:03.496Z",
+      "createdAt": "2026-09-25T06:00:03.496Z",
       "acceptedAt": null,
       "readyAt": null,
-      "cancelledAt": "2026-09-25T05:32:37.041Z",
+      "cancelledAt": "2026-09-25T06:00:03.522Z",
       "prepTimeMinutes": null,
       "estimatedReadyAt": null,
       "items": [
@@ -1949,17 +1967,17 @@
       "timeline": [
         {
           "status": "CREATED",
-          "at": "2026-09-25T05:32:37.018Z",
+          "at": "2026-09-25T06:00:03.496Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "PLACED",
-          "at": "2026-09-25T05:32:37.019Z",
+          "at": "2026-09-25T06:00:03.497Z",
           "actorType": "CUSTOMER"
         },
         {
           "status": "CUSTOMER_CANCELLED",
-          "at": "2026-09-25T05:32:37.041Z",
+          "at": "2026-09-25T06:00:03.523Z",
           "actorType": "CUSTOMER"
         }
       ],
@@ -1968,13 +1986,14 @@
         "reasonCode": "CHANGED_MIND",
         "refundDuePaise": 0
       },
-      "canCancel": false
+      "canCancel": false,
+      "cancelTerms": null
     },
     "list": {
       "items": [
         {
-          "id": "01a0d70d-2127-7881-9c4d-0297c89ca9be",
-          "orderNumber": "UNJ-260925-00002",
+          "id": "01a0d726-40b4-72b0-8417-a94ed154f0a8",
+          "orderNumber": "UNJ-260925-00004",
           "status": "CUSTOMER_CANCELLED",
           "restaurant": {
             "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
@@ -1982,11 +2001,11 @@
           },
           "itemCount": 1,
           "totalPayablePaise": 32100,
-          "createdAt": "2026-09-25T05:32:37.018Z"
+          "createdAt": "2026-09-25T06:00:03.496Z"
         },
         {
-          "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
-          "orderNumber": "UNJ-260925-00001",
+          "id": "01a0d726-3f2a-7f52-a660-3748bcbbd7ea",
+          "orderNumber": "UNJ-260925-00003",
           "status": "RESTAURANT_ACCEPTED",
           "restaurant": {
             "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
@@ -1994,7 +2013,7 @@
           },
           "itemCount": 1,
           "totalPayablePaise": 32100,
-          "createdAt": "2026-09-25T05:32:36.622Z"
+          "createdAt": "2026-09-25T06:00:03.095Z"
         }
       ],
       "nextCursor": null
@@ -2002,7 +2021,7 @@
     "addresses": {
       "items": [
         {
-          "id": "01a0d70d-1f37-7943-890d-cb3f5c2b3172",
+          "id": "01a0d726-3ebe-7b32-a529-9c97a9f6a2ec",
           "label": "Home",
           "line1": "12 Station Road",
           "line2": null,

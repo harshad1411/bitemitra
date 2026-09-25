@@ -58,19 +58,22 @@ test('pricing: cancellation rules are listed and a new version can be saved', as
   await nav(page, 'Pricing');
   await page.getByRole('tab', { name: 'Cancellations' }).click();
   const panel = page.getByRole('tabpanel', { name: 'Cancellations' });
+  // Owner rule OD-38: the customer may cancel after acceptance, without a refund; Jamzo pays the restaurant.
   await expect(panel.getByRole('row', { name: /All cities/ })).toContainText(
-    'Customer can cancel: before the restaurant accepts',
+    'Customer can cancel: before the restaurant accepts, after acceptance, after preparation starts · no refund after acceptance, after preparation starts · restaurant paid its food value',
   );
   await panel
     .getByRole('button', { name: /New version|Edit/ })
     .first()
     .click();
   const dlg = page.getByRole('dialog');
-  await dlg.getByRole('switch', { name: 'After acceptance: Customer may cancel' }).click();
-  await dlg.getByLabel('Why (required)').fill('Allow customers to cancel after acceptance (E2E)');
+  await dlg.getByRole('switch', { name: 'After preparation starts: Customer may cancel' }).click();
+  await dlg.getByLabel('Why (required)').fill('No customer cancellation once cooking starts (E2E)');
   await dlg.getByRole('button', { name: 'Save new version' }).click();
   await expectToast(page, 'New rule version saved');
-  await expect(panel.getByRole('row', { name: /All cities/ }).first()).toContainText('after acceptance');
+  await expect(panel.getByRole('row', { name: /All cities/ }).first()).toContainText(
+    'Customer can cancel: before the restaurant accepts, after acceptance ·',
+  );
   await shot(page, '43-cancellation-rules');
 });
 
@@ -84,4 +87,20 @@ test('notifications: templates can be edited', async ({ page }) => {
   await expectToast(page, 'Template saved');
   await expect(page.getByText('Your food is packed')).toBeVisible();
   await shot(page, '44-notifications');
+});
+
+test('customers: cash on delivery can be switched off and on with a reason', async ({ page }) => {
+  await signIn(page);
+  await nav(page, 'Customers');
+  await page.getByRole('row', { name: /Meera Joshi/ }).click();
+  await expect(page.getByText(/UNJ-\d{6}-\d{5}/).first()).toBeVisible(); // recent orders
+  await page.getByRole('button', { name: 'Switch cash on delivery off' }).click();
+  await page.getByRole('alertdialog').getByRole('textbox').fill('Repeated late cancellations (E2E)');
+  await page.getByRole('button', { name: 'Switch off' }).click();
+  await expectToast(page, 'Cash on delivery switched off');
+  await expect(page.getByText('COD disabled')).toBeVisible();
+  await page.getByRole('button', { name: 'Switch cash on delivery back on' }).click();
+  await page.getByRole('alertdialog').getByRole('textbox').fill('Customer called, explained (E2E)');
+  await page.getByRole('button', { name: 'Switch on' }).click();
+  await expectToast(page, 'Cash on delivery switched on');
 });

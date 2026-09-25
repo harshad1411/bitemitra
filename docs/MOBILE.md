@@ -111,7 +111,7 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 | `customize.js` | Size and add-on choices with required/min/max rules and quantity |
 | `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues |
 | `checkout.js` | Saved address, cash on delivery (online methods shown as coming soon — D-60), notes, contactless, the server bill; one idempotency key per attempt (a retry never creates a second order) |
-| `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; cancel while the restaurant has not accepted; refreshed by realtime notices and polling |
+| `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; cancel until pickup — after acceptance the app first explains there is no refund and, for cash on delivery, how many such cancellations are left before cash on delivery is switched off (OD-38); refreshed by realtime notices and polling |
 | `account.js`, `sign-in.js`, `addresses.js` | Guest or signed-in account, phone OTP sign-in when needed, saved addresses, favourites, notifications, legal pages, build info |
 | `page/[slug].js` | Published CMS pages (legal drafts show "Not published yet", Q-12) |
 

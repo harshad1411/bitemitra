@@ -1,7 +1,7 @@
 // Customers in Jamzo Admin (spec §28 "Customers", RBAC §2, DECISIONS D-57). Contact details are masked by
 // default; seeing them in full needs customers.pii and is audit-logged every time.
 import { z } from 'zod';
-import { normalizeIndianMobile, pageQuery, uuid } from '@jamzo/validation';
+import { customerCodBody, normalizeIndianMobile, pageQuery, uuid } from '@jamzo/validation';
 import { maskEmail, maskPhone } from '@jamzo/logger';
 import { notFound } from '../../core/errors.js';
 import { parse } from '../../core/validate.js';
@@ -125,6 +125,30 @@ export default async function customersRoutes(app) {
         newValue: { reason },
       });
       return detail(c, true);
+    },
+  );
+
+  // Cash on delivery on/off for one customer (D-70): switched off automatically after repeated late
+  // cancellations; support can switch it back on (or off) with a reason.
+  app.patch(
+    '/v1/admin/customers/:id/cod',
+    { config: { permission: 'customers.manage' } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const { id } = parse(z.object({ id: uuid }), request.params);
+      const body = parse(customerCodBody, request.body);
+      await prisma.$transaction(async (tx) => {
+        const c = await tx.customer.findUnique({ where: { id } });
+        if (!c) throw notFound('Customer');
+        await tx.customer.update({ where: { id }, data: { codDisabled: body.codDisabled } });
+        await audit(tx, request, {
+          action: body.codDisabled ? 'customer.cod_disabled' : 'customer.cod_enabled',
+          entityType: 'customer',
+          entityId: id,
+          oldValue: { codDisabled: c.codDisabled },
+          newValue: { codDisabled: body.codDisabled, reason: body.reason },
+        });
+      });
+      return detail(await load(id), false);
     },
   );
 }

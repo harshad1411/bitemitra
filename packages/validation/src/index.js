@@ -910,6 +910,10 @@ export const adminOrderListQuery = pageQuery.extend({
 export const orderNoteBody = z.object({ body: z.string().trim().min(1).max(1000) });
 export const attentionBody = z.object({ resolved: z.literal(true), note: z.string().trim().min(3).max(500) });
 
+export const customerCodBody = z.object({
+  codDisabled: z.boolean(),
+  reason: z.string().trim().min(3).max(500),
+});
 export const notificationTemplateBody = z.object({
   title: optionalText(100),
   body: z.string().trim().min(1).max(500),

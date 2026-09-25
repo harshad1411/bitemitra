@@ -12,7 +12,7 @@ release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.
 - Restaurant order handling (seen, accept with prep time, reject, preparing, ready, +prep time, cancel), auto-accept, acceptance timeout with escalation to operations.
 - Cancellations by customer, restaurant and admin with a versioned cancellation rule (placeholder amounts) and an audited admin override.
 - Notifications from editable templates; console and Expo push providers (Expo not verified against the real service); realtime order notices over Socket.IO fed by PostgreSQL NOTIFY.
-- API (+21 endpoints, 152 total).
+- API (+22 endpoints, 153 total).
 - Jamzo Admin: Orders (list, views, search, detail, cancel, notes, needs attention), Cancellations tab in Pricing, Notifications, live order counts on the dashboard, recent orders on customers.
 - Customer app: checkout, order tracking with live updates, cancel before acceptance, order list, active-order card on home.
 - Restaurant Partner app: orders screen with a looping new-order alert (placeholder chime), accept/reject/preparing/ready, order detail with the restaurant's money.
@@ -20,6 +20,7 @@ release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.
 ### Changed
 - Pricing engine: commission is also allocated per order line (largest remainder).
 - `canCheckout` in the cart quote now reflects whether the order can be placed.
+- Cancellation rule set by the owner (OD-38): customers may cancel after acceptance with no refund, Jamzo pays the restaurant its food value, and cash on delivery is switched off after 2 such cash-on-delivery cancellations (support can switch it back on).
 
 ## Phases 3 + 4 — Customer discovery & pricing (2026-09-25) — accepted
 

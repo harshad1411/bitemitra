@@ -184,13 +184,15 @@ export async function cancellationRuleFor(db, order, now) {
  * @param {any} tx
  * @param {any} order
  * @param {{ by: 'CUSTOMER'|'RESTAURANT'|'ADMIN', actorId: string|null, reasonCode: string, reasonText?: string,
- *           riderIssue?: boolean, override?: any, now: Date }} input
+ *           riderIssue?: boolean, override?: any, now: Date, codLimit?: number }} input
+ * `codLimit` (cod.maxRefusedOrders) switches cash on delivery off for a customer whose cancellations after
+ * acceptance reach it (D-70); pass it for customer cancellations.
  * @returns {Promise<{ result: any, after: (tx: any, updated?: any) => Promise<void> }>}
  */
 export async function cancelDecision(
   tx,
   order,
-  { by, actorId, reasonCode, reasonText, riderIssue, override, now },
+  { by, actorId, reasonCode, reasonText, riderIssue, override, now, codLimit },
 ) {
   const full = await tx.order.findUnique({
     where: { id: order.id },
@@ -207,19 +209,59 @@ export async function cancelDecision(
     override,
     now,
     rule: { id: rule.id, params: rule.params },
-    amounts: {
-      paidPaise: 0, // Phase 5 takes cash on delivery only: nothing has been paid before delivery (D-60)
-      foodValuePaise: snap ? snap.restaurantBaseSubtotalPaise - snap.restaurantFundedDiscountPaise : 0,
-      tripEstimatePaise: snap?.riderEarningEstimatePaise ?? 0,
-    },
+    amounts: cancellationAmounts(order, snap),
   });
   return {
     result,
     after: async (tx2) => {
       await tx2.orderCancellation.create({ data: { orderId: order.id, ...result.outcome, createdAt: now } });
       await releaseCouponUsage(tx2, order.id, now);
+      if (by === 'CUSTOMER' && order.paymentMethod === 'COD' && result.stage !== 'BEFORE_ACCEPT' && codLimit)
+        await applyCodStrike(tx2, order.customerId, codLimit, now);
     },
   };
+}
+
+/** What has been paid and what the restaurant's food is worth, for the cancellation engine. */
+export const cancellationAmounts = (order, snap) => ({
+  paidPaise: 0, // Phase 5 takes cash on delivery only: nothing has been paid before delivery (D-60)
+  foodValuePaise: snap ? snap.restaurantBaseSubtotalPaise - snap.restaurantFundedDiscountPaise : 0,
+  tripEstimatePaise: snap?.riderEarningEstimatePaise ?? 0,
+});
+
+/** Stages whose customer cancellations count towards losing cash on delivery (D-70). */
+export const COD_STRIKE_STAGES = ['AFTER_ACCEPT', 'AFTER_PREPARING'];
+
+/** Cash-on-delivery cancellations after acceptance by this customer. */
+export const codStrikes = (db, customerId) =>
+  db.orderCancellation.count({
+    where: {
+      cancelledByType: 'CUSTOMER',
+      stage: { in: COD_STRIKE_STAGES },
+      order: { customerId, paymentMethod: 'COD' },
+    },
+  });
+
+async function applyCodStrike(tx, customerId, limit, now) {
+  const strikes = await codStrikes(tx, customerId);
+  if (strikes < limit) return;
+  const customer = await tx.customer.findUnique({ where: { id: customerId } });
+  if (customer.codDisabled) return;
+  await tx.customer.update({ where: { id: customerId }, data: { codDisabled: true } });
+  await tx.auditLog.create({
+    data: {
+      actorType: 'SYSTEM',
+      action: 'customer.cod_disabled',
+      entityType: 'customer',
+      entityId: customerId,
+      oldValue: { codDisabled: false },
+      newValue: {
+        codDisabled: true,
+        reason: `${strikes} cash-on-delivery cancellations after acceptance (limit ${limit})`,
+      },
+      createdAt: now,
+    },
+  });
 }
 
 /** An order that ended before pickup gives its coupon use back (D-65). Safe to call twice. */

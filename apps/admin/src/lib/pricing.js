@@ -89,14 +89,19 @@ export function summarize(type, p) {
   switch (type) {
     case 'CANCELLATION': {
       const free = CANCEL_STAGES.filter(([s]) => p[s]?.CUSTOMER?.allowed).map(([, l]) => l.toLowerCase());
-      const money = CANCEL_STAGES.some(([s]) =>
-        CANCEL_ACTORS.some(([a]) =>
-          ['customerFee', 'restaurantCompensation', 'riderCompensation'].some(
-            (k) => p[s]?.[a]?.[k]?.type && p[s][a][k].type !== 'NONE',
-          ),
-        ),
+      const noRefund = CANCEL_STAGES.filter(([s]) => p[s]?.CUSTOMER?.customerFee?.type === 'FULL_AMOUNT').map(
+        ([, l]) => l.toLowerCase(),
       );
-      return `Customer can cancel: ${free.length ? free.join(', ') : 'never in the app'}${money ? ' · fees/compensation set' : ' · no fees or compensation'}`;
+      const paysRestaurant = CANCEL_STAGES.some(
+        ([s]) => p[s]?.CUSTOMER?.restaurantCompensation?.type === 'FOOD_VALUE',
+      );
+      return [
+        `Customer can cancel: ${free.length ? free.join(', ') : 'never in the app'}`,
+        noRefund.length ? `no refund ${noRefund.join(', ')}` : null,
+        paysRestaurant ? 'restaurant paid its food value' : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
     }
     case 'MARKUP':
       return `${p.type === 'PERCENTAGE' ? `+${pct(p.valueBps)}` : `+${rupees(p.valuePaise)}`}${p.rounding?.mode && p.rounding.mode !== 'NONE' ? ` · round ${p.rounding.mode.replace('NEAREST_', 'to ₹').toLowerCase()}` : ''}${p.applyToAddons === false ? ' · not on add-ons' : ''}`;

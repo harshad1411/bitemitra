@@ -374,7 +374,8 @@ describe('restaurant order handling (D-67)', () => {
       'PREPARING',
       'READY_FOR_PICKUP',
     ]);
-    expect(mine.canCancel).toBe(false);
+    expect(mine.canCancel).toBe(true); // until pickup, with no refund (OD-38)
+    expect(mine.cancelTerms).toMatchObject({ stage: 'AFTER_PREPARING', noRefundAfterAccept: true });
     expect(new Date(mine.estimatedReadyAt).getTime() - new Date(mine.acceptedAt).getTime()).toBe(20 * 60_000);
     const list = (await call('GET', '/v1/customer/orders', customer)).json();
     expect(list.items[0]).toMatchObject({ id: order.id, status: 'READY_FOR_PICKUP' });
@@ -446,8 +447,15 @@ describe('restaurant order handling (D-67)', () => {
 });
 
 describe('customer cancellation (A-25)', () => {
-  it('free before the restaurant accepts; after that the customer is sent to support', async () => {
+  it('free before the restaurant accepts; after acceptance allowed with no refund, Jamzo pays the restaurant (OD-38)', async () => {
     let { customer, order } = await placed();
+    expect((await call('GET', `/v1/customer/orders/${order.id}`, customer)).json().cancelTerms).toMatchObject(
+      {
+        stage: 'BEFORE_ACCEPT',
+        noRefundAfterAccept: false,
+        codCancellation: null,
+      },
+    );
     let res = await call('POST', `/v1/customer/orders/${order.id}/cancel`, customer, {
       reasonCode: 'ORDERED_BY_MISTAKE',
     });
@@ -458,35 +466,107 @@ describe('customer cancellation (A-25)', () => {
     });
     expect(
       await ctx.prisma.orderCancellation.findUniqueOrThrow({ where: { orderId: order.id } }),
-    ).toMatchObject({ stage: 'BEFORE_ACCEPT', cancelledByType: 'CUSTOMER' });
+    ).toMatchObject({
+      stage: 'BEFORE_ACCEPT',
+      cancelledByType: 'CUSTOMER',
+      restaurantCompensationPaise: 0,
+      platformLossPaise: 0,
+    });
 
     ({ customer, order } = await placed());
     await asRestaurant('POST', `/v1/restaurant/orders/${order.id}/accept`, owner, {
       prepTimeMinutes: 20,
       version: 0,
     });
+    const terms = (await call('GET', `/v1/customer/orders/${order.id}`, customer)).json();
+    expect(terms.canCancel).toBe(true);
+    expect(terms.cancelTerms).toMatchObject({
+      stage: 'AFTER_ACCEPT',
+      noRefundAfterAccept: true,
+      refundDuePaise: 0,
+      codCancellation: { countsTowardsLimit: true, used: 0, limit: 2 },
+    });
     res = await call('POST', `/v1/customer/orders/${order.id}/cancel`, customer, {
       reasonCode: 'TAKING_TOO_LONG',
     });
-    expect(res.statusCode).toBe(403);
-    expect(res.json().error.message).toMatch(/contact support/);
+    expect(res.statusCode, res.body).toBe(200);
+    // Cash on delivery: nothing was paid, so Jamzo absorbs the restaurant's food value (₹300 − ₹33 funded discount).
+    expect(
+      await ctx.prisma.orderCancellation.findUniqueOrThrow({ where: { orderId: order.id } }),
+    ).toMatchObject({
+      stage: 'AFTER_ACCEPT',
+      customerFeePaise: 0,
+      refundDuePaise: 0,
+      restaurantCompensationPaise: 26_700,
+      platformLossPaise: 26_700,
+    });
     const other = await newCustomer();
     expect((await call('GET', `/v1/customer/orders/${order.id}`, other)).statusCode).toBe(404);
   });
 
-  it('accept and cancel at the same moment: exactly one wins', async () => {
-    const { customer, order } = await placed();
-    const [accept, cancel] = await Promise.all([
-      asRestaurant('POST', `/v1/restaurant/orders/${order.id}/accept`, owner, {
+  it('two cash-on-delivery cancellations after acceptance switch cash on delivery off; support switches it back on (D-70)', async () => {
+    const c = await newCustomer();
+    const cust = await ctx.prisma.customer.findUniqueOrThrow({ where: { userId: c.me.user.id } });
+    // Cancelling before acceptance never counts.
+    let { order } = await placed(c);
+    await call('POST', `/v1/customer/orders/${order.id}/cancel`, c, { reasonCode: 'CHANGED_MIND' });
+    for (let n = 0; n < 2; n++) {
+      ({ order } = await placed(c));
+      await asRestaurant('POST', `/v1/restaurant/orders/${order.id}/accept`, owner, {
         prepTimeMinutes: 20,
+        version: 0,
+      });
+      expect(
+        (await call('POST', `/v1/customer/orders/${order.id}/cancel`, c, { reasonCode: 'CHANGED_MIND' }))
+          .statusCode,
+      ).toBe(200);
+      expect((await ctx.prisma.customer.findUniqueOrThrow({ where: { id: cust.id } })).codDisabled).toBe(
+        n === 1,
+      );
+    }
+    expect(
+      await ctx.prisma.auditLog.count({ where: { action: 'customer.cod_disabled', entityId: cust.id } }),
+    ).toBe(1);
+    const blocked = await checkout(c);
+    expect(blocked.statusCode).toBe(422);
+    expect(blocked.json().error.details.issues[0]).toMatchObject({ code: 'COD_NOT_AVAILABLE' });
+
+    const marketing = (await adminWithRole(ctx, 'MARKETING')).accessToken;
+    let res = await asAdmin(
+      'PATCH',
+      `/v1/admin/customers/${cust.id}/cod`,
+      { codDisabled: false, reason: 'Customer explained' },
+      marketing,
+    );
+    expect(res.statusCode).toBe(403); // no customers.manage
+    const support = (await adminWithRole(ctx, 'SUPPORT')).accessToken;
+    res = await asAdmin(
+      'PATCH',
+      `/v1/admin/customers/${cust.id}/cod`,
+      { codDisabled: false, reason: 'Customer explained' },
+      support,
+    );
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.json().codDisabled).toBe(false);
+    expect(
+      await ctx.prisma.auditLog.count({ where: { action: 'customer.cod_enabled', entityId: cust.id } }),
+    ).toBe(1);
+    expect((await checkout(c)).statusCode).toBe(201);
+  });
+
+  it('restaurant rejects while the customer cancels: exactly one wins', async () => {
+    const { customer, order } = await placed();
+    const [reject, cancel] = await Promise.all([
+      asRestaurant('POST', `/v1/restaurant/orders/${order.id}/reject`, owner, {
+        reasonCode: 'TOO_BUSY',
         version: 0,
       }),
       call('POST', `/v1/customer/orders/${order.id}/cancel`, customer, { reasonCode: 'CHANGED_MIND' }),
     ]);
-    const wins = [accept, cancel].filter((r) => r.statusCode === 200);
+    const wins = [reject, cancel].filter((r) => r.statusCode === 200);
     expect(wins).toHaveLength(1);
     const row = await orderRow(order.id);
-    expect(['RESTAURANT_ACCEPTED', 'CUSTOMER_CANCELLED']).toContain(row.status);
+    expect(['RESTAURANT_REJECTED', 'CUSTOMER_CANCELLED']).toContain(row.status);
     expect(await ctx.prisma.orderStatusHistory.count({ where: { orderId: order.id } })).toBe(3);
   });
 });

@@ -286,7 +286,7 @@ const DEFINITIONS = [
     section: 'COD',
     label: 'Cash on delivery',
     description:
-      'COD availability, maximum COD order, rider cash limit, refusal limit, netting against earnings.',
+      'COD availability, maximum COD order, rider cash limit, netting against earnings, and the limit of refused deliveries / cancellations after acceptance before a customer loses COD (D-70).',
     schema: z.object({
       enabled: z.boolean(),
       maxOrderValuePaise: paise,

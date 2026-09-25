@@ -211,7 +211,7 @@ function initialForm(type, p) {
 }
 
 const amountText = (m) =>
-  !m || m.type === 'NONE' || m.type === 'FOOD_VALUE' || m.type === 'TRIP_ESTIMATE'
+  !m || m.type === 'NONE' || m.type === 'FOOD_VALUE' || m.type === 'TRIP_ESTIMATE' || m.type === 'FULL_AMOUNT'
     ? ''
     : m.type === 'FIXED'
       ? money(m.valuePaise)
@@ -909,6 +909,7 @@ function ParamsForm({ type, f, set }) {
 
 const FEE_TYPES = [
   ['NONE', 'None'],
+  ['FULL_AMOUNT', 'No refund'],
   ['FIXED', 'Fixed ₹'],
   ['PERCENT_OF_FOOD', '% of food'],
 ];
@@ -960,8 +961,9 @@ function CancellationMatrix({ f, set }) {
     <div className="grid gap-3">
       <Alert>
         <AlertDescription>
-          A customer fee can only be kept from money already paid, so with cash on delivery it is always ₹0.
-          Compensation is recorded on the cancellation and paid through settlements (Phase 8).
+          A customer fee (or “No refund”) can only be kept from money already paid, so with cash on delivery
+          it is always ₹0 and the compensation is Jamzo’s loss. Compensation is recorded on the cancellation
+          and paid through settlements (Phase 8).
         </AlertDescription>
       </Alert>
       {CANCEL_STAGES.map(([st, stLabel]) => (

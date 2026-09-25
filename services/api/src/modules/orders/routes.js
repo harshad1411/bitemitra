@@ -17,7 +17,7 @@ import {
   restaurantOrdersQuery,
   uuid,
 } from '@jamzo/validation';
-import { canCancel } from '@jamzo/order-engine';
+import { canCancel, cancel } from '@jamzo/order-engine';
 import { restaurantRoleCan } from '@jamzo/auth';
 import { CLIENT_HEADERS } from '@jamzo/shared-types';
 import { AppError, forbidden, invalid, notFound, unauthenticated } from '../../core/errors.js';
@@ -32,8 +32,11 @@ import {
   ORDER_DETAIL_INCLUDE,
   applyResult,
   asAppError,
+  COD_STRIKE_STAGES,
   cancelDecision,
+  cancellationAmounts,
   cancellationRuleFor,
+  codStrikes,
   changeOrder,
   eventOn,
   releaseCouponUsage,
@@ -77,13 +80,39 @@ export default async function orderRoutes(app) {
     const o = await prisma.order.findFirst({ where: { id, customerId }, include: ORDER_DETAIL_INCLUDE });
     if (!o) throw notFound('Order');
     let allowed = false;
+    let cancelTerms = null;
     try {
-      const rule = await cancellationRuleFor(prisma, o, app.clock.now());
+      const now = app.clock.now();
+      const rule = await cancellationRuleFor(prisma, o, now);
       allowed = canCancel(o, 'CUSTOMER', rule.params);
+      if (allowed) {
+        // What cancelling now would mean, shown before the customer confirms (D-70).
+        const preview = cancel(o, {
+          by: 'CUSTOMER',
+          reasonCode: 'PREVIEW',
+          now,
+          rule: { id: rule.id, params: rule.params },
+          amounts: cancellationAmounts(o, o.pricingSnapshot),
+        });
+        const counts = o.paymentMethod === 'COD' && COD_STRIKE_STAGES.includes(preview.stage);
+        const limit = counts
+          ? (await config.resolve('cod', await config.contextFor('BRANCH', o.branchId))).value
+              .maxRefusedOrders
+          : null;
+        cancelTerms = {
+          stage: preview.stage,
+          refundDuePaise: preview.outcome.refundDuePaise,
+          keptPaise: preview.outcome.customerFeePaise,
+          noRefundAfterAccept: preview.stage !== 'BEFORE_ACCEPT',
+          codCancellation: counts
+            ? { countsTowardsLimit: true, used: await codStrikes(prisma, customerId), limit }
+            : null,
+        };
+      }
     } catch {
       allowed = false; // no rule configured → the customer cannot cancel in the app
     }
-    return customerOrderView(o, { canCancel: allowed });
+    return { ...customerOrderView(o, { canCancel: allowed }), cancelTerms };
   }
 
   app.post(
@@ -139,6 +168,10 @@ export default async function orderRoutes(app) {
       const body = parse(customerCancelBody, request.body);
       const customer = await customerOf(request);
       const now = app.clock.now();
+      const target = await prisma.order.findFirst({ where: { id, customerId: customer.id } });
+      if (!target) throw notFound('Order');
+      const codLimit = (await config.resolve('cod', await config.contextFor('BRANCH', target.branchId))).value
+        .maxRefusedOrders;
       await changeOrder(app, {
         orderId: id,
         where: { customerId: customer.id },
@@ -149,6 +182,7 @@ export default async function orderRoutes(app) {
             reasonCode: body.reasonCode,
             reasonText: body.reasonText ?? undefined,
             now,
+            codLimit: order.paymentMethod === 'COD' ? codLimit : undefined,
           }),
       });
       return customerDetail(customer.id, id);

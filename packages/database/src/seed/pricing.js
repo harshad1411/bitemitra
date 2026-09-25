@@ -112,26 +112,27 @@ export async function seedPricing(prisma, { log }) {
     }),
   );
 
-  // Cancellation rule (A-25 — every amount a placeholder, Q-20): customer free before acceptance only.
+  // Cancellation rule (owner decision OD-38, D-70). Rider compensation is decided with dispatch (Phase 6).
   const none = { type: 'NONE' };
-  const outcome = (allowed) => ({
+  const outcome = (allowed, extra = {}) => ({
     allowed,
     customerFee: none,
     restaurantCompensation: none,
     riderCompensation: none,
+    ...extra,
   });
-  const stage = (customer, restaurant) => ({
-    CUSTOMER: outcome(customer),
-    RESTAURANT: outcome(restaurant),
-    ADMIN: outcome(true),
+  // After acceptance the customer may cancel but gets no refund; Jamzo pays the restaurant its food value.
+  const customerLate = outcome(true, {
+    customerFee: { type: 'FULL_AMOUNT' },
+    restaurantCompensation: { type: 'FOOD_VALUE' },
   });
   added += Number(
     await ensureRule(prisma, 'cancellationRule', {
       params: {
-        BEFORE_ACCEPT: stage(true, false),
-        AFTER_ACCEPT: stage(false, true),
-        AFTER_PREPARING: stage(false, true),
-        AFTER_PICKUP: stage(false, false),
+        BEFORE_ACCEPT: { CUSTOMER: outcome(true), RESTAURANT: outcome(false), ADMIN: outcome(true) },
+        AFTER_ACCEPT: { CUSTOMER: customerLate, RESTAURANT: outcome(true), ADMIN: outcome(true) },
+        AFTER_PREPARING: { CUSTOMER: customerLate, RESTAURANT: outcome(true), ADMIN: outcome(true) },
+        AFTER_PICKUP: { CUSTOMER: outcome(false), RESTAURANT: outcome(false), ADMIN: outcome(true) },
       },
     }),
   );

@@ -22,6 +22,7 @@ export default function CustomerPage({ params }) {
   const { can } = useAuth();
   const q = useQuery({ queryKey: ['customer', id], queryFn: () => api.get(`/v1/admin/customers/${id}`) });
   const [asking, setAsking] = useState(false);
+  const [codChange, setCodChange] = useState(null); // the new codDisabled value awaiting a reason
   const [shown, setShown] = useState(null); // unmasked data lives only in this page's memory
   const reveal = useApiMutation({
     mutationFn: (reason) => api.post(`/v1/admin/customers/${id}/reveal`, { reason }),
@@ -30,6 +31,13 @@ export default function CustomerPage({ params }) {
       setShown(d);
       setAsking(false);
     },
+  });
+  const cod = useApiMutation({
+    mutationFn: ({ codDisabled, reason }) =>
+      api.patch(`/v1/admin/customers/${id}/cod`, { codDisabled, reason }),
+    invalidate: [['customer', id]],
+    success: (d) => (d.codDisabled ? 'Cash on delivery switched off' : 'Cash on delivery switched on'),
+    onSuccess: () => setCodChange(null),
   });
   if (q.isPending) return <LoadingRows />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
@@ -65,6 +73,20 @@ export default function CustomerPage({ params }) {
               <StatusBadge tone={c.status === 'ACTIVE' ? 'success' : 'critical'}>{c.status}</StatusBadge>{' '}
               {c.codDisabled ? <StatusBadge tone="warning">COD disabled</StatusBadge> : null}
             </p>
+            <p className="text-muted-foreground">
+              Cash on delivery is switched off automatically after repeated cancellations after the restaurant
+              accepted (setting cod.maxRefusedOrders).
+            </p>
+            {can('customers.manage') ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={() => setCodChange(!c.codDisabled)}
+              >
+                {c.codDisabled ? 'Switch cash on delivery back on' : 'Switch cash on delivery off'}
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
@@ -127,6 +149,16 @@ export default function CustomerPage({ params }) {
           </CardContent>
         </Card>
       </div>
+      <ConfirmDialog
+        open={codChange !== null}
+        onOpenChange={(o) => !o && setCodChange(null)}
+        title={codChange ? 'Switch cash on delivery off?' : 'Switch cash on delivery back on?'}
+        description="The customer sees the change at their next checkout. Your reason is recorded in the audit log."
+        confirmLabel={codChange ? 'Switch off' : 'Switch on'}
+        requireReason
+        busy={cod.isPending}
+        onConfirm={(reason) => cod.mutate({ codDisabled: codChange, reason })}
+      />
       <ConfirmDialog
         open={asking}
         onOpenChange={setAsking}

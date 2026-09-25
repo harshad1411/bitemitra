@@ -232,7 +232,7 @@ describe('customer app', () => {
       expect(await screen.findByText(`Home, ${address.line1}`)).toBeTruthy(); // the saved address has loaded
     }
 
-    it('places a cash-on-delivery order and follows it live; the restaurant accepting removes Cancel', async () => {
+    it('places a cash-on-delivery order and follows it live; cancelling after acceptance is explained first', async () => {
       await withCart();
       const calls = installFakeApi({ withAddress: true });
       await renderRouter(routes, { initialUrl: '/checkout' });
@@ -266,7 +266,14 @@ describe('customer app', () => {
       );
       expect(await screen.findByRole('header', { name: 'Order accepted' })).toBeTruthy();
       expect(screen.getByText('Ready in about 20 minutes.')).toBeTruthy();
-      expect(screen.queryByLabelText('Cancel order')).toBeNull();
+      // After acceptance the customer may still cancel, but is told what it means first (OD-38).
+      await fireEvent.press(screen.getByLabelText('Cancel order'));
+      expect(
+        screen.getByText(
+          'Pizza Point has already accepted your order. You will not be charged, but Jamzo pays the restaurant for the food. After 2 cancellations like this, cash on delivery is switched off for your account (this would be 1 of 2).',
+        ),
+      ).toBeTruthy();
+      await fireEvent.press(screen.getByLabelText('Keep my order'));
     });
 
     it('cancels before the restaurant accepts', async () => {

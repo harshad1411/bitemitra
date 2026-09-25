@@ -54,6 +54,7 @@ Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
 | OD-35 | **Phase 1 accepted; start Phase 2** (owner, 2026-09-24: "now start phase 2"). Phase 2 = MASTER_SPEC §82 "Restaurant/Menu": restaurant management, categories, products, variants, add-ons, availability, admin UI, tests. The same working rules apply (docs first, JavaScript only, no fake completeness, stop for review after the phase). Items that asked for explicit approval in Phase 1 (CH-5, CH-8, CH-9, D-30) have not been answered and stay open. |
 | OD-36 | **Complete Phases 3 and 4 together** (owner, 2026-09-25: "Complete 3rd and 4th phase"). Taken as acceptance of Phase 2. Phase 3 = customer discovery (§82: customer auth, location, home CMS, restaurant listing, search, restaurant detail, menu, cart); Phase 4 = pricing (§82: pricing engine, markup, commission, taxes, delivery, platform fee, surcharges, coupons, promotions). One review after both; still stop before Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, D-30) remain open. |
 | OD-37 | **Start Phase 5 — Orders** (owner, 2026-09-25: "next phase strt"). Taken as acceptance of Phases 3 + 4. Phase 5 = §78: checkout, order creation, restaurant acceptance, order state machine, restaurant app, complete lifecycle tested. Stop for review after Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, CH-17/Q-14, D-30, Q-19) remain open. |
+| OD-38 | **Cancellation money** (owner, 2026-09-25, answers Q-20): (1) a customer who cancels **after the restaurant accepted** gets **no refund** of an online payment; if the restaurant or Jamzo cancels, the customer gets a full refund. (2) Cash-on-delivery customers who cancel after acceptance lose cash on delivery (they can still pay online) after **2** such cancellations (setting `cod.maxRefusedOrders`); cancelling before acceptance never counts; support can switch it back on. (3) **Jamzo absorbs the loss**: when a customer cancels after acceptance the restaurant is paid its full food value (its own prices minus the discount it funds), paid by Jamzo. Rider compensation is decided with dispatch (Phase 6). → D-70. |
 
 ## 2. Engineering decisions
 
@@ -466,7 +467,7 @@ take the last use. Cancellation before pickup releases the usage (`reversedAt`) 
 `cancellation_rules` joins the rule framework of D-50 (versions, history, stale-edit guard, admin UI in
 Pricing). One rule per target holds a matrix stage × actor → `{ allowed, customerFee, refund,
 restaurantCompensation, riderCompensation }`. The engine computes the outcome and it is stored in
-`order_cancellations` with the rule snapshot. **All default values are placeholders (A-25, Q-20)** and no
+`order_cancellations` with the rule snapshot. The default values follow the owner's rule (OD-38, D-70) and no
 money moves in Phase 5: refunds are Phase 7 and ledger postings Phase 8. With COD-only orders nothing has
 been collected, so a Phase 5 cancellation never owes the customer a refund.
 
@@ -491,6 +492,20 @@ tested against a fake Expo endpoint only — **not verified against Expo's servi
 exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) while an order is NEW. Android channels:
 `new-orders` (restaurant, maximum importance, custom sound) and `order-updates` (customer).
 
+### D-70. Cancellation rule from OD-38, and losing cash on delivery
+The seeded cancellation rule (all cities) becomes: before acceptance the customer cancels free with a full
+refund; after acceptance (accepted, preparing or ready) the customer may still cancel in the app, keeps
+**no refund** (`customerFee = FULL_AMOUNT`, i.e. everything paid) and the restaurant gets its **food value**,
+Jamzo absorbing whatever the kept payment does not cover (`platformLoss`). Restaurant and admin
+cancellations refund in full and compensate nobody by default (admins can override, audited). The app shows
+the consequence before the customer confirms. A new amount type `FULL_AMOUNT` was added for this. For cash on
+delivery nothing has been paid, so Jamzo absorbs the whole food value; each such cancellation after
+acceptance counts, and when the count reaches `cod.maxRefusedOrders` (default 2) the customer's
+`codDisabled` is set in the same transaction (audit-logged) and checkout refuses cash on delivery with a
+message. Support switches it back on in Jamzo Admin (`customers.manage`, reason required, audited).
+Existing environments keep their current rule version until an admin saves the new one (Pricing →
+Cancellations); the development seed creates it.
+
 
 
 | # | Change | Why | Consequence | Approval |
@@ -513,6 +528,7 @@ exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) 
 | CH-17 | Delivery fees use straight-line distance × 1.3, flagged FALLBACK, until a maps provider is chosen (OD-14 wants road distance) | no provider decided (Q-14) | fees may differ from road distance; every quote says which source was used | **Needs Q-14** |
 | CH-18 | Phase 5 accepts COD and ₹0 orders only; online payment waits for Phase 7 (D-60) | payments are Phase 7; the client can never be trusted to have paid | customers cannot pay online until Phase 7 | Recorded |
 | CH-19 | Phase 5 orders stop at READY_FOR_PICKUP; delivery starts with dispatch in Phase 6 (D-61) | riders are Phase 6 | the full lifecycle is proven in the engine tests, not end to end, until Phase 6 | Recorded |
+| CH-21 | Customers may cancel after the restaurant accepted (ORDERS.md §5 left it to the rule) — with no refund, per OD-38 | owner decision | fewer support calls; the app warns before confirming | Recorded |
 | CH-20 | `reviews` and `notification_preferences` move from Phase 5 to Phase 6 / Phase 9 | reviews need delivered orders; preferences need the marketing notifications of Phase 9 | none now | Recorded |
 | CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | Needs approval |
 
@@ -541,7 +557,7 @@ exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) 
 | A-22 | New branch preparation time 20 minutes; pause limited to 15–120 minutes; busy mode adds 10 minutes (setting `restaurants.operations`). |
 | A-23 | Development pricing defaults (all **placeholders**, A-16): no global markup (demo: Pizza Point +10% with Farmhouse +15%, the owner's example); commission 15% on food value after restaurant-funded discount; platform fee ₹5; delivery slabs 0–2 km ₹20, 2–4 km ₹30, 4–6 km ₹40, max 7 km, free above ₹499; small-order fee ₹15 below ₹99; night surcharge ₹10 23:00–06:00 (only while flag `night_pricing` is on); rider ₹25 incl. 2 km + ₹6/km; tax per D-51. |
 | A-24 | ETA estimate: average rider speed 18 km/h, 5-minute buffer, shown as a 10-minute range (setting `delivery.eta`). |
-| A-25 | Default cancellation rule (**placeholder**, Q-20): before the restaurant accepts, the customer cancels free; after acceptance the customer cannot cancel in the app (support/admin can); restaurant reject/cancel costs the customer nothing; every compensation amount 0 until the owner sets them. |
+| A-25 | ~~Placeholder cancellation rule~~ — replaced by the owner's rule OD-38 / D-70. Rider compensation stays 0 until Phase 6. |
 | A-26 | Restaurant reject reasons: item unavailable, too busy, closing soon, cannot deliver this order, other (text). Prep time on accept: 5–60 minutes in 5-minute steps (bounded by `orders.preparation.maxPrepMinutes`). |
 | A-20 | Store names: "Jamzo", "Jamzo Restaurant Partner", "Jamzo Delivery Partner"; URL schemes `jamzo`, `jamzo-restaurant`, `jamzo-rider` (Q-8). |
 
@@ -556,6 +572,7 @@ exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) 
 | Q-9 | Distance source | Road distance preferred, configurable fallback (OD-14, A-19) |
 | Q-10 | Tips / rounding | Tips 100% to rider, configurable (OD-15); rounding configurable & explicit (OD-16) |
 | Q-5a | First payment gateway | Razorpay (OD-11) |
+| Q-20 | Cancellation money | OD-38 / D-70 (rider compensation with Phase 6) |
 | Q-16 | GitHub push | Pushed 2026-09-24 using `https://harshad1411@github.com/harshad1411/bitemitra.git` (the username in the URL selects the right saved credential) |
 
 ### Open — must be answered before **production financial launch** (do not block development)
@@ -572,6 +589,5 @@ exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) 
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
 - **Q-17 (toolchains)** Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
-- **Q-20 (business)** Cancellation money: customer fee after the restaurant accepts, restaurant compensation when the customer or Jamzo cancels after preparation starts, rider compensation, and who absorbs the loss. Placeholders in A-25; needed before online payment (Phase 7) and settlements (Phase 8).
 - **Q-19 (business)** Should a markup rule's rounding also apply to add-on prices? Today it does not (D-59); e.g. an add-on can show ₹27.50.
 - **Q-18 (Expo/EAS)** An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).
