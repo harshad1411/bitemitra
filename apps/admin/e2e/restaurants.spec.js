@@ -16,7 +16,9 @@ test('restaurants list, filters and a live restaurant’s detail', async ({ page
 
   await page.getByRole('row', { name: 'Open Pizza Point' }).click();
   await expect(page.getByRole('heading', { name: /Pizza Point/ })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Before going live' })).toContainText('At least one active, available product');
+  await expect(page.getByRole('list', { name: 'Before going live' })).toContainText(
+    'At least one active, available product',
+  );
   await shot(page, '21-restaurant-overview');
 
   await page.getByRole('tab', { name: 'Branches & hours' }).click();
@@ -34,7 +36,9 @@ test('restaurants list, filters and a live restaurant’s detail', async ({ page
   await expect(page.getByText(/•••• \d{4}/)).toBeVisible();
 });
 
-test('onboards a new restaurant: draft, branch, hours, documents, bank account, submit for review', async ({ page }) => {
+test('onboards a new restaurant: draft, branch, hours, documents, bank account, submit for review', async ({
+  page,
+}) => {
   await signIn(page);
   await nav(page, 'Restaurants');
   await page.getByRole('button', { name: 'Add restaurant' }).click();
@@ -73,7 +77,10 @@ test('onboards a new restaurant: draft, branch, hours, documents, bank account, 
   await hours.getByRole('button', { name: 'Copy to every day' }).click();
   await hours.getByRole('button', { name: 'Save hours' }).click();
   await expectToast(page, 'Opening hours saved');
-  await page.getByRole('region', { name: 'Delivery area' }).getByRole('button', { name: 'Save delivery area' }).click();
+  await page
+    .getByRole('region', { name: 'Delivery area' })
+    .getByRole('button', { name: 'Save delivery area' })
+    .click();
   await expectToast(page, 'Delivery area saved');
   await shot(page, '24-new-restaurant-branch');
 
@@ -114,7 +121,10 @@ test('onboards a new restaurant: draft, branch, hours, documents, bank account, 
   await shot(page, '25-new-restaurant-in-review');
 });
 
-test('creates a product with sizes and a required choice; a stale edit is refused', async ({ page, browser }) => {
+test('creates a product with sizes and a required choice; a stale edit is refused', async ({
+  page,
+  browser,
+}) => {
   await signIn(page);
   await nav(page, 'Products');
   await page.getByRole('link', { name: 'Add product' }).click();
@@ -168,7 +178,10 @@ test('products list: sold-out toggle via bulk action and availability filter', a
   await expect(page.getByRole('row', { name: 'Open Masala Dosa' })).toBeVisible();
   await page.getByRole('checkbox', { name: 'Select Masala Dosa' }).click();
   await page.getByRole('checkbox', { name: 'Select Paper Dosa' }).click();
-  await page.getByRole('region', { name: 'Bulk actions' }).getByRole('button', { name: 'Mark sold out' }).click();
+  await page
+    .getByRole('region', { name: 'Bulk actions' })
+    .getByRole('button', { name: 'Mark sold out' })
+    .click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Mark sold out' }).click();
   await expectToast(page, '2 products updated');
   await page.getByLabel('Filter by availability').click();

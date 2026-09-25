@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Phase 0 approved (2026-09-24); Phase 1 in progress.** Decisions referenced as OD-/D-/CH- are
+Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 (restaurants & menus) complete, awaiting review.** Decisions referenced as OD-/D-/CH- are
 recorded in [DECISIONS.md](DECISIONS.md), which is authoritative.
 
 Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md) · [ORDER_FLOW](ORDER_FLOW.md) ·

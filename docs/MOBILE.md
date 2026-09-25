@@ -1,6 +1,6 @@
 # Mobile applications
 
-Status: **Phase 1 builds the three application shells and shared foundations** (OD-4, OD-26). Product
+Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). Product
 features arrive in Phase 3 (customer), 2/5 (restaurant), 6 (rider). Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.

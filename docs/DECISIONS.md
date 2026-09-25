@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-24 (Phase 2 in progress).
+Last updated: 2026-09-25 (Phase 2 complete, awaiting review).
 
 ---
 
@@ -72,7 +72,7 @@ packages, and `overrides` pinning one `react`/`react-dom`. Verified: exactly one
 denied by default; each allowed/denied package is listed with its reason in `pnpm-workspace.yaml`.
 
 ### D-3. Modular monolith API (Fastify) + separately runnable worker (OD-5)
-API modules (Phase 1 in **bold**): **auth**, **rbac/access**, **audit**, **geography** (countries, states, cities, zones, service areas, serviceability), **configuration** (settings, feature flags, app versions, remote config), **media**, customers, restaurants, restaurant branches, catalog, menus, cart, pricing, promotions, orders, payments, refunds, delivery, dispatch, riders, ledger, settlements, notifications, reviews, support, analytics. A module owns its tables; other modules call its service functions.
+API modules (built so far in **bold**): **auth**, **rbac/access**, **audit**, **geography** (countries, states, cities, zones, service areas, serviceability), **configuration** (settings, feature flags, app versions, remote config), **media**, customers, **restaurants** (incl. branches, team, documents, bank accounts, partner endpoints — Phase 2), **catalog** (categories, menus, products — Phase 2), cart, pricing, promotions, orders, payments, refunds, delivery, dispatch, riders, ledger, settlements, notifications, reviews, support, analytics. A module owns its tables; other modules call its service functions.
 
 ### D-4. Pure business engines
 Pricing, order state machine, dispatch/earnings, settlement postings are side-effect-free (time injected).
@@ -309,7 +309,15 @@ changes (one transaction, one audit entry per product) or none does.
 ### D-44. Seed catalog is realistic but fictional
 11 fictional Unjha restaurants (mostly pure veg, reflecting the town), 120+ products with variants,
 add-ons (including Jain preparation choices), hours and delivery areas. Demo documents have fake numbers
-and no files; demo bank accounts are not seeded (they would need the encryption key).
+and no files; demo bank accounts (fake numbers, fictional bank code `JMZO`) are seeded only when
+`FIELD_ENCRYPTION_KEY` is available, because they are encrypted like real ones.
+
+### D-45. PATCH bodies never apply defaults (bug found in Phase 2; affected Phase 1)
+Update schemas were built with zod's `.partial()`, which keeps field defaults: an omitted field was filled
+with its default. Renaming a live city sent `isActive: false` (refused for lacking a reason, so a rename
+was impossible); renaming a zone silently re-activated it. All update schemas now use `patchOf()`, which
+removes defaults; a test asserts every PATCH schema turns `{}` into `{}`, and API tests cover the city and
+zone cases.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

@@ -1,6 +1,6 @@
 # Configuration, feature flags, remote config & app versions
 
-Status: **Phase 1 implements** the settings registry, hierarchical resolution, settings API + history, feature flags, app version policies and remote config (`packages/config`, API `configuration` module, Admin → Settings). Covers MASTER_SPEC §2, §51, §63, §64, §65, §72, §73.
+Status: **Phase 2 enables RESTAURANT and BRANCH overrides** (edited on the restaurant's Settings tab, D-40) and adds three `restaurants.*` keys. **Phase 1 implements** the settings registry, hierarchical resolution, settings API + history, feature flags, app version policies and remote config (`packages/config`, API `configuration` module, Admin → Settings). Covers MASTER_SPEC §2, §51, §63, §64, §65, §72, §73.
 
 ## 1. Three kinds of configuration
 
@@ -49,8 +49,11 @@ Every key below exists in `packages/config/src/settings-registry.js` with a zod 
 | Security | `auth.otp` | OTP policy | GLOBAL | 1 | reason required | `{"ttlSec": 300, "maxAttempts": 5, "resendCooldownSec": 30, "maxPerHour": 5}` |
 | Security | `auth.adminLockout` | Admin lockout | GLOBAL | 1 | reason required | `{"maxFailedLogins": 5, "lockMinutes": 15}` |
 | Orders | `orders.restaurantAcceptance` | Restaurant acceptance timeout | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 5 | — | `{"timeoutSec": 180, "fallback": "ESCALATE_TO_OPS", "escalationGraceSec": 120}` |
-| Orders | `orders.preparation` | Preparation time limits | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 5 | — | `{"maxPrepMinutes": 60, "lateAfterMinutes": 15}` |
+| Orders | `orders.preparation` | Preparation time limits | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 2 | — | `{"maxPrepMinutes": 60, "lateAfterMinutes": 15}` |
 | Orders | `orders.limits` | Order limits | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 4 | **placeholder** | `{"minOrderPaise": 0, "maxOrderPaise": 5000000, "maxItems": 50}` |
+| Restaurants | `restaurants.requiredDocuments` | Documents required for approval | GLOBAL, COUNTRY, STATE, CITY, ZONE | 2 | reason required, **legal review** | `{"kinds": ["FSSAI", "PAN"]}` |
+| Restaurants | `restaurants.operations` | Pause and busy mode | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 2 | — | `{"maxPauseMinutes": 120, "busyExtraPrepMinutes": 10}` |
+| Restaurants | `restaurants.packaging` | Default packaging charge | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 4 | **placeholder** | `{"perItemPaise": 0}` |
 | Delivery | `delivery.distance` | Distance rules | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 3 | — | `{"maxDistanceM": 7000, "fallback": "HAVERSINE_FACTOR", "roadFactorBps": 13000}` |
 | Delivery | `dispatch.offers` | Dispatch offers | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"startAt": "ON_ACCEPT", "leadMinutes": 10, "offerTimeoutSec": 30, "maxOffers": 5, "noRiderEscalationSec": 600, "maxActiveOrders": 1}` |
 | Payments | `payments.methods` | Payment methods | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 7 | — | `{"enabled": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"], "expirySec": 900}` |

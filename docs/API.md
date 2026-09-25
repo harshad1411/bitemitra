@@ -1,7 +1,9 @@
 # API conventions
 
-Status: **Phase 0 — conventions only.** Endpoints are documented here as each phase implements them
-(§70); an OpenAPI 3.1 document is generated from the zod schemas and served at `/v1/docs` (non-production).
+Status: **Phase 2.** The endpoint index (§7) is generated from the registered routes (`pnpm docs:api`,
+D-33) and checked by `pnpm check:docs`. An OpenAPI document generated from the zod schemas is planned but
+**not implemented yet** (no `/v1/docs` route exists); until then the zod schemas in `@jamzo/validation` are
+the contract.
 
 ## 1. Style
 
@@ -82,7 +84,7 @@ Rate limits per IP and per principal (stricter on auth/OTP), body size limits, s
 (unknown keys rejected), secure headers, CORS allow-list (admin origin only; mobile apps don't need
 CORS). Webhooks verify provider signatures on the raw body. See [SECURITY.md](SECURITY.md).
 
-## 7. Endpoint index (Phase 1)
+## 7. Endpoint index
 
 Request/response schemas are the zod schemas in `packages/validation/src/index.js` (the single source of
 truth); errors follow §3. Every admin route requires an ADMIN access token **and** the listed permission,
@@ -91,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (51 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (87 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -101,6 +103,12 @@ _Generated from the route definitions by `pnpm docs:api` (51 endpoints). Do not 
 | `PUT` | `/v1/admin/app-versions/:appId/:platform` | admin token | ADMIN | `config.manage` |  |
 | `GET` | `/v1/admin/audit-logs` | admin token | ADMIN | `audit.view` |  |
 | `POST` | `/v1/admin/auth/login` | none | ADMIN | — | auth limit/min |
+| `PATCH` | `/v1/admin/branches/:id` | admin token | ADMIN | `restaurants.manage` |  |
+| `PUT` | `/v1/admin/branches/:id/delivery-area` | admin token | ADMIN | `restaurants.manage` |  |
+| `PUT` | `/v1/admin/branches/:id/hours` | admin token | ADMIN | `restaurants.manage` |  |
+| `GET` | `/v1/admin/categories` | admin token | ADMIN | `restaurants.view` |  |
+| `POST` | `/v1/admin/categories` | admin token | ADMIN | `products.manage` |  |
+| `PATCH` | `/v1/admin/categories/:id` | admin token | ADMIN | `products.manage` |  |
 | `GET` | `/v1/admin/dashboard` | admin token | ADMIN | `dashboard.view` |  |
 | `GET` | `/v1/admin/flags` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/flags/:key` | admin token | ADMIN | `flags.manage` |  |
@@ -121,7 +129,33 @@ _Generated from the route definitions by `pnpm docs:api` (51 endpoints). Do not 
 | `DELETE` | `/v1/admin/media/:id` | admin token | ADMIN | `media.manage` |  |
 | `GET` | `/v1/admin/media/:id` | admin token | ADMIN | `media.view` |  |
 | `PATCH` | `/v1/admin/media/:id` | admin token | ADMIN | `media.manage` |  |
+| `DELETE` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
+| `PATCH` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
 | `GET` | `/v1/admin/permissions` | admin token | ADMIN | `roles.view` |  |
+| `GET` | `/v1/admin/products` | admin token | ADMIN | `restaurants.view` |  |
+| `POST` | `/v1/admin/products` | admin token | ADMIN | `products.manage` |  |
+| `GET` | `/v1/admin/products/:id` | admin token | ADMIN | `restaurants.view` |  |
+| `PUT` | `/v1/admin/products/:id` | admin token | ADMIN | `products.manage` |  |
+| `POST` | `/v1/admin/products/:id/availability` | admin token | ADMIN | `products.manage` |  |
+| `POST` | `/v1/admin/products/bulk` | admin token | ADMIN | `products.manage` |  |
+| `POST` | `/v1/admin/restaurant-bank-accounts/:id/verify` | admin token | ADMIN | `restaurants.approve` |  |
+| `GET` | `/v1/admin/restaurant-documents/:id/file` | admin token | ADMIN | `restaurants.view` |  |
+| `POST` | `/v1/admin/restaurant-documents/:id/review` | admin token | ADMIN | `restaurants.approve` |  |
+| `PATCH` | `/v1/admin/restaurant-members/:id` | admin token | ADMIN | `restaurants.manage` |  |
+| `GET` | `/v1/admin/restaurants` | admin token | ADMIN | `restaurants.view` |  |
+| `POST` | `/v1/admin/restaurants` | admin token | ADMIN | `restaurants.manage` |  |
+| `GET` | `/v1/admin/restaurants/:id` | admin token | ADMIN | `restaurants.view` |  |
+| `PATCH` | `/v1/admin/restaurants/:id` | admin token | ADMIN | `restaurants.manage` |  |
+| `POST` | `/v1/admin/restaurants/:id/bank-accounts` | admin token | ADMIN | `restaurants.manage` |  |
+| `POST` | `/v1/admin/restaurants/:id/branches` | admin token | ADMIN | `restaurants.manage` |  |
+| `POST` | `/v1/admin/restaurants/:id/documents` | admin token | ADMIN | `restaurants.manage` |  |
+| `POST` | `/v1/admin/restaurants/:id/members` | admin token | ADMIN | `restaurants.manage` |  |
+| `GET` | `/v1/admin/restaurants/:id/menu` | admin token | ADMIN | `restaurants.view` |  |
+| `POST` | `/v1/admin/restaurants/:id/menu-categories` | admin token | ADMIN | `products.manage` |  |
+| `PUT` | `/v1/admin/restaurants/:id/menu-categories/order` | admin token | ADMIN | `products.manage` |  |
+| `PATCH` | `/v1/admin/restaurants/:id/settings` | admin token | ADMIN | `restaurants.manage` |  |
+| `POST` | `/v1/admin/restaurants/:id/transitions` | admin token | ADMIN | `restaurants.view` |  |
+| `PUT` | `/v1/admin/restaurants/:id/zones` | admin token | ADMIN | `restaurants.manage` |  |
 | `GET` | `/v1/admin/roles` | admin token | ADMIN | `roles.view` |  |
 | `POST` | `/v1/admin/roles` | admin token | ADMIN | `roles.manage` |  |
 | `DELETE` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |
@@ -146,6 +180,10 @@ _Generated from the route definitions by `pnpm docs:api` (51 endpoints). Do not 
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
 | `POST` | `/v1/me/devices` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
 | `GET` | `/v1/media/files/*` | none | browser (no headers) | — |  |
+| `PATCH` | `/v1/restaurant/branches/:id/status` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/products/:id/availability` | required | RESTAURANT | — |  |
+| `GET` | `/v1/restaurant/restaurants/:id` | required | RESTAURANT | — |  |
+| `GET` | `/v1/restaurant/restaurants/:id/menu` | required | RESTAURANT | — |  |
 
 <!-- routes:end -->
 

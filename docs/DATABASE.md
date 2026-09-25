@@ -160,7 +160,7 @@ settings defaults from the settings registry; feature flags; app version policie
 a development Super Admin (credentials from env, never committed); demo restaurant + restaurant member and
 demo rider (both approved) plus a pending rider, so the partner-app approval gates can be exercised.
 Seed geography polygons are **approximate development shapes, not surveyed boundaries**.
-The spec §53 volume dataset (restaurants, 100+ products, orders…) arrives with Phases 2–5.
+Phase 2 adds the demo catalog (`seed --demo`, D-44): 14 food categories and 12 fictional Unjha restaurants (9 live, one APPROVED, one in REVIEW, one DRAFT) with branches, hours, delivery areas, documents, owners and **108 products** with sizes, add-ons and schedules; demo bank accounts only when `FIELD_ENCRYPTION_KEY` is set. Customers, riders and orders (spec §53) arrive with Phases 3–6.
 
 ## 9. Data retention (proposal — confirm with counsel)
 

@@ -3,7 +3,24 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
-## Phase 1 — Foundation (2026-09-24) — awaiting owner review
+## Phase 2 — Restaurants & menus (2026-09-25) — awaiting owner review
+
+### Added
+- Database: 16 tables (branches, hours, delivery areas, documents, bank accounts, restaurant settings and zones, food categories, menu sections, products, variants, add-on groups and add-ons, images, sold-out windows, schedules); 2 migrations; 24 more database rules.
+- `@jamzo/catalog-engine`: opening hours (several intervals per day, past midnight), product availability and schedules, product structure and food-type rules.
+- API (+36 endpoints, 87 total): restaurant onboarding workflow with server-checked readiness, team, branches/hours/delivery area, open/pause/busy, private KYC documents, encrypted bank accounts with four-eyes verification, food categories, menu sections, products (whole-document writes with version check), sold-out handling, all-or-nothing bulk actions, Restaurant Partner endpoints.
+- Jamzo Admin: Restaurants (list, detail with 7 tabs), Products (list with filters and bulk actions, editor), Food categories.
+- Restaurant Partner app: store status controls and menu screen with sold-out toggles.
+- Seed: 12 fictional Unjha restaurants, 108 products.
+
+### Changed
+- RESTAURANT and BRANCH setting overrides enabled; `restaurant_settings` slimmed (D-40); `FIELD_ENCRYPTION_KEY` is now required by the API.
+- `verify:schema` compares the whole migration chain structurally.
+
+### Fixed
+- PATCH schemas injected defaults for omitted fields (D-45): renaming a live city was refused and renaming a zone re-activated it (Phase 1 bug).
+
+## Phase 1 — Foundation (2026-09-24) — accepted
 
 ### Added
 - Tooling: pnpm (hoisted) + Turborepo, ESLint 9 (architecture rules: no server packages in clients, identifiers only from the registry), Prettier, JSDoc type-checking, GitHub Actions CI (checks, admin E2E, mobile bundles, native Android/iOS builds).

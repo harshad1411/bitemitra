@@ -1,6 +1,6 @@
 # Security & privacy
 
-Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
+Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. **Phase 2 adds** application-layer encryption of bank account numbers with four-eyes verification (D-35), private KYC documents (D-36) and restaurant-partner authorisation re-checked on every request (D-42). Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
 
 Covers MASTER_SPEC §48, §49, §50, §52.
 
@@ -55,7 +55,8 @@ See [RBAC.md](RBAC.md). Object-level checks on every resource (IDOR protection),
 | Data | Protection |
 |---|---|
 | Card numbers / CVV | never received or stored (provider SDK) |
-| Bank account numbers, KYC document numbers | AES-256-GCM application encryption, key via env/KMS, `last4` for display, access audit-logged |
+| Bank account numbers | AES-256-GCM application encryption (`FIELD_ENCRYPTION_KEY`, key id in the ciphertext), `last4` only in API responses and audit logs; no Phase 2 endpoint decrypts; a different admin must verify new details (D-35) |
+| KYC document files | private storage keys (`private/…`), never served by the public media route, downloaded only by admins with `restaurants.view`, every view audit-logged (D-36). Document *numbers* (FSSAI, PAN, GSTIN) are stored in clear text — they are public-registry identifiers, not secrets |
 | OTPs, refresh tokens, passwords | hashes only |
 | Customer phone/address | masked for riders/restaurants (first name + masked number; call bridge); full values only to roles with `customers.pii` |
 | Rider live location | visible to the customer only during an active delivery |

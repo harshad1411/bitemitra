@@ -26,7 +26,12 @@ export default async function globalSetup() {
   const url = urlForDatabase(pg.adminUrl, 'jamzo_e2e');
   const prisma = createPrismaClient({ url });
   const fieldKey = Buffer.alloc(32, 9).toString('base64'); // fixed E2E key, not a secret
-  await seed(prisma, { admin: E2E_ADMIN, demo: true, catalog: true, fieldCipher: createFieldCipher(fieldKey) });
+  await seed(prisma, {
+    admin: E2E_ADMIN,
+    demo: true,
+    catalog: true,
+    fieldCipher: createFieldCipher(fieldKey),
+  });
 
   const mediaDir = await mkdtemp(path.join(os.tmpdir(), 'jamzo-e2e-media-'));
   const env = loadEnv(apiEnvSchema, {

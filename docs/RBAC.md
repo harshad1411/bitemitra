@@ -1,6 +1,6 @@
 # Role-based access control
 
-Status: **Phase 1 implements** the permission catalogue, seeded system roles, admin user/role
+Status: **Phase 2:** `restaurants.view`, `restaurants.manage`, `restaurants.approve` and `products.manage` are now enforced (restaurant module), and restaurant-member capabilities are enforced on `/v1/restaurant/*` (RESTAURANTS.md §7, D-42). **Phase 1 implements** the permission catalogue, seeded system roles, admin user/role
 management, the server-side permission guard, city scoping and audit logging. Restaurant/rider
 member roles exist as data (approval gates); their feature permissions arrive with Phases 2/5/6.
 Decisions: OD-13, OD-24, CH-9. Source of truth in code: `packages/auth/src/permissions.js`.
@@ -34,7 +34,7 @@ Decisions: OD-13, OD-24, CH-9. Source of truth in code: `packages/auth/src/permi
 | `payments.view`, `payments.reconcile` | payments, COD deposits | 7–8 |
 | `refunds.create`, `refunds.approve` | refunds (maker-checker) | 7 |
 | `settlements.view`, `settlements.manage`, `ledgers.adjust` | finance | 8 |
-| `restaurants.view`, `restaurants.manage`, `restaurants.approve`, `products.manage` | restaurants & menu | 2 |
+| `restaurants.view`, `restaurants.manage`, `restaurants.approve`, `products.manage` | restaurants & menu (approval steps and bank verification need `restaurants.approve`) | P2 |
 | `riders.view`, `riders.manage`, `riders.approve` | delivery partners | 6 |
 | `customers.view`, `customers.pii`, `customers.manage` | customers | 3 |
 | `pricing.view`, `pricing.manage`, `pricing.surge`, `commissions.manage`, `taxes.manage` | commercial rules | 4 |
@@ -83,7 +83,7 @@ The full later-phase matrix follows the role summaries above and is encoded in `
 | App | Actor | Gate | Phase 1 |
 |---|---|---|---|
 | Customer | Customer | signed in (profile auto-created) | profile + device registration |
-| Restaurant Partner | Restaurant Owner / Manager / Staff (`restaurant_users.role`) | membership `isActive` **and** restaurant `onboardingStatus = ACTIVE` | `/v1/me` reports memberships and approval; no restaurant features yet |
+| Restaurant Partner | Restaurant Owner / Manager / Staff (`restaurant_users.role`) | membership `isActive` **and** restaurant `onboardingStatus` APPROVED or ACTIVE (D-34) | Phase 2: store status (owner/manager), menu view and sold-out toggles (all roles) — RESTAURANTS.md §7 |
 | Delivery Partner | Rider | `riders.onboardingStatus = ACTIVE` | `/v1/me` reports approval; no rider features yet |
 
 Planned restaurant-side permissions: Owner — everything for own restaurant(s) incl. bank details and

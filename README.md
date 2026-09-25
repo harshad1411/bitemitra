@@ -2,8 +2,8 @@
 
 Food-delivery platform launching in **Unjha, Gujarat**, built for many cities (jamzo.in).
 
-> **Status: Phase 1 (foundation) complete — awaiting owner review.** Product features (restaurants & menus,
-> discovery, pricing, orders, dispatch, payments, settlements) arrive in Phases 2–8. Decisions and open
+> **Status: Phase 2 (restaurants & menus) complete — awaiting owner review.** Phase 1 (foundation) was
+> accepted. Discovery, pricing, orders, dispatch, payments and settlements arrive in Phases 3–8. Decisions and open
 > questions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Products
@@ -32,7 +32,8 @@ pnpm install
 cp .env.example .env
 ```
 
-Edit `.env`: replace `JWT_ACCESS_SECRET` and `OTP_PEPPER` with long random strings and set
+Edit `.env`: replace `JWT_ACCESS_SECRET` and `OTP_PEPPER` with long random strings, set `FIELD_ENCRYPTION_KEY`
+to 32 random bytes in base64 (the command is in `.env.example`; it encrypts bank account numbers) and set
 `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` for your first Super Admin. Then, in separate terminals:
 
 ```bash
@@ -66,7 +67,9 @@ pnpm dev:customer
 
 **OTP codes in development** are not sent by SMS: the API prints them in its log (`console SMS provider`).
 Demo partner numbers seeded for testing: restaurant owner `9000000001`, delivery partner `9000000002`,
-pending delivery partner `9000000003`, manager of a not-yet-approved restaurant `9000000004`.
+pending delivery partner `9000000003`, manager of a not-yet-approved restaurant `9000000004`. The demo catalog
+adds 12 fictional Unjha restaurants with 108 products; each demo restaurant's owner signs in with the
+restaurant's phone (`9000000102` … `9000000111`, e.g. `9000000105` = Pizza Point).
 
 ## Checks
 
