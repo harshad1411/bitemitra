@@ -56,7 +56,7 @@ Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
 | OD-37 | **Start Phase 5 — Orders** (owner, 2026-09-25: "next phase strt"). Taken as acceptance of Phases 3 + 4. Phase 5 = §78: checkout, order creation, restaurant acceptance, order state machine, restaurant app, complete lifecycle tested. Stop for review after Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, CH-17/Q-14, D-30, Q-19) remain open. |
 | OD-38 | **Cancellation money** (owner, 2026-09-25, answers Q-20): (1) a customer who cancels **after the restaurant accepted** gets **no refund** of an online payment; if the restaurant or Jamzo cancels, the customer gets a full refund. (2) Cash-on-delivery customers who cancel after acceptance lose cash on delivery (they can still pay online) after **2** such cancellations (setting `cod.maxRefusedOrders`); cancelling before acceptance never counts; support can switch it back on. (3) **Jamzo absorbs the loss**: when a customer cancels after acceptance the restaurant is paid its full food value (its own prices minus the discount it funds), paid by Jamzo. Rider compensation is decided with dispatch (Phase 6). → D-70. |
 | OD-39 | **Owner answers of 2026-09-25** (questions listed after Phase 5): CH-5 **approved**; CH-9 **approved**; D-30 **acknowledged**; add-on prices get the markup's rounding (Q-19 → D-59 changed); a rider who has to give up a trip because of a cancellation gets the trip pay estimate, paid by Jamzo (Phase 6); the owner creates the Expo account and projects (Q-18); installing the iOS/Android build tools on the development Mac is **approved** (Q-17); SMS/OTP provider **MSG91**, Google/Apple sign-in later (Q-6); commission basis **after restaurant-funded discounts** (Q-7, as built); restaurants may edit their menus (CH-12, approval mode being confirmed); payouts automatic on request with admin approval, manual also possible (Q-5b, Phase 8); legal details to follow (Q-12). Being clarified with the owner: admin login method (CH-8/Q-15), maps provider (Q-14), brand assets upload (Q-13), tax treatment (Q-3), markup model (Q-4), hosting (Q-11). |
-| OD-40 | **Hosting** (owner, 2026-09-25, Q-11): a **single provider — DigitalOcean, Bangalore region** — for the API, worker, admin website, managed PostgreSQL and file storage (Spaces). Replaces the brief Supabase + Vercel idea. **Nothing is hosted during development** ($0); a pilot setup (~$54/month: 1 API, worker, admin, 1 GiB database without standby, Spaces) when testing with real phones and restaurants; the launch setup (~$114/month: 2 API instances, worker, admin, 2 GiB database **with standby** + daily backups, Spaces) before real customers. Prices checked 2026-09-25 on digitalocean.com (excl. 18% GST); **re-check and show the owner the final price at launch time**. → D-71. |
+| OD-40 | **Hosting** (owner, 2026-09-25, Q-11): a **single provider — DigitalOcean, Bangalore region**. **Nothing is hosted during development** ($0). Launch plan **"Option 2" (≈ $35/month before GST, prices checked 2026-09-25):** one 2 GiB Droplet running the API, worker and admin (automatic security updates, restarts, alerts), **managed PostgreSQL 1 GiB** (daily backups, point-in-time restore, separate from the server) and Spaces for files. Domain stays at GoDaddy (DNS records point to DigitalOcean). Upgrade to a standby database and a second server (~$114/month) only when downtime would really hurt — no code changes. **Speed is a launch condition (D-72):** if the pre-launch load test misses the targets, the owner is shown the upgrade price before launch. **Re-check prices and show the owner the final cost on launch day.** Considered and not chosen: Supabase (cannot run the API/worker), Hostinger VPS (cheaper, but no managed database — database on the server with weekly backups), HostGator India/BigRock (website-oriented, more expensive). → D-71, D-72. |
 
 ## 2. Engineering decisions
 
@@ -521,6 +521,17 @@ Cancellations); the development seed creates it.
 - **Portability:** standard PostgreSQL and S3-compatible storage only; a later move (e.g. to AWS Mumbai) is a
   migration, not a rewrite.
 
+### D-72. Speed targets (owner concern, OD-40)
+Measured before launch with a load test of the expected lunch/dinner rush (customers browsing and ordering,
+restaurants accepting, riders sending locations) on the chosen DigitalOcean setup, and watched with alerts
+after launch:
+- API: **95% of requests answered in under 300 ms** on the server at that load.
+- Customer app: **home screen with restaurants in under 2 s** on 4G; screens already seen appear instantly
+  from the on-device cache and refresh in the background.
+- Images: resized renditions (thumb/small/medium) through the Spaces CDN; never the originals.
+If the targets are missed, the fix (optimisation or a larger setup) and its price go to the owner before
+launch.
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 
@@ -603,7 +614,7 @@ Cancellations); the development seed creates it.
 
 ### Open — needed for later phases or real-device testing
 - **Q-6b** MSG91 account, DLT sender id and templates (owner); email provider; Google/Apple sign-in later.
-- **Q-11** Hosting decided: DigitalOcean Bangalore (OD-40). Still open: SaaS processors such as Sentry for error reports.
+- **Q-11** Hosting decided: DigitalOcean Bangalore, Option 2 (OD-40, D-72). Still open: SaaS processors such as Sentry for error reports.
 - **Q-13** Jamzo brand assets: logo, colours, typography (placeholders in use — D-16, D-17). Should the legacy BiteMitra kit be deleted?
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
