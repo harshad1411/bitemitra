@@ -155,7 +155,8 @@ export function createApiClient(options) {
 
   /**
    * @param {string} path  e.g. /v1/me
-   * @param {{ method?: string, query?: Record<string, unknown>, body?: unknown, auth?: boolean, idempotencyKey?: string | boolean }} [req]
+   * @param {{ method?: string, query?: Record<string, unknown>, body?: unknown, form?: any, auth?: boolean, idempotencyKey?: string | boolean }} [req]
+   * `form` is a FormData (file uploads); its multipart boundary header is set by fetch itself.
    */
   async function request(path, req = {}) {
     const method = (req.method ?? 'GET').toUpperCase();
@@ -180,7 +181,7 @@ export function createApiClient(options) {
     let refreshed = false;
     for (let attempt = 0; ; attempt++) {
       const extra = {};
-      if (req.body !== undefined) extra['content-type'] = 'application/json';
+      if (req.body !== undefined && !req.form) extra['content-type'] = 'application/json';
       if (key) extra[CLIENT_HEADERS.idempotencyKey] = key;
       if (auth) {
         const token = await tokens.getAccessToken();
@@ -190,7 +191,7 @@ export function createApiClient(options) {
         const res = await rawFetch(url, {
           method,
           headers: headersFor(extra),
-          body: req.body === undefined ? undefined : JSON.stringify(req.body),
+          body: req.form ?? (req.body === undefined ? undefined : JSON.stringify(req.body)),
         });
         if (canRetry && RETRYABLE_STATUS.has(res.status) && attempt < maxRetries) {
           await sleep(retryBaseMs * 2 ** attempt);
@@ -225,6 +226,8 @@ export function createApiClient(options) {
     post: (path, body, opts = {}) => request(path, { ...opts, method: 'POST', body }),
     patch: (path, body, opts = {}) => request(path, { ...opts, method: 'PATCH', body }),
     put: (path, body, opts = {}) => request(path, { ...opts, method: 'PUT', body }),
+    /** multipart/form-data upload (FormData). */
+    postForm: (path, form, opts = {}) => request(path, { ...opts, method: 'POST', form }),
     delete: (path, opts = {}) => request(path, { ...opts, method: 'DELETE' }),
   };
 }

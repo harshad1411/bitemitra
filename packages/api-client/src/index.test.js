@@ -46,6 +46,19 @@ describe('api-client', () => {
     });
   });
 
+  it('uploads FormData without a JSON content type (fetch sets the multipart boundary)', async () => {
+    const fetch = vi.fn(async () => json(201, { id: 'doc' }));
+    const api = createApiClient({ ...base, tokens: memoryTokens(), fetch });
+    const form = new FormData();
+    form.append('kind', 'PAN');
+    expect(await api.postForm('/v1/rider/documents', form)).toEqual({ id: 'doc' });
+    const [, init] = fetch.mock.calls[0];
+    expect(init.body).toBe(form);
+    expect(init.headers['content-type']).toBeUndefined();
+    expect(init.headers.authorization).toBe('Bearer a1');
+    expect(init.method).toBe('POST');
+  });
+
   it('adds one Idempotency-Key per POST and reuses it on retry', async () => {
     const fetch = vi
       .fn()

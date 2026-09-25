@@ -1,6 +1,5 @@
 // Jamzo Delivery Partner app config. Identity comes from the central registry (DECISIONS D-15).
-// Location: foreground + background location are DECLARED now so the native projects, store reviews and
-// permission copy are settled early; the app does not request or use location until Phase 6 (MOBILE.md §5).
+// Location: foreground + background while the partner is online (Phase 6, D-74, MOBILE.md §5).
 // Env: APP_VARIANT = development | preview | production, EXPO_PUBLIC_API_URL, EAS_PROJECT_ID.
 const { buildExpoConfig } = require('@jamzo/config/expo');
 const { version } = require('./package.json');
@@ -36,9 +35,19 @@ module.exports = ({ config }) =>
         {
           locationWhenInUsePermission: WHEN_IN_USE,
           locationAlwaysAndWhenInUsePermission: ALWAYS,
+          locationAlwaysPermission: ALWAYS,
+          motionUsagePermission: false,
           isIosBackgroundLocationEnabled: true,
           isAndroidBackgroundLocationEnabled: true,
           isAndroidForegroundServiceEnabled: true,
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          cameraPermission: 'Jamzo uses the camera for photos of your documents and of delivered orders.',
+          photosPermission: 'Jamzo uses your photos only when you choose a document photo.',
+          microphonePermission: false,
         },
       ],
     ],

@@ -1,0 +1,1103 @@
+{
+  "meNew": {
+    "applied": false,
+    "cities": [
+      {
+        "id": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+        "name": "Unjha"
+      }
+    ]
+  },
+  "meVehicle": {
+    "id": "01a0d81e-c422-7320-86ec-e0be3e2aa45a",
+    "name": "Kiran Desai",
+    "phone": "+919812377001",
+    "cityId": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+    "addressLine": null,
+    "onboardingStatus": "APPLIED",
+    "vehicle": {
+      "type": "SCOOTER",
+      "registrationNumber": "GJ02AB9999"
+    },
+    "documents": {
+      "required": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+      "missing": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+      "verified": [],
+      "items": []
+    },
+    "canSubmit": false,
+    "online": false,
+    "activeOrderCount": 0,
+    "cod": {
+      "enabled": true,
+      "balancePaise": 0,
+      "limitPaise": 500000
+    }
+  },
+  "meReady": {
+    "applied": true,
+    "rider": {
+      "id": "01a0d81e-c422-7320-86ec-e0be3e2aa45a",
+      "name": "Kiran Desai",
+      "phone": "+919812377001",
+      "cityId": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+      "addressLine": null,
+      "onboardingStatus": "APPLIED",
+      "vehicle": {
+        "type": "SCOOTER",
+        "registrationNumber": "GJ02AB9999"
+      },
+      "documents": {
+        "required": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+        "missing": [],
+        "verified": [],
+        "items": [
+          {
+            "id": "01a0d81e-c488-72a3-b1f9-a087ec96d295",
+            "kind": "PHOTO",
+            "status": "PENDING",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:31:30.185Z"
+          },
+          {
+            "id": "01a0d81e-c47d-7890-b2ba-5c7c67ad53cc",
+            "kind": "ID_PROOF",
+            "status": "PENDING",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:31:30.173Z"
+          },
+          {
+            "id": "01a0d81e-c471-7ce3-b134-9d654c569707",
+            "kind": "PAN",
+            "status": "PENDING",
+            "numberLast4": "234F",
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:31:30.161Z"
+          },
+          {
+            "id": "01a0d81e-c464-7242-af2e-5bc948953357",
+            "kind": "VEHICLE_RC",
+            "status": "PENDING",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:31:30.148Z"
+          },
+          {
+            "id": "01a0d81e-c454-74e0-b2fa-915cafd04310",
+            "kind": "DRIVING_LICENCE",
+            "status": "PENDING",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:31:30.132Z"
+          }
+        ]
+      },
+      "canSubmit": true,
+      "online": false,
+      "activeOrderCount": 0,
+      "cod": {
+        "enabled": true,
+        "balancePaise": 0,
+        "limitPaise": 500000
+      }
+    },
+    "cities": [
+      {
+        "id": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+        "name": "Unjha"
+      }
+    ]
+  },
+  "meSubmitted": {
+    "id": "01a0d81e-c422-7320-86ec-e0be3e2aa45a",
+    "name": "Kiran Desai",
+    "phone": "+919812377001",
+    "cityId": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+    "addressLine": null,
+    "onboardingStatus": "UNDER_REVIEW",
+    "vehicle": {
+      "type": "SCOOTER",
+      "registrationNumber": "GJ02AB9999"
+    },
+    "documents": {
+      "required": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+      "missing": [],
+      "verified": [],
+      "items": [
+        {
+          "id": "01a0d81e-c488-72a3-b1f9-a087ec96d295",
+          "kind": "PHOTO",
+          "status": "PENDING",
+          "numberLast4": null,
+          "reviewNote": null,
+          "uploadedAt": "2026-09-25T10:31:30.185Z"
+        },
+        {
+          "id": "01a0d81e-c47d-7890-b2ba-5c7c67ad53cc",
+          "kind": "ID_PROOF",
+          "status": "PENDING",
+          "numberLast4": null,
+          "reviewNote": null,
+          "uploadedAt": "2026-09-25T10:31:30.173Z"
+        },
+        {
+          "id": "01a0d81e-c471-7ce3-b134-9d654c569707",
+          "kind": "PAN",
+          "status": "PENDING",
+          "numberLast4": "234F",
+          "reviewNote": null,
+          "uploadedAt": "2026-09-25T10:31:30.161Z"
+        },
+        {
+          "id": "01a0d81e-c464-7242-af2e-5bc948953357",
+          "kind": "VEHICLE_RC",
+          "status": "PENDING",
+          "numberLast4": null,
+          "reviewNote": null,
+          "uploadedAt": "2026-09-25T10:31:30.148Z"
+        },
+        {
+          "id": "01a0d81e-c454-74e0-b2fa-915cafd04310",
+          "kind": "DRIVING_LICENCE",
+          "status": "PENDING",
+          "numberLast4": null,
+          "reviewNote": null,
+          "uploadedAt": "2026-09-25T10:31:30.132Z"
+        }
+      ]
+    },
+    "canSubmit": false,
+    "online": false,
+    "activeOrderCount": 0,
+    "cod": {
+      "enabled": true,
+      "balancePaise": 0,
+      "limitPaise": 500000
+    }
+  },
+  "meActive": {
+    "applied": true,
+    "rider": {
+      "id": "01a0d326-3a38-74b1-ae04-5a7378304979",
+      "name": "Demo Delivery Partner",
+      "phone": "+919000000002",
+      "cityId": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+      "addressLine": null,
+      "onboardingStatus": "ACTIVE",
+      "vehicle": {
+        "type": "MOTORCYCLE",
+        "registrationNumber": "GJ02AB1234"
+      },
+      "documents": {
+        "required": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+        "missing": [],
+        "verified": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+        "items": [
+          {
+            "id": "01a0d81e-2455-7f93-95dd-8eb78c302e72",
+            "kind": "PHOTO",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.174Z"
+          },
+          {
+            "id": "01a0d81e-2453-7c50-80aa-20569b512dd0",
+            "kind": "ID_PROOF",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.172Z"
+          },
+          {
+            "id": "01a0d81e-2452-7000-878d-c7f33098d265",
+            "kind": "PAN",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.170Z"
+          },
+          {
+            "id": "01a0d81e-2450-7940-83f1-1f0705026287",
+            "kind": "VEHICLE_RC",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.168Z"
+          },
+          {
+            "id": "01a0d81e-244d-72d0-acab-09e5050eabd4",
+            "kind": "DRIVING_LICENCE",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.166Z"
+          }
+        ]
+      },
+      "canSubmit": false,
+      "online": true,
+      "activeOrderCount": 0,
+      "cod": {
+        "enabled": true,
+        "balancePaise": 0,
+        "limitPaise": 500000
+      }
+    },
+    "cities": [
+      {
+        "id": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+        "name": "Unjha"
+      }
+    ]
+  },
+  "workIdle": {
+    "online": true,
+    "offer": null,
+    "trip": null,
+    "support": {
+      "phone": null
+    },
+    "intervals": {
+      "tripIntervalSec": 10,
+      "idleIntervalSec": 30
+    }
+  },
+  "workOffer": {
+    "online": true,
+    "offer": {
+      "assignmentId": "01a0d81e-d0f8-7d72-9668-000f05e2c9b9",
+      "expiresAt": "2026-09-25T10:32:03.356Z",
+      "pickupDistanceM": 1090,
+      "deliveryDistanceM": 793,
+      "restaurant": {
+        "name": "Pizza Point",
+        "address": "Upera Road, Unjha, Gujarat"
+      },
+      "dropArea": "Unjha",
+      "itemCount": 2,
+      "cashToCollectPaise": 25700,
+      "estimatedEarningPaise": 4500,
+      "manual": false
+    },
+    "trip": null,
+    "support": {
+      "phone": null
+    },
+    "intervals": {
+      "tripIntervalSec": 10,
+      "idleIntervalSec": 30
+    }
+  },
+  "workAccepted": {
+    "online": true,
+    "offer": null,
+    "trip": {
+      "orderId": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+      "orderNumber": "UNJ-260925-00005",
+      "shortNumber": "0005",
+      "status": "RESTAURANT_ACCEPTED",
+      "deliveryStatus": "ACCEPTED",
+      "restaurantStatus": "ACCEPTED",
+      "version": 4,
+      "restaurant": {
+        "name": "Pizza Point",
+        "address": "Upera Road, Unjha, Gujarat",
+        "lat": 23.8098,
+        "lng": 72.3871,
+        "foodReady": false,
+        "estimatedReadyAt": "2026-09-25T10:46:33.315Z"
+      },
+      "items": [
+        {
+          "name": "Garlic Bread",
+          "variantName": null,
+          "quantity": 2
+        }
+      ],
+      "customer": {
+        "firstName": "Your delivery partner",
+        "address": "12 Station Road",
+        "lat": 23.805,
+        "lng": 72.39,
+        "instructions": "Ring the bell twice",
+        "contactless": false
+      },
+      "contact": {
+        "via": "SUPPORT"
+      },
+      "cashToCollectPaise": 25700,
+      "requires": {
+        "deliveryCode": true,
+        "proofPhoto": false
+      },
+      "estimatedEarningPaise": 4500
+    },
+    "support": {
+      "phone": null
+    },
+    "intervals": {
+      "tripIntervalSec": 10,
+      "idleIntervalSec": 30
+    }
+  },
+  "custTracking": {
+    "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "status": "RESTAURANT_ACCEPTED",
+    "restaurantStatus": "ACCEPTED",
+    "deliveryStatus": "ACCEPTED",
+    "version": 4,
+    "restaurant": {
+      "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+      "name": "Pizza Point"
+    },
+    "placedAt": "2026-09-25T10:31:32.343Z",
+    "createdAt": "2026-09-25T10:31:32.343Z",
+    "acceptedAt": "2026-09-25T10:31:33.315Z",
+    "readyAt": null,
+    "cancelledAt": null,
+    "prepTimeMinutes": 15,
+    "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "foodType": "VEG",
+        "quantity": 2,
+        "addons": [],
+        "lineTotalPaise": 19800
+      }
+    ],
+    "bill": {
+      "lines": [
+        {
+          "code": "ITEMS",
+          "label": "Item total",
+          "amountPaise": 19800
+        },
+        {
+          "code": "DELIVERY_FEE",
+          "label": "Delivery fee",
+          "amountPaise": 2000
+        },
+        {
+          "code": "PLATFORM_FEE",
+          "label": "Platform fee",
+          "amountPaise": 500
+        },
+        {
+          "code": "TAXES",
+          "label": "Taxes",
+          "amountPaise": 1440
+        },
+        {
+          "code": "TIP",
+          "label": "Tip for your delivery partner",
+          "amountPaise": 2000
+        },
+        {
+          "code": "ROUNDING",
+          "label": "Rounding",
+          "amountPaise": -40
+        }
+      ],
+      "notes": [],
+      "markupDisclosure": "NONE",
+      "totalPayablePaise": 25700
+    },
+    "totalPayablePaise": 25700,
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery",
+      "codAmountPaise": 25700
+    },
+    "address": {
+      "label": "Home",
+      "line1": "12 Station Road",
+      "landmark": null,
+      "cityName": "Unjha"
+    },
+    "deliveryInstructions": "Ring the bell twice",
+    "restaurantInstructions": null,
+    "contactless": false,
+    "timeline": [
+      {
+        "status": "CREATED",
+        "at": "2026-09-25T10:31:32.343Z",
+        "actorType": "CUSTOMER"
+      },
+      {
+        "status": "PLACED",
+        "at": "2026-09-25T10:31:32.344Z",
+        "actorType": "CUSTOMER"
+      },
+      {
+        "status": "RESTAURANT_ACCEPTED",
+        "at": "2026-09-25T10:31:33.312Z",
+        "actorType": "RESTAURANT_USER"
+      }
+    ],
+    "cancellation": null,
+    "canCancel": true,
+    "cancelTerms": {
+      "stage": "AFTER_ACCEPT",
+      "refundDuePaise": 0,
+      "keptPaise": 0,
+      "noRefundAfterAccept": true,
+      "codCancellation": {
+        "countsTowardsLimit": true,
+        "used": 0,
+        "limit": 2
+      }
+    },
+    "delivery": {
+      "rider": {
+        "firstName": "Demo",
+        "vehicle": "MOTORCYCLE",
+        "position": {
+          "lat": 23.801,
+          "lng": 72.391,
+          "at": "2026-09-25T10:31:31.080Z"
+        }
+      },
+      "code": "9949",
+      "contact": {
+        "via": "SUPPORT",
+        "phone": null
+      }
+    }
+  },
+  "tripAtRestaurant": {
+    "orderId": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "RESTAURANT_ACCEPTED",
+    "deliveryStatus": "AT_RESTAURANT",
+    "restaurantStatus": "ACCEPTED",
+    "version": 5,
+    "restaurant": {
+      "name": "Pizza Point",
+      "address": "Upera Road, Unjha, Gujarat",
+      "lat": 23.8098,
+      "lng": 72.3871,
+      "foodReady": false,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "quantity": 2
+      }
+    ],
+    "customer": {
+      "firstName": "Your delivery partner",
+      "address": "12 Station Road",
+      "lat": 23.805,
+      "lng": 72.39,
+      "instructions": "Ring the bell twice",
+      "contactless": false
+    },
+    "contact": {
+      "via": "SUPPORT"
+    },
+    "cashToCollectPaise": 25700,
+    "requires": {
+      "deliveryCode": true,
+      "proofPhoto": false
+    },
+    "estimatedEarningPaise": 4500
+  },
+  "restaurantWithRider": {
+    "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "RESTAURANT_ACCEPTED",
+    "restaurantStatus": "ACCEPTED",
+    "deliveryStatus": "AT_RESTAURANT",
+    "version": 5,
+    "placedAt": "2026-09-25T10:31:32.343Z",
+    "acceptBy": "2026-09-25T10:34:32.343Z",
+    "acceptedAt": "2026-09-25T10:31:33.315Z",
+    "readyAt": null,
+    "cancelledAt": null,
+    "prepTimeMinutes": 15,
+    "estimatedPickupAt": "2026-09-25T10:46:33.315Z",
+    "customer": {
+      "firstName": "Customer"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "foodType": "VEG",
+        "quantity": 2,
+        "addons": [],
+        "unitPricePaise": 9000,
+        "lineTotalPaise": 18000
+      }
+    ],
+    "itemCount": 2,
+    "foodValuePaise": 18000,
+    "restaurantInstructions": null,
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery (collected by the delivery partner)"
+    },
+    "cancellation": null,
+    "finance": {
+      "foodValuePaise": 18000,
+      "restaurantFundedDiscountPaise": 0,
+      "packagingPaise": 0,
+      "commissionPaise": 2700,
+      "commissionTaxPaise": 486,
+      "withholdingPaise": 0,
+      "netPayablePaise": 14814,
+      "estimate": true
+    },
+    "rider": {
+      "firstName": "Demo",
+      "atRestaurant": true
+    }
+  },
+  "tripReady": {
+    "orderId": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "RIDER_AT_RESTAURANT",
+    "deliveryStatus": "AT_RESTAURANT",
+    "restaurantStatus": "READY_FOR_PICKUP",
+    "version": 6,
+    "restaurant": {
+      "name": "Pizza Point",
+      "address": "Upera Road, Unjha, Gujarat",
+      "lat": 23.8098,
+      "lng": 72.3871,
+      "foodReady": true,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "quantity": 2
+      }
+    ],
+    "customer": {
+      "firstName": "Your delivery partner",
+      "address": "12 Station Road",
+      "lat": 23.805,
+      "lng": 72.39,
+      "instructions": "Ring the bell twice",
+      "contactless": false
+    },
+    "contact": {
+      "via": "SUPPORT"
+    },
+    "cashToCollectPaise": 25700,
+    "requires": {
+      "deliveryCode": true,
+      "proofPhoto": false
+    },
+    "estimatedEarningPaise": 4500
+  },
+  "tripOnTheWay": {
+    "orderId": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "ON_THE_WAY",
+    "deliveryStatus": "ON_THE_WAY",
+    "restaurantStatus": "COMPLETED",
+    "version": 8,
+    "restaurant": {
+      "name": "Pizza Point",
+      "address": "Upera Road, Unjha, Gujarat",
+      "lat": 23.8098,
+      "lng": 72.3871,
+      "foodReady": true,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "quantity": 2
+      }
+    ],
+    "customer": {
+      "firstName": "Your delivery partner",
+      "address": "12 Station Road",
+      "lat": 23.805,
+      "lng": 72.39,
+      "instructions": "Ring the bell twice",
+      "contactless": false
+    },
+    "contact": {
+      "via": "SUPPORT"
+    },
+    "cashToCollectPaise": 25700,
+    "requires": {
+      "deliveryCode": true,
+      "proofPhoto": false
+    },
+    "estimatedEarningPaise": 4500
+  },
+  "tripArrived": {
+    "orderId": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "ARRIVED",
+    "deliveryStatus": "ARRIVED",
+    "restaurantStatus": "COMPLETED",
+    "version": 9,
+    "restaurant": {
+      "name": "Pizza Point",
+      "address": "Upera Road, Unjha, Gujarat",
+      "lat": 23.8098,
+      "lng": 72.3871,
+      "foodReady": true,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "quantity": 2
+      }
+    ],
+    "customer": {
+      "firstName": "Your delivery partner",
+      "address": "12 Station Road",
+      "lat": 23.805,
+      "lng": 72.39,
+      "instructions": "Ring the bell twice",
+      "contactless": false
+    },
+    "contact": {
+      "via": "SUPPORT"
+    },
+    "cashToCollectPaise": 25700,
+    "requires": {
+      "deliveryCode": true,
+      "proofPhoto": false
+    },
+    "estimatedEarningPaise": 4500
+  },
+  "custArrived": {
+    "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "status": "ARRIVED",
+    "restaurantStatus": "COMPLETED",
+    "deliveryStatus": "ARRIVED",
+    "version": 9,
+    "restaurant": {
+      "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+      "name": "Pizza Point"
+    },
+    "placedAt": "2026-09-25T10:31:32.343Z",
+    "createdAt": "2026-09-25T10:31:32.343Z",
+    "acceptedAt": "2026-09-25T10:31:33.315Z",
+    "readyAt": "2026-09-25T10:31:34.144Z",
+    "cancelledAt": null,
+    "prepTimeMinutes": 15,
+    "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "foodType": "VEG",
+        "quantity": 2,
+        "addons": [],
+        "lineTotalPaise": 19800
+      }
+    ],
+    "bill": {
+      "lines": [
+        {
+          "code": "ITEMS",
+          "label": "Item total",
+          "amountPaise": 19800
+        },
+        {
+          "code": "DELIVERY_FEE",
+          "label": "Delivery fee",
+          "amountPaise": 2000
+        },
+        {
+          "code": "PLATFORM_FEE",
+          "label": "Platform fee",
+          "amountPaise": 500
+        },
+        {
+          "code": "TAXES",
+          "label": "Taxes",
+          "amountPaise": 1440
+        },
+        {
+          "code": "TIP",
+          "label": "Tip for your delivery partner",
+          "amountPaise": 2000
+        },
+        {
+          "code": "ROUNDING",
+          "label": "Rounding",
+          "amountPaise": -40
+        }
+      ],
+      "notes": [],
+      "markupDisclosure": "NONE",
+      "totalPayablePaise": 25700
+    },
+    "totalPayablePaise": 25700,
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery",
+      "codAmountPaise": 25700
+    },
+    "address": {
+      "label": "Home",
+      "line1": "12 Station Road",
+      "landmark": null,
+      "cityName": "Unjha"
+    },
+    "deliveryInstructions": "Ring the bell twice",
+    "restaurantInstructions": null,
+    "contactless": false,
+    "timeline": [
+      {
+        "status": "CREATED",
+        "at": "2026-09-25T10:31:32.343Z",
+        "actorType": "CUSTOMER"
+      },
+      {
+        "status": "PLACED",
+        "at": "2026-09-25T10:31:32.344Z",
+        "actorType": "CUSTOMER"
+      },
+      {
+        "status": "RESTAURANT_ACCEPTED",
+        "at": "2026-09-25T10:31:33.312Z",
+        "actorType": "RESTAURANT_USER"
+      },
+      {
+        "status": "RIDER_AT_RESTAURANT",
+        "at": "2026-09-25T10:31:34.142Z",
+        "actorType": "RESTAURANT_USER"
+      },
+      {
+        "status": "PICKED_UP",
+        "at": "2026-09-25T10:31:34.175Z",
+        "actorType": "RIDER"
+      },
+      {
+        "status": "ON_THE_WAY",
+        "at": "2026-09-25T10:31:34.175Z",
+        "actorType": "SYSTEM"
+      },
+      {
+        "status": "ARRIVED",
+        "at": "2026-09-25T10:31:34.193Z",
+        "actorType": "RIDER"
+      }
+    ],
+    "cancellation": null,
+    "canCancel": false,
+    "cancelTerms": null,
+    "delivery": {
+      "rider": {
+        "firstName": "Demo",
+        "vehicle": "MOTORCYCLE",
+        "position": {
+          "lat": 23.801,
+          "lng": 72.391,
+          "at": "2026-09-25T10:31:31.080Z"
+        }
+      },
+      "code": "9949",
+      "contact": {
+        "via": "SUPPORT",
+        "phone": null
+      }
+    }
+  },
+  "tripDelivered": {
+    "orderId": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "DELIVERED",
+    "deliveryStatus": "DELIVERED",
+    "restaurantStatus": "COMPLETED",
+    "version": 10,
+    "restaurant": {
+      "name": "Pizza Point",
+      "address": "Upera Road, Unjha, Gujarat",
+      "lat": 23.8098,
+      "lng": 72.3871,
+      "foodReady": true,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "quantity": 2
+      }
+    ],
+    "customer": {
+      "firstName": "Your delivery partner",
+      "address": "12 Station Road",
+      "lat": 23.805,
+      "lng": 72.39,
+      "instructions": "Ring the bell twice",
+      "contactless": false
+    },
+    "contact": {
+      "via": "SUPPORT"
+    },
+    "cashToCollectPaise": 25700,
+    "requires": {
+      "deliveryCode": true,
+      "proofPhoto": false
+    },
+    "estimatedEarningPaise": 4500
+  },
+  "earningsToday": {
+    "range": "TODAY",
+    "since": "2026-09-24T18:31:00.000Z",
+    "totalPaise": 4500,
+    "tripsPaise": 2500,
+    "tipsPaise": 2000,
+    "deliveries": 1,
+    "items": [
+      {
+        "orderNumber": "UNJ-260925-00005",
+        "kind": "DELIVERY",
+        "totalPaise": 4500,
+        "breakdown": {
+          "tipPaise": 2000,
+          "basePaise": 2500,
+          "tripPaise": 2500,
+          "incentives": [],
+          "totalPaise": 4500,
+          "waitingMin": 1,
+          "waitingPaise": 0,
+          "distancePaise": 0,
+          "pickupDistanceM": 1090,
+          "deliveryDistanceM": 793
+        },
+        "at": "2026-09-25T10:31:34.221Z"
+      }
+    ],
+    "note": "Payouts arrive with settlements (Phase 8)."
+  },
+  "meAfter": {
+    "applied": true,
+    "rider": {
+      "id": "01a0d326-3a38-74b1-ae04-5a7378304979",
+      "name": "Demo Delivery Partner",
+      "phone": "+919000000002",
+      "cityId": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+      "addressLine": null,
+      "onboardingStatus": "ACTIVE",
+      "vehicle": {
+        "type": "MOTORCYCLE",
+        "registrationNumber": "GJ02AB1234"
+      },
+      "documents": {
+        "required": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+        "missing": [],
+        "verified": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"],
+        "items": [
+          {
+            "id": "01a0d81e-2455-7f93-95dd-8eb78c302e72",
+            "kind": "PHOTO",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.174Z"
+          },
+          {
+            "id": "01a0d81e-2453-7c50-80aa-20569b512dd0",
+            "kind": "ID_PROOF",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.172Z"
+          },
+          {
+            "id": "01a0d81e-2452-7000-878d-c7f33098d265",
+            "kind": "PAN",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.170Z"
+          },
+          {
+            "id": "01a0d81e-2450-7940-83f1-1f0705026287",
+            "kind": "VEHICLE_RC",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.168Z"
+          },
+          {
+            "id": "01a0d81e-244d-72d0-acab-09e5050eabd4",
+            "kind": "DRIVING_LICENCE",
+            "status": "VERIFIED",
+            "numberLast4": null,
+            "reviewNote": null,
+            "uploadedAt": "2026-09-25T10:30:49.166Z"
+          }
+        ]
+      },
+      "canSubmit": false,
+      "online": true,
+      "activeOrderCount": 0,
+      "cod": {
+        "enabled": true,
+        "balancePaise": 25700,
+        "limitPaise": 500000
+      }
+    },
+    "cities": [
+      {
+        "id": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+        "name": "Unjha"
+      }
+    ]
+  },
+  "custDelivered": {
+    "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "status": "DELIVERED",
+    "restaurantStatus": "COMPLETED",
+    "deliveryStatus": "DELIVERED",
+    "version": 10,
+    "restaurant": {
+      "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+      "name": "Pizza Point"
+    },
+    "placedAt": "2026-09-25T10:31:32.343Z",
+    "createdAt": "2026-09-25T10:31:32.343Z",
+    "acceptedAt": "2026-09-25T10:31:33.315Z",
+    "readyAt": "2026-09-25T10:31:34.144Z",
+    "cancelledAt": null,
+    "prepTimeMinutes": 15,
+    "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "foodType": "VEG",
+        "quantity": 2,
+        "addons": [],
+        "lineTotalPaise": 19800
+      }
+    ],
+    "bill": {
+      "lines": [
+        {
+          "code": "ITEMS",
+          "label": "Item total",
+          "amountPaise": 19800
+        },
+        {
+          "code": "DELIVERY_FEE",
+          "label": "Delivery fee",
+          "amountPaise": 2000
+        },
+        {
+          "code": "PLATFORM_FEE",
+          "label": "Platform fee",
+          "amountPaise": 500
+        },
+        {
+          "code": "TAXES",
+          "label": "Taxes",
+          "amountPaise": 1440
+        },
+        {
+          "code": "TIP",
+          "label": "Tip for your delivery partner",
+          "amountPaise": 2000
+        },
+        {
+          "code": "ROUNDING",
+          "label": "Rounding",
+          "amountPaise": -40
+        }
+      ],
+      "notes": [],
+      "markupDisclosure": "NONE",
+      "totalPayablePaise": 25700
+    },
+    "totalPayablePaise": 25700,
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery",
+      "codAmountPaise": 25700
+    },
+    "address": {
+      "label": "Home",
+      "line1": "12 Station Road",
+      "landmark": null,
+      "cityName": "Unjha"
+    },
+    "deliveryInstructions": "Ring the bell twice",
+    "restaurantInstructions": null,
+    "contactless": false,
+    "timeline": [
+      {
+        "status": "CREATED",
+        "at": "2026-09-25T10:31:32.343Z",
+        "actorType": "CUSTOMER"
+      },
+      {
+        "status": "PLACED",
+        "at": "2026-09-25T10:31:32.344Z",
+        "actorType": "CUSTOMER"
+      },
+      {
+        "status": "RESTAURANT_ACCEPTED",
+        "at": "2026-09-25T10:31:33.312Z",
+        "actorType": "RESTAURANT_USER"
+      },
+      {
+        "status": "RIDER_AT_RESTAURANT",
+        "at": "2026-09-25T10:31:34.142Z",
+        "actorType": "RESTAURANT_USER"
+      },
+      {
+        "status": "PICKED_UP",
+        "at": "2026-09-25T10:31:34.175Z",
+        "actorType": "RIDER"
+      },
+      {
+        "status": "ON_THE_WAY",
+        "at": "2026-09-25T10:31:34.175Z",
+        "actorType": "SYSTEM"
+      },
+      {
+        "status": "ARRIVED",
+        "at": "2026-09-25T10:31:34.193Z",
+        "actorType": "RIDER"
+      },
+      {
+        "status": "DELIVERED",
+        "at": "2026-09-25T10:31:34.221Z",
+        "actorType": "RIDER"
+      }
+    ],
+    "cancellation": null,
+    "canCancel": false,
+    "cancelTerms": null,
+    "delivery": {
+      "rider": null,
+      "code": null,
+      "contact": null
+    }
+  }
+}

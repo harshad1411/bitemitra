@@ -19,9 +19,9 @@ export function installFakeApi({ appConfig = {}, me = {}, onRequest } = {}) {
   };
   global.fetch = jest.fn(async (url, init = {}) => {
     const path = new URL(url).pathname;
-    const body = init.body ? JSON.parse(init.body) : undefined;
+    const body = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
     calls.push({ path, method: init.method ?? 'GET', body, headers: init.headers });
-    const custom = onRequest?.(path, body);
+    const custom = onRequest?.(path, body, init);
     if (custom) return json(custom.status ?? 200, custom.body);
     if (path === '/v1/app-config') return json(200, { ...baseConfig, ...appConfig });
     if (path === '/v1/auth/otp/request')
