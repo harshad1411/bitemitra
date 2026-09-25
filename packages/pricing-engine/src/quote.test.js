@@ -926,3 +926,16 @@ describe('per-line commission (order items, Phase 5)', () => {
     );
   });
 });
+
+describe('add-on rounding (Q-19 → OD-39)', () => {
+  it('add-ons get the markup rule\'s rounding; free add-ons stay free; FIXED markups skip add-ons', async () => {
+    const { addonDisplay } = await import('./quote.js');
+    const pct = (rounding) => ({ type: 'PERCENTAGE', valueBps: 1000, rounding, applyToAddons: true });
+    expect(addonDisplay(2_500, pct({ mode: 'NEAREST_1', direction: 'HALF_UP' }))).toBe(2_800); // ₹27.50 → ₹28
+    expect(addonDisplay(2_500, pct({ mode: 'NONE', direction: 'HALF_UP' }))).toBe(2_750);
+    expect(addonDisplay(0, pct({ mode: 'PSYCHOLOGICAL', direction: 'UP', endingDigit: 9 }))).toBe(0);
+    expect(addonDisplay(2_500, { ...pct({ mode: 'NEAREST_1', direction: 'HALF_UP' }), applyToAddons: false })).toBe(2_500);
+    expect(addonDisplay(2_500, { type: 'FIXED', valuePaise: 1_000, rounding: { mode: 'NONE' }, applyToAddons: true })).toBe(2_500);
+  });
+});
+

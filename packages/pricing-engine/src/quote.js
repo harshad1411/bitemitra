@@ -71,10 +71,13 @@ export function applyMarkup(basePaise, params) {
   return Math.max(basePaise, roundDisplay(raw, params.rounding)); // rounding never goes below the restaurant price
 }
 
-/** Customer price of an add-on: percentage markup without rounding, only when the rule applies to add-ons. */
+/**
+ * Customer price of an add-on: the rule's percentage markup **and its rounding** (owner decision Q-19 → OD-39),
+ * only when the rule applies to add-ons. FIXED markups apply to the main item only; free add-ons stay free.
+ */
 export function addonDisplay(basePaise, params) {
-  if (!params || !params.applyToAddons || params.type !== 'PERCENTAGE') return basePaise;
-  return basePaise + applyBps(basePaise, params.valueBps);
+  if (!params || !params.applyToAddons || params.type !== 'PERCENTAGE' || basePaise === 0) return basePaise;
+  return applyMarkup(basePaise, params);
 }
 
 /** Tax on an amount per a (parsed) charge-tax rule. */

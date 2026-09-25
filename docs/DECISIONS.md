@@ -55,6 +55,7 @@ Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
 | OD-36 | **Complete Phases 3 and 4 together** (owner, 2026-09-25: "Complete 3rd and 4th phase"). Taken as acceptance of Phase 2. Phase 3 = customer discovery (§82: customer auth, location, home CMS, restaurant listing, search, restaurant detail, menu, cart); Phase 4 = pricing (§82: pricing engine, markup, commission, taxes, delivery, platform fee, surcharges, coupons, promotions). One review after both; still stop before Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, D-30) remain open. |
 | OD-37 | **Start Phase 5 — Orders** (owner, 2026-09-25: "next phase strt"). Taken as acceptance of Phases 3 + 4. Phase 5 = §78: checkout, order creation, restaurant acceptance, order state machine, restaurant app, complete lifecycle tested. Stop for review after Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, CH-17/Q-14, D-30, Q-19) remain open. |
 | OD-38 | **Cancellation money** (owner, 2026-09-25, answers Q-20): (1) a customer who cancels **after the restaurant accepted** gets **no refund** of an online payment; if the restaurant or Jamzo cancels, the customer gets a full refund. (2) Cash-on-delivery customers who cancel after acceptance lose cash on delivery (they can still pay online) after **2** such cancellations (setting `cod.maxRefusedOrders`); cancelling before acceptance never counts; support can switch it back on. (3) **Jamzo absorbs the loss**: when a customer cancels after acceptance the restaurant is paid its full food value (its own prices minus the discount it funds), paid by Jamzo. Rider compensation is decided with dispatch (Phase 6). → D-70. |
+| OD-39 | **Owner answers of 2026-09-25** (questions listed after Phase 5): CH-5 **approved**; CH-9 **approved**; D-30 **acknowledged**; add-on prices get the markup's rounding (Q-19 → D-59 changed); a rider who has to give up a trip because of a cancellation gets the trip pay estimate, paid by Jamzo (Phase 6); the owner creates the Expo account and projects (Q-18); installing the iOS/Android build tools on the development Mac is **approved** (Q-17); SMS/OTP provider **MSG91**, Google/Apple sign-in later (Q-6); commission basis **after restaurant-funded discounts** (Q-7, as built); restaurants may edit their menus (CH-12, approval mode being confirmed); payouts automatic on request with admin approval, manual also possible (Q-5b, Phase 8); legal details to follow (Q-12). Being clarified with the owner: admin login method (CH-8/Q-15), maps provider (Q-14), brand assets upload (Q-13), tax treatment (Q-3), markup model (Q-4), hosting (Q-11). |
 
 ## 2. Engineering decisions
 
@@ -214,7 +215,7 @@ and the phone-OTP sign-in flow (authentication is a foundation, not a product fl
 own layout and home screen. TanStack Query and Zustand (planned in MOBILE.md) are not introduced until a
 feature needs them (Phase 3).
 
-### D-30. Consequence of sharing foundations: coordinated Expo SDK upgrades — **please acknowledge**
+### D-30. Consequence of sharing foundations: coordinated Expo SDK upgrades — **acknowledged (OD-39)**
 Because the three apps share mobile packages (and the catalog pins one Expo SDK), an Expo SDK upgrade is
 done for all three apps together. **Releases stay independent** (Customer 1.5.0 can ship while Rider stays
 1.3.0, B10), and each app keeps its own identifiers, version, config, credentials and store listing.
@@ -406,11 +407,10 @@ cart and see the server bill; sign-in is asked for only for saved addresses and 
 Phase 5, checkout). The app never computes a bill: the price on the "Add" button of the customise
 screen is menu price × quantity for guidance, and the cart shows only the server quote.
 
-### D-59. Add-on markup is not rounded (current behaviour — owner to confirm, Q-19)
+### D-59. Add-on markup rounding — changed by the owner (OD-39): add-ons now get the rule's rounding
 PRICING.md §4.2 says add-ons get "the same markup rule" but does not say whether its rounding applies.
-The engine applies the percentage exactly to add-ons and rounds only the main item (e.g. Sweet corn ₹25
-+10% = ₹27.50), so several add-ons do not accumulate rounding. Changing this is one engine function
-plus golden-test updates.
+Originally the engine rounded only the main item (Sweet corn ₹25 +10% = ₹27.50). The owner chose rounding
+for add-ons too (₹28); free add-ons stay free and FIXED markups still apply to the main item only.
 
 ## 2c. Engineering decisions — Phase 5 (orders)
 
@@ -514,7 +514,7 @@ Cancellations); the development seed creates it.
 | CH-2 | **No Polaris**; Tailwind + shadcn/ui + own design system (spec §4, §28, B4) | licence/maintenance findings, D-12 | admin visuals are Jamzo's own | Pre-authorised by OD-2 — please confirm you accept the findings |
 | CH-3 | JavaScript instead of TypeScript (spec §4) | OD-1 | correctness relies on zod, checkJs, tests | Owner-directed |
 | CH-4 | Kitchen/delivery tracks with derived §18 status | kitchen and dispatch run concurrently | spec statuses preserved as the derived overall status | Owner-endorsed (OD-17) |
-| CH-5 | Extra overall status `PAYMENT_FAILED` | §56 needs a terminal state | one more enum value | Needs approval (low risk) |
+| CH-5 | Extra overall status `PAYMENT_FAILED` | §56 needs a terminal state | one more enum value | **Approved (OD-39)** |
 | CH-6 | `delivery-engine` holds dispatch logic (spec A §3 lists `dispatch-engine`) | B6 mandates `delivery-engine`; API still has a separate dispatch module | none | Informational |
 | CH-7 | No Redis/BullMQ in Phase 1 (spec §4 "Redis when required") | OD-27; Postgres outbox polling suffices | revisit at the D-9 triggers | Informational |
 | CH-8 | Admin 2FA deferred to before production | Phase 1 scope | admin must not be exposed publicly until done | Needs approval |
@@ -530,7 +530,7 @@ Cancellations); the development seed creates it.
 | CH-19 | Phase 5 orders stop at READY_FOR_PICKUP; delivery starts with dispatch in Phase 6 (D-61) | riders are Phase 6 | the full lifecycle is proven in the engine tests, not end to end, until Phase 6 | Recorded |
 | CH-21 | Customers may cancel after the restaurant accepted (ORDERS.md §5 left it to the rule) — with no refund, per OD-38 | owner decision | fewer support calls; the app warns before confirming | Recorded |
 | CH-20 | `reviews` and `notification_preferences` move from Phase 5 to Phase 6 / Phase 9 | reviews need delivered orders; preferences need the marketing notifications of Phase 9 | none now | Recorded |
-| CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | Needs approval |
+| CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | **Approved (OD-39)** |
 
 ## 4. Assumptions (configurable defaults)
 
@@ -572,22 +572,23 @@ Cancellations); the development seed creates it.
 | Q-9 | Distance source | Road distance preferred, configurable fallback (OD-14, A-19) |
 | Q-10 | Tips / rounding | Tips 100% to rider, configurable (OD-15); rounding configurable & explicit (OD-16) |
 | Q-5a | First payment gateway | Razorpay (OD-11) |
+| Q-19 | Add-on markup rounding | Round add-ons too (OD-39, D-59) |
+| Q-7 | Commission basis | After restaurant-funded discounts (OD-39) |
+| Q-6 | SMS/OTP provider | MSG91; Google/Apple sign-in later (OD-39) |
 | Q-20 | Cancellation money | OD-38 / D-70 (rider compensation with Phase 6) |
 | Q-16 | GitHub push | Pushed 2026-09-24 using `https://harshad1411@github.com/harshad1411/bitemitra.git` (the username in the URL selects the right saved credential) |
 
 ### Open — must be answered before **production financial launch** (do not block development)
 - **Q-3 (CA)** GST liability on food (platform as e-commerce operator vs restaurant) and taxable value when marked up; GST on delivery / platform / small-order fees, surcharges, packaging; GST on commission; TCS (GST) and TDS (income tax) on restaurant payouts; invoice issuer per document type. See [PRICING.md §11](PRICING.md#11-open-tax--legal-questions-owner--ca-must-decide).
 - **Q-4 (legal)** Is customer-price markup over the restaurant's menu price permitted for Jamzo's model; must it be disclosed; does it make Jamzo seller of record?
-- **Q-7 (business)** Default commission basis and the base for restaurant-funded discounts (display price incl. markup vs restaurant base price).
-- **Q-5b** Payout rails for restaurant/rider settlements (manual bank transfer vs RazorpayX-style payouts API).
+- **Q-5b** Payouts (OD-39): automatic payout when the restaurant requests it and an admin approves, with a manual (bank transfer) mode too — Phase 8; provider (e.g. RazorpayX) to be chosen then.
 - **Q-12 (legal)** Legal entity + GSTIN, FSSAI obligations as aggregator, policies (privacy, terms, refunds), rider engagement model, DPDP compliance.
 
 ### Open — needed for later phases or real-device testing
-- **Q-6** Indian DLT-compliant SMS/OTP provider (MSG91, Gupshup, Exotel, Twilio…) and email provider. **Q-6b** Google/Apple sign-in client ids.
+- **Q-6b** MSG91 account, DLT sender id and templates (owner); email provider; Google/Apple sign-in later.
 - **Q-11** Hosting target and budget; acceptability of SaaS processors (e.g. Sentry) for data.
 - **Q-13** Jamzo brand assets: logo, colours, typography (placeholders in use — D-16, D-17). Should the legacy BiteMitra kit be deleted?
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
-- **Q-17 (toolchains)** Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
-- **Q-19 (business)** Should a markup rule's rounding also apply to add-on prices? Today it does not (D-59); e.g. an add-on can show ₹27.50.
-- **Q-18 (Expo/EAS)** An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).
+- **Q-17 (toolchains)** — install **approved** (OD-39). Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
+- **Q-18 (Expo/EAS)** — owner will create it (OD-39). An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).
