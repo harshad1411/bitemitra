@@ -928,14 +928,72 @@ describe('per-line commission (order items, Phase 5)', () => {
 });
 
 describe('add-on rounding (Q-19 → OD-39)', () => {
-  it('add-ons get the markup rule\'s rounding; free add-ons stay free; FIXED markups skip add-ons', async () => {
+  it("add-ons get the markup rule's rounding; free add-ons stay free; FIXED markups skip add-ons", async () => {
     const { addonDisplay } = await import('./quote.js');
     const pct = (rounding) => ({ type: 'PERCENTAGE', valueBps: 1000, rounding, applyToAddons: true });
     expect(addonDisplay(2_500, pct({ mode: 'NEAREST_1', direction: 'HALF_UP' }))).toBe(2_800); // ₹27.50 → ₹28
     expect(addonDisplay(2_500, pct({ mode: 'NONE', direction: 'HALF_UP' }))).toBe(2_750);
     expect(addonDisplay(0, pct({ mode: 'PSYCHOLOGICAL', direction: 'UP', endingDigit: 9 }))).toBe(0);
-    expect(addonDisplay(2_500, { ...pct({ mode: 'NEAREST_1', direction: 'HALF_UP' }), applyToAddons: false })).toBe(2_500);
-    expect(addonDisplay(2_500, { type: 'FIXED', valuePaise: 1_000, rounding: { mode: 'NONE' }, applyToAddons: true })).toBe(2_500);
+    expect(
+      addonDisplay(2_500, { ...pct({ mode: 'NEAREST_1', direction: 'HALF_UP' }), applyToAddons: false }),
+    ).toBe(2_500);
+    expect(
+      addonDisplay(2_500, {
+        type: 'FIXED',
+        valuePaise: 1_000,
+        rounding: { mode: 'NONE' },
+        applyToAddons: true,
+      }),
+    ).toBe(2_500);
   });
 });
 
+describe('final rider pay (D-78)', () => {
+  it('actual distance, waiting beyond free minutes (capped), incentives by time, tip on top', async () => {
+    const { riderEarningFinal } = await import('./quote.js');
+    const params = {
+      basePaise: 2_500,
+      includedM: 2_000,
+      perKmPaise: 600,
+      billingUnitM: 100,
+      minPaise: 2_500,
+      waitingFreeMin: 10,
+      waitingPerMinPaise: 100,
+      waitingCapPaise: 1_000,
+      incentives: [{ kind: 'NIGHT', type: 'FIXED', value: 500, window: { start: '23:00', end: '06:00' } }],
+    };
+    const day = new Date('2026-09-28T07:30:00Z'); // 13:00 IST
+    const r = riderEarningFinal(params, {
+      deliveryDistanceM: 3_450,
+      pickupDistanceM: 900,
+      waitingMin: 13.2,
+      tipPaise: 2_000,
+      now: day,
+      timeZone: 'Asia/Kolkata',
+    });
+    // 1.45 km over the included 2 km → 15 units of 100 m × ₹0.60 = ₹9; waiting 14 − 10 = 4 min × ₹1.
+    expect(r).toMatchObject({
+      distancePaise: 900,
+      waitingPaise: 400,
+      waitingMin: 14,
+      tripPaise: 3_800,
+      tipPaise: 2_000,
+      totalPaise: 5_800,
+      pickupDistanceM: 900,
+    });
+    const night = new Date('2026-09-28T18:00:00Z'); // 23:30 IST
+    const n = riderEarningFinal(params, {
+      deliveryDistanceM: 1_000,
+      pickupDistanceM: 0,
+      waitingMin: 45,
+      tipPaise: 0,
+      now: night,
+      timeZone: 'Asia/Kolkata',
+    });
+    expect(n).toMatchObject({
+      waitingPaise: 1_000,
+      incentives: [{ kind: 'NIGHT', amountPaise: 500 }],
+      tripPaise: 4_000,
+    });
+  });
+});

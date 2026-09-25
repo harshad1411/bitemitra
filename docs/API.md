@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (153 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -130,6 +130,7 @@ _Generated from the route definitions by `pnpm docs:api` (153 endpoints). Do not
 | `PATCH` | `/v1/admin/customers/:id/cod` | admin token | ADMIN | `customers.manage` |  |
 | `POST` | `/v1/admin/customers/:id/reveal` | admin token | ADMIN | `customers.view + customers.pii` |  |
 | `GET` | `/v1/admin/dashboard` | admin token | ADMIN | `dashboard.view` |  |
+| `GET` | `/v1/admin/dispatch` | admin token | ADMIN | `orders.view` |  |
 | `GET` | `/v1/admin/flags` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/flags/:key` | admin token | ADMIN | `flags.manage` |  |
 | `GET` | `/v1/admin/geo/cities` | admin token | ADMIN | `geo.view` |  |
@@ -155,9 +156,12 @@ _Generated from the route definitions by `pnpm docs:api` (153 endpoints). Do not
 | `PATCH` | `/v1/admin/notification-templates/:id` | admin token | ADMIN | `notifications.manage` |  |
 | `GET` | `/v1/admin/orders` | admin token | ADMIN | `orders.view` |  |
 | `GET` | `/v1/admin/orders/:id` | admin token | ADMIN | `orders.view` |  |
+| `POST` | `/v1/admin/orders/:id/assign` | admin token | ADMIN | `orders.assign_rider` |  |
+| `GET` | `/v1/admin/orders/:id/assignments` | admin token | ADMIN | `orders.view` |  |
 | `POST` | `/v1/admin/orders/:id/attention` | admin token | ADMIN | `orders.edit` |  |
 | `POST` | `/v1/admin/orders/:id/cancel` | admin token | ADMIN | `orders.cancel` |  |
 | `POST` | `/v1/admin/orders/:id/notes` | admin token | ADMIN | `orders.edit` |  |
+| `POST` | `/v1/admin/orders/:id/unassign` | admin token | ADMIN | `orders.assign_rider` |  |
 | `GET` | `/v1/admin/permissions` | admin token | ADMIN | `roles.view` |  |
 | `GET` | `/v1/admin/pricing/effective` | admin token | ADMIN | `pricing.view` |  |
 | `POST` | `/v1/admin/pricing/preview` | admin token | ADMIN | `pricing.view` |  |
@@ -194,6 +198,12 @@ _Generated from the route definitions by `pnpm docs:api` (153 endpoints). Do not
 | `PATCH` | `/v1/admin/restaurants/:id/settings` | admin token | ADMIN | `restaurants.manage` |  |
 | `POST` | `/v1/admin/restaurants/:id/transitions` | admin token | ADMIN | `restaurants.view` |  |
 | `PUT` | `/v1/admin/restaurants/:id/zones` | admin token | ADMIN | `restaurants.manage` |  |
+| `GET` | `/v1/admin/rider-documents/:id/file` | admin token | ADMIN | `riders.view` |  |
+| `POST` | `/v1/admin/rider-documents/:id/review` | admin token | ADMIN | `riders.approve` |  |
+| `GET` | `/v1/admin/riders` | admin token | ADMIN | `riders.view` |  |
+| `GET` | `/v1/admin/riders/:id` | admin token | ADMIN | `riders.view` |  |
+| `PATCH` | `/v1/admin/riders/:id/cod` | admin token | ADMIN | `riders.manage` |  |
+| `POST` | `/v1/admin/riders/:id/status` | admin token | ADMIN | `riders.approve` |  |
 | `GET` | `/v1/admin/roles` | admin token | ADMIN | `roles.view` |  |
 | `POST` | `/v1/admin/roles` | admin token | ADMIN | `roles.manage` |  |
 | `DELETE` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |
@@ -250,6 +260,24 @@ _Generated from the route definitions by `pnpm docs:api` (153 endpoints). Do not
 | `POST` | `/v1/restaurant/products/:id/availability` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id/menu` | required | RESTAURANT | — |  |
+| `POST` | `/v1/rider/application/submit` | required | RIDER | — |  |
+| `POST` | `/v1/rider/documents` | required | RIDER | — |  |
+| `GET` | `/v1/rider/earnings` | required | RIDER | — |  |
+| `POST` | `/v1/rider/locations` | required | RIDER | — |  |
+| `GET` | `/v1/rider/me` | required | RIDER | — |  |
+| `PUT` | `/v1/rider/me` | required | RIDER | — |  |
+| `POST` | `/v1/rider/offers/:id/accept` | required | RIDER | — |  |
+| `POST` | `/v1/rider/offers/:id/reject` | required | RIDER | — |  |
+| `POST` | `/v1/rider/proof` | required | RIDER | — |  |
+| `POST` | `/v1/rider/status` | required | RIDER | — |  |
+| `POST` | `/v1/rider/trips/:id/arrived` | required | RIDER | — |  |
+| `POST` | `/v1/rider/trips/:id/at-restaurant` | required | RIDER | — |  |
+| `POST` | `/v1/rider/trips/:id/delivered` | required | RIDER | — |  |
+| `POST` | `/v1/rider/trips/:id/issue` | required | RIDER | — |  |
+| `POST` | `/v1/rider/trips/:id/picked-up` | required | RIDER | — |  |
+| `POST` | `/v1/rider/trips/:id/unassign` | required | RIDER | — |  |
+| `PUT` | `/v1/rider/vehicle` | required | RIDER | — |  |
+| `GET` | `/v1/rider/work` | required | RIDER | — |  |
 
 <!-- routes:end -->
 

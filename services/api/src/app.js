@@ -29,6 +29,11 @@ import cmsRoutes from './modules/cms/routes.js';
 import customersRoutes from './modules/customers/routes.js';
 import orderRoutes from './modules/orders/routes.js';
 import notificationRoutes from './modules/notifications/routes.js';
+import riderAppRoutes from './modules/riders/app-routes.js';
+import riderAdminRoutes from './modules/riders/admin-routes.js';
+import dispatchAdminRoutes from './modules/dispatch/admin-routes.js';
+import { createDispatch } from './modules/dispatch/service.js';
+import { createTrips } from './modules/dispatch/trips.js';
 import { createDistanceProvider } from './modules/delivery/distance.js';
 import { mediaBase } from './modules/media/urls.js';
 import { createFieldCipher } from '@jamzo/auth';
@@ -91,6 +96,9 @@ export async function buildApp(deps) {
     fieldCipher: createFieldCipher(env.FIELD_ENCRYPTION_KEY),
     distance: deps.distance ?? createDistanceProvider(),
     mediaBase: mediaBase(env),
+    dispatch: createDispatch({ prisma, clock, config, log: app.log }),
+    trips: createTrips({ prisma, clock, otpSecret: env.FIELD_ENCRYPTION_KEY }),
+    otpSecret: env.FIELD_ENCRYPTION_KEY,
   });
   app.decorateRequest('client', null);
 
@@ -209,6 +217,9 @@ export async function buildApp(deps) {
   await app.register(customersRoutes);
   await app.register(orderRoutes);
   await app.register(notificationRoutes);
+  await app.register(riderAppRoutes);
+  await app.register(riderAdminRoutes);
+  await app.register(dispatchAdminRoutes);
 
   return app;
 }

@@ -124,7 +124,7 @@ describe('money outcome', () => {
   };
   const prepaid = { paidPaise: 40000, foodValuePaise: 30000, tripEstimatePaise: 3000 };
   it('fee is kept from what was paid; the rest is refunded; the platform absorbs the gap', () => {
-    const r = cancel(base('PREPARING'), {
+    const r = cancel(base('PREPARING', 'ACCEPTED'), {
       by: 'CUSTOMER',
       reasonCode: 'LATE',
       now,
@@ -141,7 +141,7 @@ describe('money outcome', () => {
     expect(r.changes.financialStatus).toBe('REFUND_PENDING');
   });
   it('cash on delivery: nothing was paid, so no fee can be kept and nothing is refunded', () => {
-    const r = cancel(base('PREPARING'), {
+    const r = cancel(base('PREPARING', 'ACCEPTED'), {
       by: 'CUSTOMER',
       reasonCode: 'LATE',
       now,
@@ -241,5 +241,30 @@ describe('owner rule OD-38: no refund after acceptance, Jamzo pays the restauran
       refundDuePaise: 32_100,
       restaurantCompensationPaise: 0,
     });
+  });
+});
+
+describe('rider compensation only when a rider had accepted (OD-39)', () => {
+  const riderPaid = rule(true, { riderCompensation: { type: 'TRIP_ESTIMATE' } });
+  const params = {
+    ...DEFAULT,
+    AFTER_ACCEPT: stage(riderPaid, riderPaid, riderPaid),
+    AFTER_PREPARING: stage(riderPaid, riderPaid, riderPaid),
+  };
+  const go = (deliveryStatus) =>
+    cancel(base('PREPARING', deliveryStatus), {
+      by: 'ADMIN',
+      reasonCode: 'X',
+      now,
+      rule: { id: 'r', params },
+      amounts,
+    });
+  it('pays the trip estimate when the rider accepted or waits at the restaurant', () => {
+    expect(go('ACCEPTED').outcome).toMatchObject({ riderCompensationPaise: 3_000, platformLossPaise: 3_000 });
+    expect(go('AT_RESTAURANT').outcome.riderCompensationPaise).toBe(3_000);
+  });
+  it('pays nothing while still searching or only offered', () => {
+    for (const s of ['NOT_STARTED', 'SEARCHING', 'ASSIGNED', 'NO_RIDER_FOUND'])
+      expect(go(s).outcome.riderCompensationPaise).toBe(0);
   });
 });

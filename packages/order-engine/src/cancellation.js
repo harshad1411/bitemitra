@@ -51,6 +51,9 @@ export const cancellationParams = z.object({
   AFTER_PICKUP: stageRules,
 });
 
+/** Delivery states in which a rider has accepted the trip and is working on it. */
+export const RIDER_ENGAGED = ['ACCEPTED', 'AT_RESTAURANT', 'PICKED_UP', 'ON_THE_WAY', 'ARRIVED'];
+
 /** Stage from the tracks at the moment of cancellation. */
 export function cancellationStage(o) {
   if (['PICKED_UP', 'ON_THE_WAY', 'ARRIVED', 'DELIVERED'].includes(o.deliveryStatus)) return 'AFTER_PICKUP';
@@ -115,10 +118,12 @@ export function cancel(order, i) {
   if (!rule.allowed && i.by !== 'ADMIN')
     throw new OrderTransitionError('ACTOR_NOT_ALLOWED', cannotMessage(i.by, stage), { stage, byRule: true });
 
+  // A rider is compensated only if one had accepted the trip (OD-39): offered or unassigned trips cost nothing.
+  const riderEngaged = RIDER_ENGAGED.includes(order.deliveryStatus);
   const computed = {
     customerFeePaise: money(rule.customerFee, i.amounts),
     restaurantCompensationPaise: money(rule.restaurantCompensation, i.amounts),
-    riderCompensationPaise: money(rule.riderCompensation, i.amounts),
+    riderCompensationPaise: riderEngaged ? money(rule.riderCompensation, i.amounts) : 0,
   };
   const chosen = i.override ?? computed;
   // A fee can only be kept out of money actually paid; with cash on delivery nothing has been paid.

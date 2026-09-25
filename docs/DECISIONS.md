@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
+Last updated: 2026-09-25 (Phase 6 in progress).
 
 ---
 
@@ -57,6 +57,8 @@ Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
 | OD-38 | **Cancellation money** (owner, 2026-09-25, answers Q-20): (1) a customer who cancels **after the restaurant accepted** gets **no refund** of an online payment; if the restaurant or Jamzo cancels, the customer gets a full refund. (2) Cash-on-delivery customers who cancel after acceptance lose cash on delivery (they can still pay online) after **2** such cancellations (setting `cod.maxRefusedOrders`); cancelling before acceptance never counts; support can switch it back on. (3) **Jamzo absorbs the loss**: when a customer cancels after acceptance the restaurant is paid its full food value (its own prices minus the discount it funds), paid by Jamzo. Rider compensation is decided with dispatch (Phase 6). → D-70. |
 | OD-39 | **Owner answers of 2026-09-25** (questions listed after Phase 5): CH-5 **approved**; CH-9 **approved**; D-30 **acknowledged**; add-on prices get the markup's rounding (Q-19 → D-59 changed); a rider who has to give up a trip because of a cancellation gets the trip pay estimate, paid by Jamzo (Phase 6); the owner creates the Expo account and projects (Q-18); installing the iOS/Android build tools on the development Mac is **approved** (Q-17); SMS/OTP provider **MSG91**, Google/Apple sign-in later (Q-6); commission basis **after restaurant-funded discounts** (Q-7, as built); restaurants may edit their menus (CH-12, approval mode being confirmed); payouts automatic on request with admin approval, manual also possible (Q-5b, Phase 8); legal details to follow (Q-12). Being clarified with the owner: admin login method (CH-8/Q-15), maps provider (Q-14), brand assets upload (Q-13), tax treatment (Q-3), markup model (Q-4), hosting (Q-11). |
 | OD-40 | **Hosting** (owner, 2026-09-25, Q-11): a **single provider — DigitalOcean, Bangalore region**. **Nothing is hosted during development** ($0). Launch plan **"Option 2" (≈ $35/month before GST, prices checked 2026-09-25):** one 2 GiB Droplet running the API, worker and admin (automatic security updates, restarts, alerts), **managed PostgreSQL 1 GiB** (daily backups, point-in-time restore, separate from the server) and Spaces for files. Domain stays at GoDaddy (DNS records point to DigitalOcean). Upgrade to a standby database and a second server (~$114/month) only when downtime would really hurt — no code changes. **Speed is a launch condition (D-72):** if the pre-launch load test misses the targets, the owner is shown the upgrade price before launch. **Re-check prices and show the owner the final cost on launch day.** Considered and not chosen: Supabase (cannot run the API/worker), Hostinger VPS (cheaper, but no managed database — database on the server with weekly backups), HostGator India/BigRock (website-oriented, more expensive). → D-71, D-72. |
+| OD-41 | **Start Phase 6 — Riders** (owner, 2026-09-25: "next phase start"). Taken as acceptance of Phase 5. Phase 6 = §78: rider app, location, assignment, pickup, delivery, COD; tested. Maps: Google Maps behind a provider switch in Jamzo Admin (owner's suggestion accepted in principle; key from the owner). Open for later phases: CH-8/Q-15 (admin login), CH-12 approval mode, Q-13 asset upload, Q-3/Q-4 tax and markup confirmations, commission GST payer, rider payout style. |
+
 
 ## 2. Engineering decisions
 
@@ -532,6 +534,81 @@ after launch:
 If the targets are missed, the fix (optimisation or a larger setup) and its price go to the owner before
 launch.
 
+## 2d. Engineering decisions — Phase 6 (riders and delivery)
+
+### D-73. Rider onboarding
+A rider signs up in the rider app with phone OTP, then fills in an application: name, city, vehicle
+(type, registration number) and documents — driving licence, vehicle RC, PAN and one identity proof — as
+photos stored privately (like restaurant KYC, D-36). Document numbers are encrypted with the field cipher
+(D-35) and shown masked (last 4). Aadhaar numbers are **not** collected; if Aadhaar is used as identity
+proof, only its photo with the number masked by the rider is accepted (legal review Q-12). Admins with
+`riders.approve` review each document and move the rider APPLIED → DOCUMENT_PENDING → UNDER_REVIEW →
+ACTIVE (or REJECTED / SUSPENDED), audit-logged. Signing in never makes someone an active rider (OD-13).
+
+### D-74. Online, location and availability
+An ACTIVE rider goes online/offline (a `rider_shifts` row per online period). While online the app sends
+location in batches (`POST /v1/rider/locations`, up to 50 points, every 10 s on a trip / 30 s idle —
+setting `riders.location`); the latest point updates `rider_availability` (zone resolved on the server),
+the rest is kept as breadcrumbs for 30 days (later: partitioning). A rider whose last location is older
+than `dispatch.maxLocationAgeSec` is not offered orders. Background location on the phone uses
+`expo-location` + `expo-task-manager` with the platform disclosures of MOBILE.md §5.
+
+### D-75. Dispatch
+When the restaurant accepts (`dispatch.startAt` = ON_ACCEPT) the order's delivery track starts
+(DISPATCH_START) and the pure `rankCandidates` strategy in `@jamzo/delivery-engine` ranks eligible riders:
+online, ACTIVE, fresh location, in the order's zone (or neighbouring zones), fewer than
+`dispatch.maxActiveOrders` active orders, COD enabled with headroom under the rider's COD limit for COD
+orders, not already offered this order. Score: pickup distance first, then fewer active orders; acceptance
+history is not used (setting off, §22). The best rider gets an **offer** for `dispatch.offerTimeoutSec`
+(30 s); reject or timeout → next rider; after `dispatch.maxOffers` or `dispatch.noRiderEscalationSec` →
+NO_RIDER_FOUND, the order is flagged for operations and dispatch retries every minute. Admins with
+`orders.assign_rider` can assign a rider directly (audit-logged) or reassign. **Two riders can never both
+hold an order**: the partial unique index on accepted assignments decides, plus the order version. The
+strategy is an interface; the first algorithm is not baked in (§22).
+
+### D-76. Pickup and delivery
+Rider flow: accept → at restaurant → pickup (the rider types the **last 4 digits of the order number**,
+and the kitchen must have marked the order ready) → on the way → arrived → delivered. Delivery OTP (flag `delivery_otp`, **on** in the seed): a 4-digit code shown to the customer, hashed on the order, entered by the
+rider. Proof photo (flag `proof_of_delivery`, off by default). Navigation opens Google Maps / Apple Maps on
+the phone with the destination; no in-app map for the rider in Phase 6. Rider problems (accident, food
+damaged, cannot reach customer) are reported from the trip screen and flag the order for operations.
+
+### D-77. Cash on delivery
+At delivery the rider confirms the cash collected (must equal the order's COD amount). This writes a
+`payments` row (provider `cod`, SUCCEEDED, `codCollectedById`, `codCollectedAt`) — the `payments` table is
+activated now for COD only; online payments follow in Phase 7. A rider's **COD balance** = cash collected
+minus cash deposited and verified; deposits and their verification are Phase 8 (`rider_cod_deposits`), so
+until then the balance only grows and admins see it. Dispatch will not offer a COD order to a rider whose
+balance plus the order would exceed the rider's limit (`riders.codLimitPaise` or setting
+`cod.riderLimitPaise`); admins can disable COD per rider. COD is never counted as platform cash (§23).
+
+### D-78. Rider earnings
+Computed at DELIVERED from the rider earning rule in force (D-53) with the **actual** trip: pickup
+distance (rider's position at acceptance → restaurant) and delivery distance (restaurant → customer, the
+same distance source as the quote), waiting time (at restaurant → picked up, beyond the free minutes),
+incentives by time window, plus the customer's tip (100%, OD-15) as a separate line → one `rider_earnings`
+row with the full breakdown. When an order a rider had accepted is cancelled before pickup, the rider gets
+the trip estimate, paid by Jamzo (OD-39) — recorded in the cancellation outcome and as a `rider_earnings`
+row marked as a cancelled trip. Ledgers and payouts are Phase 8. The rider sees their own earnings only —
+never food prices, commission or restaurant money (§21).
+
+### D-79. What the customer sees of the rider
+From rider acceptance until delivery: the rider's first name, vehicle type, the rider's position rounded
+to about 100 m, the delivery status and an ETA. Never the rider's phone number: calls go through a
+`CallBridge` interface; until a masked-calling provider is chosen, both apps show Jamzo support's number
+(D-80). In-app live maps for customers need the maps key (Google Maps on Android; Q-14): Phase 6 shows
+distance and ETA text and an "open in maps" link; the map view is switched on when the key exists.
+
+### D-80. Contact between customer and rider
+`CallBridge` interface with a `support-routed` implementation (shows support.contact) until a masked-number
+provider (Exotel, Knowlarity…) is chosen (new question Q-21). Real numbers are never exposed.
+
+### D-81. Maps provider switch
+`DistanceProvider` gets a Google implementation (Routes API "computeRoutes" distance) selected by the
+setting `maps.provider` (NONE | GOOGLE) in Jamzo Admin; the API key stays in the server environment
+(`GOOGLE_MAPS_API_KEY`). Tested against a fake endpoint only — **not verified with Google** until the key
+exists. With NONE or a failure, the existing labelled fallback applies (D-48).
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 
@@ -557,6 +634,8 @@ launch.
 | CH-18 | Phase 5 accepts COD and ₹0 orders only; online payment waits for Phase 7 (D-60) | payments are Phase 7; the client can never be trusted to have paid | customers cannot pay online until Phase 7 | Recorded |
 | CH-19 | Phase 5 orders stop at READY_FOR_PICKUP; delivery starts with dispatch in Phase 6 (D-61) | riders are Phase 6 | the full lifecycle is proven in the engine tests, not end to end, until Phase 6 | Recorded |
 | CH-21 | Customers may cancel after the restaurant accepted (ORDERS.md §5 left it to the rule) — with no refund, per OD-38 | owner decision | fewer support calls; the app warns before confirming | Recorded |
+| CH-22 | `payments` activated in Phase 6 for cash-on-delivery collection only (planned for Phase 7) | COD collection must be recorded when the rider delivers (§23) | online payment still Phase 7 | Recorded |
+| CH-23 | Aadhaar numbers are not collected (spec lists KYC generally) | Aadhaar storage rules; not needed for delivery partners | identity proof by photo only, number masked by the rider | Recorded (legal review Q-12) |
 | CH-20 | `reviews` and `notification_preferences` move from Phase 5 to Phase 6 / Phase 9 | reviews need delivered orders; preferences need the marketing notifications of Phase 9 | none now | Recorded |
 | CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | **Approved (OD-39)** |
 
@@ -619,4 +698,5 @@ launch.
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
 - **Q-17 (toolchains)** — install **approved** (OD-39). Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
+- **Q-21** Masked calling provider for customer ↔ rider calls (Exotel, Knowlarity, …) — until then calls go to Jamzo support (D-80).
 - **Q-18 (Expo/EAS)** — owner will create it (OD-39). An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).

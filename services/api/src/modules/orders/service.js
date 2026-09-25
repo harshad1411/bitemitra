@@ -5,6 +5,7 @@ import { resolveScoped } from '@jamzo/config';
 import { AppError, conflict } from '../../core/errors.js';
 import { enqueueEvent } from '../../core/outbox.js';
 import { RULE_SOURCES } from '../pricing/service.js';
+import { releaseRiderOnCancel } from '../dispatch/trips.js';
 
 export const REALTIME_CHANNEL = 'jamzo_realtime';
 
@@ -69,8 +70,14 @@ export async function publishOrder(tx, order, patch, event) {
     restaurantStatus: patch.restaurantStatus ?? order.restaurantStatus,
     deliveryStatus: patch.deliveryStatus ?? order.deliveryStatus,
     needsAttention: patch.needsAttention ?? order.needsAttention ?? false,
+    riderId: patch.riderId !== undefined ? patch.riderId : (order.riderId ?? null),
   });
   await tx.$executeRaw`SELECT pg_notify(${REALTIME_CHANNEL}, ${msg})`;
+}
+
+/** Any other realtime notice (rider offers, rider positions), delivered on commit like order notices. */
+export async function publishNotice(tx, notice) {
+  await tx.$executeRaw`SELECT pg_notify(${REALTIME_CHANNEL}, ${JSON.stringify(notice)})`;
 }
 
 /**
@@ -216,6 +223,7 @@ export async function cancelDecision(
     after: async (tx2) => {
       await tx2.orderCancellation.create({ data: { orderId: order.id, ...result.outcome, createdAt: now } });
       await releaseCouponUsage(tx2, order.id, now);
+      await releaseRiderOnCancel(tx2, order, result.outcome, now);
       if (by === 'CUSTOMER' && order.paymentMethod === 'COD' && result.stage !== 'BEFORE_ACCEPT' && codLimit)
         await applyCodStrike(tx2, order.customerId, codLimit, now);
     },

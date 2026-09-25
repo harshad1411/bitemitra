@@ -1139,12 +1139,14 @@ model RiderDocument {
   id           String         @id @default(uuid(7)) @db.Uuid
   riderId      String         @db.Uuid
   kind         String // AADHAAR, DRIVING_LICENCE, RC, PAN, INSURANCE
-  number       String? // stored masked/encrypted at app layer
+  number       String? // encrypted with the field cipher (D-73)
+  numberLast4  String?
   mediaId      String?        @db.Uuid
   status       DocumentStatus @default(PENDING)
   expiresOn    DateTime?      @db.Date
   reviewedById String?        @db.Uuid
   reviewNote   String?
+  reviewedAt   DateTime?      @db.Timestamptz(3)
   createdAt    DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime       @updatedAt @db.Timestamptz(3)
 
@@ -1223,6 +1225,7 @@ model RiderEarning {
   riderId    String   @db.Uuid
   orderId    String   @unique @db.Uuid
   ruleId     String?  @db.Uuid
+  kind       String   @default("DELIVERY") // DELIVERY | CANCELLED_TRIP (D-78)
   totalPaise Int
   breakdown  Json // { base, pickupDistance, deliveryDistance, waiting, night, peak, manual, … }
   createdAt  DateTime @default(now()) @db.Timestamptz(3)
@@ -1578,6 +1581,14 @@ model Order {
   contactless            Boolean               @default(false)
   deliveryOtpHash        String?
   prepTimeMinutes        Int?
+  /// The delivery partner currently holding the order (set on acceptance, cleared on unassign — D-75).
+  riderId                String?               @db.Uuid
+  riderAtRestaurantAt    DateTime?             @db.Timestamptz(3)
+  arrivedAtCustomerAt    DateTime?             @db.Timestamptz(3)
+  /// Wrong delivery-code entries by the rider; after 5 the order is flagged for operations (D-76).
+  deliveryOtpAttempts    Int                   @default(0)
+  /// Private photo taken at handover when the proof_of_delivery flag is on (D-76).
+  deliveryProofMediaId   String?               @db.Uuid
   /// Operations must look at this order (e.g. the restaurant did not respond in time — D-68).
   needsAttention         Boolean               @default(false)
   attentionReason        String?
@@ -1620,6 +1631,7 @@ model Order {
   @@index([customerId, createdAt])
   @@index([deliveryStatus, createdAt])
   @@index([needsAttention, createdAt])
+  @@index([riderId, status])
   @@map("orders")
 }
 

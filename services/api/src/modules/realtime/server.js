@@ -6,7 +6,7 @@ import { Server } from 'socket.io';
 import { verifyAccessToken, PARTNER_APP_RESTAURANT_STATUSES } from '@jamzo/auth';
 import { REALTIME_CHANNEL } from '../orders/service.js';
 
-const APPS = new Set(['CUSTOMER', 'RESTAURANT']);
+const APPS = new Set(['CUSTOMER', 'RESTAURANT', 'RIDER']);
 
 /**
  * @param {import('../../core/types.js').JamzoApp} app
@@ -53,6 +53,10 @@ export async function attachRealtime(app, { databaseUrl, secret, corsOrigins = [
       const customer = await prisma.customer.findUnique({ where: { userId } });
       if (customer) socket.join(`customer:${customer.id}`);
     }
+    if (appId === 'RIDER') {
+      const rider = await prisma.rider.findUnique({ where: { userId } });
+      if (rider?.onboardingStatus === 'ACTIVE') socket.join(`rider:${rider.id}`);
+    }
     // Restaurant devices join only restaurants they are an active member of, and only while approved.
     socket.on('subscribe', async (msg, ack) => {
       const reply = typeof ack === 'function' ? ack : () => {};
@@ -78,6 +82,22 @@ export async function attachRealtime(app, { databaseUrl, secret, corsOrigins = [
     } catch {
       return;
     }
+    if (msg.kind === 'offer') {
+      io.to(`rider:${msg.riderId}`).emit('offer.new', {
+        orderId: msg.orderId,
+        assignmentId: msg.assignmentId,
+      });
+      return;
+    }
+    if (msg.kind === 'rider_location') {
+      io.to(`customer:${msg.customerId}`).emit('rider.location', {
+        orderId: msg.orderId,
+        lat: msg.lat,
+        lng: msg.lng,
+        at: msg.at,
+      });
+      return;
+    }
     if (msg.kind !== 'order') return;
     const update = {
       orderId: msg.orderId,
@@ -88,6 +108,7 @@ export async function attachRealtime(app, { databaseUrl, secret, corsOrigins = [
     };
     io.to(`restaurant:${msg.restaurantId}`).emit('order.updated', update);
     io.to(`customer:${msg.customerId}`).emit('order.updated', update);
+    if (msg.riderId) io.to(`rider:${msg.riderId}`).emit('order.updated', update);
   });
   listener.on('error', (err) => app.log.error({ err }, 'realtime listener error'));
 

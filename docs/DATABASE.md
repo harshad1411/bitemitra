@@ -36,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active now (migrated): Phase 1, 2, 3, 4 and 5 tables. **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1–6 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -110,12 +110,25 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | coupon_usages | One usage per order; released on cancellation (D-65) |
 | notifications, notification_templates | Recorded order notifications and their editable templates (D-69) |
 
-### 3.2 LATER PHASE (27 tables)
+### 3.1d CORE — Phase 6, riders and delivery (8 tables)
+
+| Table | Why it exists |
+|---|---|
+| rider_documents | Licence, RC, PAN, identity proof and photo with private files, encrypted numbers (last 4 shown) and review status (D-73) |
+| rider_vehicles | The rider's active vehicle (type decides the documents required) |
+| rider_availability | Hot row: online, active orders, latest position and zone (D-74) |
+| rider_locations | Breadcrumbs from location batches (30-day retention planned) |
+| rider_shifts | One row per online period; one open shift per rider |
+| order_assignments | Offers and accepted trips; the database allows one accepted assignment per order (D-75) |
+| rider_earnings | Final pay per delivered order, or the cancelled-trip pay, with the full breakdown (D-78) |
+| payments | Cash-on-delivery collection now (who, when, how much — D-77); online payments in Phase 7 (CH-22) |
+
+### 3.2 LATER PHASE (19 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
-| 6 — Riders & dispatch | rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, order_assignments, reviews | KYC, live availability/location, offers & single-winner assignment, earnings; ratings of delivered orders (CH-20) |
-| 7 — Payments | payments, payment_attempts, payment_events, refunds | Provider-agnostic payments (Razorpay first), idempotent webhooks, refunds |
+| 6+ — Ratings | reviews | Ratings of delivered orders (CH-20); built with the ratings flag |
+| 7 — Payments | payment_attempts, payment_events, refunds | Provider-agnostic payments (Razorpay first), idempotent webhooks, refunds |
 | 8 — Financials | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, rider_payouts, rider_cod_deposits, platform_ledger_entries, invoices, invoice_sequences | Append-only ledgers, COD reconciliation, settlements, statements, invoices |
 | 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views, notification_preferences | Support with full order context, saved table views |
 

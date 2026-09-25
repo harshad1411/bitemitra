@@ -230,7 +230,8 @@ const DEFINITIONS = [
     key: 'dispatch.offers',
     section: 'Delivery',
     label: 'Dispatch offers',
-    description: 'When dispatch starts, offer timeout, max offers before escalation, and rider capacity.',
+    description:
+      'When dispatch starts, offer timeout, max offers before escalation, rider capacity, how fresh a rider’s location must be, how far a rider may be from the restaurant, and how often dispatch retries (D-75).',
     schema: z.object({
       startAt: z.enum(['ON_ACCEPT', 'PREP_TIME_MINUS_LEAD']),
       leadMinutes: z.number().int().min(0).max(60),
@@ -238,6 +239,9 @@ const DEFINITIONS = [
       maxOffers: z.number().int().min(1).max(50),
       noRiderEscalationSec: z.number().int().min(60).max(3600),
       maxActiveOrders: z.number().int().min(1).max(5),
+      maxLocationAgeSec: z.number().int().min(30).max(900).default(120),
+      maxPickupDistanceM: z.number().int().min(500).max(30_000).default(7_000),
+      retrySec: z.number().int().min(15).max(600).default(60),
     }),
     default: {
       startAt: 'ON_ACCEPT',
@@ -246,6 +250,9 @@ const DEFINITIONS = [
       maxOffers: 5,
       noRiderEscalationSec: 600,
       maxActiveOrders: 1,
+      maxLocationAgeSec: 120,
+      maxPickupDistanceM: 7_000,
+      retrySec: 60,
     },
     scopes: GEO_SCOPES,
     phase: 6,
@@ -446,6 +453,41 @@ const DEFINITIONS = [
     default: { tripIntervalSec: 10, idleIntervalSec: 30 },
     scopes: GEO_SCOPES,
     phase: 6,
+  },
+  {
+    key: 'riders.requiredDocuments',
+    section: 'Delivery',
+    label: 'Delivery partner documents',
+    description:
+      'Documents a delivery partner must have approved before going live, by vehicle (D-73). Aadhaar numbers are never collected.',
+    schema: z.object({
+      motorised: z
+        .array(z.enum(['DRIVING_LICENCE', 'VEHICLE_RC', 'PAN', 'ID_PROOF', 'PHOTO', 'INSURANCE']))
+        .min(1),
+      bicycle: z
+        .array(z.enum(['DRIVING_LICENCE', 'VEHICLE_RC', 'PAN', 'ID_PROOF', 'PHOTO', 'INSURANCE']))
+        .min(1),
+    }),
+    default: {
+      motorised: ['DRIVING_LICENCE', 'VEHICLE_RC', 'PAN', 'ID_PROOF', 'PHOTO'],
+      bicycle: ['PAN', 'ID_PROOF', 'PHOTO'],
+    },
+    scopes: GEO_SCOPES,
+    phase: 6,
+    critical: true,
+    legalReview: true,
+  },
+  {
+    key: 'maps.provider',
+    section: 'Delivery',
+    label: 'Maps provider',
+    description:
+      'Road distances come from this provider; NONE uses straight line × road factor, clearly marked (D-48, D-81). The API key is kept in the server environment, never here.',
+    schema: z.object({ provider: z.enum(['NONE', 'GOOGLE']) }),
+    default: { provider: 'NONE' },
+    scopes: ['GLOBAL'],
+    phase: 6,
+    critical: true,
   },
   {
     key: 'customer.guestBrowsing',

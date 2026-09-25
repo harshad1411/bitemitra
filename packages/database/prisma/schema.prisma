@@ -106,6 +106,14 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum VehicleType {
+  BICYCLE
+  MOTORCYCLE
+  SCOOTER
+  EV_SCOOTER
+  CAR
+}
+
 enum OrderStatus {
   CREATED
   PAYMENT_PENDING
@@ -183,6 +191,24 @@ enum PaymentMethod {
   CARD
   NETBANKING
   WALLET
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum AssignmentStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  TIMED_OUT
+  CANCELLED
+  COMPLETED
 }
 
 enum FundingSource {
@@ -943,9 +969,118 @@ model Rider {
   updatedAt                  DateTime              @updatedAt @db.Timestamptz(3)
 
   user         User               @relation(fields: [userId], references: [id])
+  documents    RiderDocument[]
+  vehicles     RiderVehicle[]
+  availability RiderAvailability?
+  locations    RiderLocation[]
+  shifts       RiderShift[]
+  earnings     RiderEarning[]
+  assignments  OrderAssignment[]
 
   @@index([cityId, onboardingStatus])
   @@map("riders")
+}
+
+model RiderDocument {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  riderId      String         @db.Uuid
+  kind         String // AADHAAR, DRIVING_LICENCE, RC, PAN, INSURANCE
+  number       String? // encrypted with the field cipher (D-73)
+  numberLast4  String?
+  mediaId      String?        @db.Uuid
+  status       DocumentStatus @default(PENDING)
+  expiresOn    DateTime?      @db.Date
+  reviewedById String?        @db.Uuid
+  reviewNote   String?
+  reviewedAt   DateTime?      @db.Timestamptz(3)
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([riderId])
+  @@map("rider_documents")
+}
+
+model RiderVehicle {
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  riderId            String      @db.Uuid
+  type               VehicleType
+  registrationNumber String?
+  isActive           Boolean     @default(true)
+  createdAt          DateTime    @default(now()) @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([riderId])
+  @@map("rider_vehicles")
+}
+
+/// Live dispatch state (one row per rider; hot, frequently updated).
+model RiderAvailability {
+  riderId          String    @id @db.Uuid
+  isOnline         Boolean   @default(false)
+  activeOrderCount Int       @default(0)
+  lastLat          Decimal?  @db.Decimal(9, 6)
+  lastLng          Decimal?  @db.Decimal(9, 6)
+  lastLocationAt   DateTime? @db.Timestamptz(3)
+  zoneId           String?   @db.Uuid
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@index([isOnline, zoneId])
+  @@map("rider_availability")
+}
+
+/// Location breadcrumb trail (append-only; partition/TTL in production — see DATABASE.md).
+model RiderLocation {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  riderId    String   @db.Uuid
+  lat        Decimal  @db.Decimal(9, 6)
+  lng        Decimal  @db.Decimal(9, 6)
+  accuracyM  Int?
+  speedMps   Decimal? @db.Decimal(6, 2)
+  headingDeg Int?
+  orderId    String?  @db.Uuid
+  recordedAt DateTime @db.Timestamptz(3) // device timestamp
+  receivedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([riderId, recordedAt])
+  @@map("rider_locations")
+}
+
+model RiderShift {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  riderId   String    @db.Uuid
+  startedAt DateTime  @db.Timestamptz(3)
+  endedAt   DateTime? @db.Timestamptz(3)
+  zoneId    String?   @db.Uuid
+
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([riderId, startedAt])
+  @@map("rider_shifts")
+}
+
+/// Per-order rider earning with the full calculation breakdown (immutable).
+model RiderEarning {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  riderId    String   @db.Uuid
+  orderId    String   @unique @db.Uuid
+  ruleId     String?  @db.Uuid
+  kind       String   @default("DELIVERY") // DELIVERY | CANCELLED_TRIP (D-78)
+  totalPaise Int
+  breakdown  Json // { base, pickupDistance, deliveryDistance, waiting, night, peak, manual, … }
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([riderId, createdAt])
+  @@map("rider_earnings")
 }
 
 model MarkupRule {
@@ -1267,6 +1402,14 @@ model Order {
   contactless            Boolean               @default(false)
   deliveryOtpHash        String?
   prepTimeMinutes        Int?
+  /// The delivery partner currently holding the order (set on acceptance, cleared on unassign — D-75).
+  riderId                String?               @db.Uuid
+  riderAtRestaurantAt    DateTime?             @db.Timestamptz(3)
+  arrivedAtCustomerAt    DateTime?             @db.Timestamptz(3)
+  /// Wrong delivery-code entries by the rider; after 5 the order is flagged for operations (D-76).
+  deliveryOtpAttempts    Int                   @default(0)
+  /// Private photo taken at handover when the proof_of_delivery flag is on (D-76).
+  deliveryProofMediaId   String?               @db.Uuid
   /// Operations must look at this order (e.g. the restaurant did not respond in time — D-68).
   needsAttention         Boolean               @default(false)
   attentionReason        String?
@@ -1292,7 +1435,10 @@ model Order {
   pricingSnapshot OrderPricingSnapshot?
   address         OrderAddress?
   notes           OrderNote[]
+  assignments     OrderAssignment[]
+  payments        Payment[]
   couponUsage     CouponUsage?
+  riderEarning    RiderEarning?
   cancellation    OrderCancellation?
 
   @@unique([customerId, idempotencyKey])
@@ -1302,6 +1448,7 @@ model Order {
   @@index([customerId, createdAt])
   @@index([deliveryStatus, createdAt])
   @@index([needsAttention, createdAt])
+  @@index([riderId, status])
   @@map("orders")
 }
 
@@ -1461,6 +1608,60 @@ model OrderNote {
 
   @@index([orderId])
   @@map("order_notes")
+}
+
+/// Rider offers/assignments. The partial unique index "one ACCEPTED assignment per order"
+/// is created in a SQL migration (Prisma cannot express partial indexes) — spec §69.
+model OrderAssignment {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  orderId         String           @db.Uuid
+  riderId         String           @db.Uuid
+  status          AssignmentStatus @default(OFFERED)
+  isManual        Boolean          @default(false)
+  assignedById    String?          @db.Uuid
+  strategy        String? // dispatch algorithm id + version
+  score           Decimal?         @db.Decimal(10, 4)
+  pickupDistanceM Int?
+  offeredAt       DateTime         @default(now()) @db.Timestamptz(3)
+  expiresAt       DateTime?        @db.Timestamptz(3)
+  respondedAt     DateTime?        @db.Timestamptz(3)
+  rejectReason    String?
+
+  order Order @relation(fields: [orderId], references: [id])
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([orderId, status])
+  @@index([riderId, status])
+  @@map("order_assignments")
+}
+
+model Payment {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  orderId           String        @db.Uuid
+  method            PaymentMethod
+  provider          String // razorpay | cashfree | cod | …
+  status            PaymentStatus @default(INITIATED)
+  amountPaise       Int
+  capturedPaise     Int           @default(0)
+  refundedPaise     Int           @default(0)
+  gatewayFeePaise   Int?
+  gatewayTaxPaise   Int?
+  providerOrderId   String?
+  providerPaymentId String?
+  /// COD reconciliation (spec §23)
+  codCollectedById  String?       @db.Uuid
+  codCollectedAt    DateTime?     @db.Timestamptz(3)
+  codReconciledAt   DateTime?     @db.Timestamptz(3)
+  codSettlementRef  String?
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
+
+  order    Order            @relation(fields: [orderId], references: [id])
+
+  @@unique([provider, providerOrderId])
+  @@index([orderId])
+  @@index([status, createdAt])
+  @@map("payments")
 }
 
 model NotificationTemplate {

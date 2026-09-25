@@ -914,6 +914,97 @@ export const customerCodBody = z.object({
   codDisabled: z.boolean(),
   reason: z.string().trim().min(3).max(500),
 });
+// ── Riders and dispatch (Phase 6) ───────────────────────────────────────────
+
+export const VEHICLE_TYPES = ['BICYCLE', 'MOTORCYCLE', 'SCOOTER', 'EV_SCOOTER', 'CAR'];
+export const RIDER_DOCUMENT_KINDS = [
+  'DRIVING_LICENCE',
+  'VEHICLE_RC',
+  'PAN',
+  'ID_PROOF',
+  'PHOTO',
+  'INSURANCE',
+];
+export const riderProfileBody = z.object({
+  name: z.string().trim().min(2).max(80),
+  cityId: uuid,
+  addressLine: optionalText(200),
+});
+export const riderVehicleBody = z.object({
+  type: z.enum(VEHICLE_TYPES),
+  registrationNumber: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{2}\s?\d{1,2}\s?[A-Z]{0,3}\s?\d{1,4}$/, 'Use a number like GJ02AB1234')
+    .nullable()
+    .optional(),
+});
+export const riderDocumentFields = z.object({
+  kind: z.enum(RIDER_DOCUMENT_KINDS),
+  number: z.string().trim().min(4).max(30).nullable().optional(),
+});
+export const riderStatusBody = z.object({ online: z.boolean() });
+export const riderLocationsBody = z.object({
+  points: z
+    .array(
+      z.object({
+        lat: latitude,
+        lng: longitude,
+        accuracyM: z.number().int().min(0).max(10_000).optional(),
+        speedMps: z.number().min(0).max(100).optional(),
+        headingDeg: z.number().int().min(0).max(359).optional(),
+        recordedAt: isoDateTime,
+      }),
+    )
+    .min(1)
+    .max(50),
+});
+export const OFFER_REJECT_REASONS = ['TOO_FAR', 'VEHICLE_ISSUE', 'ON_BREAK', 'OTHER'];
+export const offerRejectBody = z.object({ reason: z.enum(OFFER_REJECT_REASONS) });
+export const pickupBody = z.object({
+  orderDigits: z
+    .string()
+    .trim()
+    .regex(/^\d{4}$/, 'Enter the last 4 digits of the order number'),
+});
+export const deliverBody = z.object({
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{4}$/)
+    .optional(),
+  codCollectedPaise: pricePaise.optional(),
+  proofMediaId: uuid.optional(),
+});
+export const RIDER_ISSUES = ['ACCIDENT', 'FOOD_DAMAGED', 'CUSTOMER_UNREACHABLE', 'RESTAURANT_DELAY', 'OTHER'];
+export const riderIssueBody = z.object({ kind: z.enum(RIDER_ISSUES), note: optionalText(300) });
+export const riderUnassignBody = z.object({ reason: z.string().trim().min(3).max(300) });
+export const riderEarningsQuery = z.object({ range: z.enum(['TODAY', 'WEEK']).default('TODAY') });
+
+export const riderListQuery = pageQuery.extend({
+  status: z
+    .enum(['APPLIED', 'DOCUMENT_PENDING', 'UNDER_REVIEW', 'ACTIVE', 'SUSPENDED', 'REJECTED'])
+    .optional(),
+  online: z.enum(['true', 'false']).optional(),
+  cityId: uuid.optional(),
+});
+export const riderTransitionBody = z.object({
+  to: z.enum(['DOCUMENT_PENDING', 'UNDER_REVIEW', 'ACTIVE', 'SUSPENDED', 'REJECTED']),
+  reason: z.string().trim().min(3).max(500),
+});
+export const riderDocumentReviewBody = z.object({
+  status: z.enum(['VERIFIED', 'REJECTED']),
+  note: optionalText(300),
+});
+export const riderCodBody = z.object({
+  codEnabled: z.boolean(),
+  codLimitPaise: pricePaise.nullable(),
+  reason: z.string().trim().min(3).max(500),
+});
+export const assignRiderBody = z.object({ riderId: uuid, reason: z.string().trim().min(3).max(300) });
+export const unassignRiderBody = z.object({ reason: z.string().trim().min(3).max(300) });
+
 export const notificationTemplateBody = z.object({
   title: optionalText(100),
   body: z.string().trim().min(1).max(500),

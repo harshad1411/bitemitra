@@ -391,5 +391,31 @@ async function checkGuarantees(db) {
     `insert into order_cancellations ("orderId", stage, "cancelledByType", "reasonCode", "ruleSnapshot", "refundDuePaise") values ('${ids.order}', 'BEFORE_ACCEPT', 'CUSTOMER', 'X', '{}', -1)`,
     CHECK,
   );
+
+  // Phase 6 — riders, dispatch, cash on delivery
+  await db.exec(
+    `insert into rider_shifts (id, "riderId", "startedAt") values ('${id()}', '${ids.rider1}', now())`,
+  );
+  await rejects(
+    'a second open shift for the same rider',
+    `insert into rider_shifts (id, "riderId", "startedAt") values ('${id()}', '${ids.rider1}', now())`,
+    UNIQUE,
+  );
+  await db.exec(`insert into rider_availability ("riderId", "updatedAt") values ('${ids.rider1}', now())`);
+  await rejects(
+    'negative active-order count',
+    `update rider_availability set "activeOrderCount" = -1 where "riderId" = '${ids.rider1}'`,
+    CHECK,
+  );
+  await rejects(
+    'cash on delivery marked collected without who and when',
+    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "capturedPaise", "updatedAt") values ('${id()}', '${ids.order}', 'COD', 'cod', 'SUCCEEDED', 47900, 47900, now())`,
+    CHECK,
+  );
+  await rejects(
+    'unknown rider document kind',
+    `insert into rider_documents (id, "riderId", kind, "updatedAt") values ('${id()}', '${ids.rider1}', 'AADHAAR_NUMBER', now())`,
+    CHECK,
+  );
   console.log('✓ database-level guarantees hold');
 }

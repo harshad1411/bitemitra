@@ -16,7 +16,8 @@ import {
   createConsoleSmsProvider,
 } from '@jamzo/notifications';
 import { createOrderJobs } from '@jamzo/api/order-jobs';
-import { createNotificationDispatcher } from '@jamzo/api/notification-dispatch';
+import { createNotificationDispatcher, mergeHandlers } from '@jamzo/api/notification-dispatch';
+import { createDispatch } from '@jamzo/api/dispatch';
 import { buildApp } from '@jamzo/api/app';
 import { createLocalStorage } from '@jamzo/api/media-storage';
 import { createOutboxRelay } from '../../../services/workers/src/outbox.js';
@@ -68,11 +69,12 @@ export default async function globalSetup() {
     prisma,
     log: console,
     workerId: 'e2e',
-    handlers: {
-      'media.uploaded': createMediaUploadedHandler({ prisma, storage }),
-      ...createNotificationDispatcher({ prisma, push: createConsolePushProvider() }),
-      ...createOrderJobs({ prisma }),
-    },
+    handlers: mergeHandlers(
+      { 'media.uploaded': createMediaUploadedHandler({ prisma, storage }) },
+      createNotificationDispatcher({ prisma, push: createConsolePushProvider() }),
+      createOrderJobs({ prisma }),
+      createDispatch({ prisma }).handlers,
+    ),
   });
   process.env.E2E_ORDERS = JSON.stringify(await placeDemoOrders(app, prisma, sms));
   const timer = setInterval(() => relay.tick().catch((e) => console.error('e2e worker', e)), 500);

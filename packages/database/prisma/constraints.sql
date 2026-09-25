@@ -234,3 +234,34 @@ ALTER TABLE order_cancellations ADD CONSTRAINT order_cancellations_money_nonneg 
 ALTER TABLE order_cancellations ADD CONSTRAINT order_cancellations_stage_valid CHECK (
   stage IN ('BEFORE_ACCEPT', 'AFTER_ACCEPT', 'AFTER_PREPARING', 'AFTER_PICKUP')
 );
+
+-- ── Phase 6: riders, dispatch, cash on delivery ─────────────────────────────
+
+ALTER TABLE rider_availability ADD CONSTRAINT rider_availability_active_nonneg CHECK ("activeOrderCount" >= 0);
+ALTER TABLE rider_availability ADD CONSTRAINT rider_availability_position_valid CHECK (
+  ("lastLat" IS NULL) = ("lastLng" IS NULL)
+  AND ("lastLat" IS NULL OR ("lastLat" BETWEEN -90 AND 90 AND "lastLng" BETWEEN -180 AND 180))
+);
+ALTER TABLE rider_locations ADD CONSTRAINT rider_locations_position_valid CHECK (
+  lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180
+);
+ALTER TABLE rider_documents ADD CONSTRAINT rider_documents_kind_valid CHECK (
+  kind IN ('DRIVING_LICENCE', 'VEHICLE_RC', 'PAN', 'ID_PROOF', 'PHOTO', 'INSURANCE')
+);
+ALTER TABLE rider_earnings ADD CONSTRAINT rider_earnings_valid CHECK (
+  "totalPaise" >= 0 AND kind IN ('DELIVERY', 'CANCELLED_TRIP')
+);
+-- A shift ends after it starts; one open shift per rider.
+ALTER TABLE rider_shifts ADD CONSTRAINT rider_shifts_window CHECK ("endedAt" IS NULL OR "endedAt" >= "startedAt");
+CREATE UNIQUE INDEX rider_shifts_one_open
+  ON rider_shifts ("riderId")
+  WHERE "endedAt" IS NULL;
+-- An offer that was answered has an answer time; an offer expires.
+ALTER TABLE order_assignments ADD CONSTRAINT order_assignments_offer_valid CHECK (
+  (status = 'OFFERED' AND "respondedAt" IS NULL) OR status <> 'OFFERED'
+);
+-- Cash on delivery is recorded with who collected it and when (D-77).
+ALTER TABLE payments ADD CONSTRAINT payments_cod_collection CHECK (
+  provider <> 'cod' OR status <> 'SUCCEEDED' OR ("codCollectedById" IS NOT NULL AND "codCollectedAt" IS NOT NULL)
+);
+

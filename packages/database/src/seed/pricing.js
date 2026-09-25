@@ -122,16 +122,29 @@ export async function seedPricing(prisma, { log }) {
     ...extra,
   });
   // After acceptance the customer may cancel but gets no refund; Jamzo pays the restaurant its food value.
+  // A delivery partner who had accepted the trip gets the trip estimate, paid by Jamzo (OD-39); the engine
+  // pays it only when a rider had actually accepted (D-78).
+  const riderPaid = { riderCompensation: { type: 'TRIP_ESTIMATE' } };
   const customerLate = outcome(true, {
     customerFee: { type: 'FULL_AMOUNT' },
     restaurantCompensation: { type: 'FOOD_VALUE' },
+    ...riderPaid,
   });
+
   added += Number(
     await ensureRule(prisma, 'cancellationRule', {
       params: {
         BEFORE_ACCEPT: { CUSTOMER: outcome(true), RESTAURANT: outcome(false), ADMIN: outcome(true) },
-        AFTER_ACCEPT: { CUSTOMER: customerLate, RESTAURANT: outcome(true), ADMIN: outcome(true) },
-        AFTER_PREPARING: { CUSTOMER: customerLate, RESTAURANT: outcome(true), ADMIN: outcome(true) },
+        AFTER_ACCEPT: {
+          CUSTOMER: customerLate,
+          RESTAURANT: outcome(true, riderPaid),
+          ADMIN: outcome(true, riderPaid),
+        },
+        AFTER_PREPARING: {
+          CUSTOMER: customerLate,
+          RESTAURANT: outcome(true, riderPaid),
+          ADMIN: outcome(true, riderPaid),
+        },
         AFTER_PICKUP: { CUSTOMER: outcome(false), RESTAURANT: outcome(false), ADMIN: outcome(true) },
       },
     }),

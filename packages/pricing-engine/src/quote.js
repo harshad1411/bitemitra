@@ -159,6 +159,37 @@ export function riderEarningEstimate(params, { distanceM, now, timeZone }) {
   return { basePaise: params.basePaise, distancePaise: distancePay, incentives, totalPaise: total };
 }
 
+/**
+ * Final delivery-partner pay for a delivered order (D-78): the same rule as the estimate, applied to the
+ * actual delivery distance, plus waiting pay beyond the free minutes (capped), plus the customer's tip as a
+ * separate line (100% to the rider, OD-15). The pickup distance is recorded, not paid, in this rule version.
+ * @param {any} params parsed rider earning rule
+ * @param {{ deliveryDistanceM: number, pickupDistanceM: number, waitingMin: number, tipPaise: number, now: Date, timeZone: string }} trip
+ */
+export function riderEarningFinal(
+  params,
+  { deliveryDistanceM, pickupDistanceM, waitingMin, tipPaise, now, timeZone },
+) {
+  const est = riderEarningEstimate(params, { distanceM: deliveryDistanceM, now, timeZone });
+  const billable = Math.max(0, Math.ceil(waitingMin) - params.waitingFreeMin);
+  const waitingRaw = billable * params.waitingPerMinPaise;
+  const waitingPaise =
+    params.waitingCapPaise != null ? Math.min(waitingRaw, params.waitingCapPaise) : waitingRaw;
+  const tripPaise = est.totalPaise + waitingPaise;
+  return {
+    basePaise: est.basePaise,
+    distancePaise: est.distancePaise,
+    incentives: est.incentives,
+    waitingPaise,
+    waitingMin: Math.ceil(waitingMin),
+    deliveryDistanceM,
+    pickupDistanceM,
+    tipPaise,
+    tripPaise,
+    totalPaise: tripPaise + tipPaise,
+  };
+}
+
 /** Is a coupon/promotion usable for this cart, and on which lines? */
 function evaluateOffer(offer, { lines, ctx, now, foodSubtotal, flags }) {
   const t = offer.targeting ?? {};

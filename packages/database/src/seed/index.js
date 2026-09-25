@@ -9,7 +9,7 @@ import { seedPricing } from './pricing.js';
 /** Feature flags (CONFIGURATION.md §4). Values are development defaults. */
 /** Default order notification texts (placeholders `{{…}}` are filled from the order). */
 export const NOTIFICATION_TEMPLATES =
-  /** @type {{ event: string, appId: 'CUSTOMER'|'RESTAURANT', title: string, body: string }[]} */ ([
+  /** @type {{ event: string, appId: 'CUSTOMER'|'RESTAURANT'|'RIDER', title: string, body: string }[]} */ ([
     {
       event: 'order.placed',
       appId: 'CUSTOMER',
@@ -57,6 +57,48 @@ export const NOTIFICATION_TEMPLATES =
       appId: 'RESTAURANT',
       title: 'Order #{{shortNumber}} cancelled',
       body: 'Stop preparing order {{orderNumber}}.',
+    },
+    {
+      event: 'order.rider_accepted',
+      appId: 'CUSTOMER',
+      title: 'Delivery partner assigned',
+      body: '{{riderName}} is heading to {{restaurantName}} for your order.',
+    },
+    {
+      event: 'order.picked_up',
+      appId: 'CUSTOMER',
+      title: 'On the way',
+      body: '{{riderName}} picked up your order and is on the way.',
+    },
+    {
+      event: 'order.arriving',
+      appId: 'CUSTOMER',
+      title: 'Your food is here',
+      body: '{{riderName}} has arrived with your order {{orderNumber}}.',
+    },
+    {
+      event: 'order.delivered',
+      appId: 'CUSTOMER',
+      title: 'Delivered',
+      body: 'Enjoy your meal from {{restaurantName}}!',
+    },
+    {
+      event: 'order.rider_at_restaurant',
+      appId: 'RESTAURANT',
+      title: 'Delivery partner arrived #{{shortNumber}}',
+      body: '{{riderName}} is at the counter for order {{orderNumber}}.',
+    },
+    {
+      event: 'order.rider_assigned',
+      appId: 'RIDER',
+      title: 'New delivery request',
+      body: 'Pickup from {{restaurantName}}. Open the app to accept.',
+    },
+    {
+      event: 'order.cancelled',
+      appId: 'RIDER',
+      title: 'Order cancelled',
+      body: 'Order {{orderNumber}} was cancelled. Do not pick it up.',
     },
   ]);
 
@@ -331,11 +373,28 @@ async function seedDemo(prisma, log) {
   });
 
   const activeRider = await userFor(DEMO_ACCOUNTS.activeRider, 'Demo Delivery Partner');
-  await prisma.rider.upsert({
+  const rider = await prisma.rider.upsert({
     where: { userId: activeRider.id },
     create: { userId: activeRider.id, cityId: cityIds.unjha, onboardingStatus: 'ACTIVE' },
     update: {},
   });
+  // Phase 6: the demo partner has a vehicle and approved documents (demo data, no real files) so they can
+  // go online and receive offers.
+  if (!(await prisma.riderVehicle.count({ where: { riderId: rider.id } })))
+    await prisma.riderVehicle.create({
+      data: { riderId: rider.id, type: 'MOTORCYCLE', registrationNumber: 'GJ02AB1234' },
+    });
+  for (const kind of ['DRIVING_LICENCE', 'VEHICLE_RC', 'PAN', 'ID_PROOF', 'PHOTO'])
+    if (!(await prisma.riderDocument.count({ where: { riderId: rider.id, kind } })))
+      await prisma.riderDocument.create({
+        data: {
+          riderId: rider.id,
+          kind,
+          status: 'VERIFIED',
+          reviewNote: 'Demo data',
+          reviewedAt: new Date(),
+        },
+      });
   const pendingRider = await userFor(DEMO_ACCOUNTS.pendingRider, 'Pending Delivery Partner');
   await prisma.rider.upsert({
     where: { userId: pendingRider.id },

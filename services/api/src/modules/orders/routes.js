@@ -18,6 +18,8 @@ import {
   uuid,
 } from '@jamzo/validation';
 import { canCancel, cancel } from '@jamzo/order-engine';
+import { deliveryCode } from '../dispatch/otp.js';
+import { firstName } from '../riders/service.js';
 import { restaurantRoleCan } from '@jamzo/auth';
 import { CLIENT_HEADERS } from '@jamzo/shared-types';
 import { AppError, forbidden, invalid, notFound, unauthenticated } from '../../core/errors.js';
@@ -58,6 +60,7 @@ const KITCHEN_VIEWS = {
   PAST: { restaurantStatus: { in: ['COMPLETED', 'REJECTED', 'CANCELLED'] } },
 };
 const LIVE = { status: { notIn: ['CREATED', 'PAYMENT_PENDING', 'PAYMENT_FAILED'] } };
+const RIDER_VISIBLE = ['ACCEPTED', 'AT_RESTAURANT', 'PICKED_UP', 'ON_THE_WAY', 'ARRIVED'];
 
 /** @param {import('../../core/types.js').JamzoApp} app */
 export default async function orderRoutes(app) {
@@ -112,7 +115,42 @@ export default async function orderRoutes(app) {
     } catch {
       allowed = false; // no rule configured → the customer cannot cancel in the app
     }
-    return { ...customerOrderView(o, { canCancel: allowed }), cancelTerms };
+    return { ...customerOrderView(o, { canCancel: allowed }), cancelTerms, delivery: await deliveryInfo(o) };
+  }
+
+  /**
+   * What the customer sees of the delivery (D-79): the rider's first name, vehicle and a rounded position
+   * from acceptance to delivery, the delivery code when the flag is on, and support's number for calls
+   * (D-80). Never the rider's phone.
+   */
+  async function deliveryInfo(o) {
+    if (!RIDER_VISIBLE.includes(o.deliveryStatus) || !o.riderId)
+      return { rider: null, code: null, contact: null };
+    const [rider, flags, support] = await Promise.all([
+      prisma.rider.findUnique({
+        where: { id: o.riderId },
+        include: { user: true, availability: true, vehicles: { where: { isActive: true } } },
+      }),
+      config.flagMap({ cityId: o.cityId, zoneId: o.zoneId, appId: 'CUSTOMER' }),
+      config.resolve('support.contact'),
+    ]);
+    const av = rider?.availability;
+    return {
+      rider: rider && {
+        firstName: firstName(rider.user.name),
+        vehicle: rider.vehicles[0]?.type ?? null,
+        position:
+          av?.lastLat != null
+            ? {
+                lat: Math.round(Number(av.lastLat) * 1000) / 1000,
+                lng: Math.round(Number(av.lastLng) * 1000) / 1000,
+                at: av.lastLocationAt,
+              }
+            : null,
+      },
+      code: flags.delivery_otp ? deliveryCode(app.services.otpSecret, o.id) : null,
+      contact: { via: 'SUPPORT', phone: support.value.phone },
+    };
   }
 
   app.post(
@@ -206,10 +244,20 @@ export default async function orderRoutes(app) {
     });
     if (!o) throw notFound('Order');
     const timeoutSec = await acceptWindow(membership.restaurantId);
-    return restaurantOrderView(o, {
-      finance: restaurantRoleCan(membership.role, 'orders.finance'),
-      acceptBy: o.placedAt ? new Date(o.placedAt.getTime() + timeoutSec * 1000) : null,
-    });
+    const rider = o.riderId
+      ? await prisma.rider.findUnique({ where: { id: o.riderId }, include: { user: true } })
+      : null;
+    return {
+      ...restaurantOrderView(o, {
+        finance: restaurantRoleCan(membership.role, 'orders.finance'),
+        acceptBy: o.placedAt ? new Date(o.placedAt.getTime() + timeoutSec * 1000) : null,
+      }),
+      // "Rider details after assignment" (spec §19): first name and whether they are on the way or here.
+      rider: rider && {
+        firstName: firstName(rider.user.name),
+        atRestaurant: o.deliveryStatus === 'AT_RESTAURANT',
+      },
+    };
   }
 
   /** The partner order the caller may act on (membership + capability checked every time). */
@@ -444,12 +492,29 @@ export default async function orderRoutes(app) {
       } catch {
         cancelPreview = { ruleId: null, possible: false };
       }
+      const assignments = await prisma.orderAssignment.findMany({
+        where: { orderId: id },
+        orderBy: { offeredAt: 'asc' },
+        include: { rider: { include: { user: true } } },
+      });
       return {
         ...adminOrderView(o, { maskPii: !canInCity(request, 'customers.pii', o.cityId) }),
+        assignments: assignments.map((a) => ({
+          id: a.id,
+          riderId: a.riderId,
+          riderName: a.rider.user.name,
+          status: a.status,
+          manual: a.isManual,
+          pickupDistanceM: a.pickupDistanceM,
+          offeredAt: a.offeredAt,
+          respondedAt: a.respondedAt,
+          rejectReason: a.rejectReason,
+        })),
         cancelPreview,
         permissions: {
           cancel: canInCity(request, 'orders.cancel', o.cityId),
           edit: canInCity(request, 'orders.edit', o.cityId),
+          assignRider: canInCity(request, 'orders.assign_rider', o.cityId),
         },
       };
     },
