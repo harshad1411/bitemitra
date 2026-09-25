@@ -23,6 +23,8 @@ import { PriceInput } from '@/components/jamzo/price-input';
 import { api } from '@/lib/api';
 import { useApiMutation } from '@/lib/mutation';
 import {
+  CANCEL_ACTORS,
+  CANCEL_STAGES,
   bpsToPercentText,
   metresToKmText,
   parseKmToMetres,
@@ -184,10 +186,36 @@ function initialForm(type, p) {
           end: i.window?.end ?? '',
         })),
       };
+    case 'CANCELLATION': {
+      const cell = (c) => ({
+        allowed: c?.allowed ?? false,
+        feeType: c?.customerFee?.type ?? 'NONE',
+        fee: amountText(c?.customerFee),
+        restType: c?.restaurantCompensation?.type ?? 'NONE',
+        rest: amountText(c?.restaurantCompensation),
+        riderType: c?.riderCompensation?.type ?? 'NONE',
+        rider: amountText(c?.riderCompensation),
+      });
+      return {
+        matrix: Object.fromEntries(
+          CANCEL_STAGES.map(([st]) => [
+            st,
+            Object.fromEntries(CANCEL_ACTORS.map(([a]) => [a, cell(p?.[st]?.[a])])),
+          ]),
+        ),
+      };
+    }
     default:
       return {};
   }
 }
+
+const amountText = (m) =>
+  !m || m.type === 'NONE' || m.type === 'FOOD_VALUE' || m.type === 'TRIP_ESTIMATE'
+    ? ''
+    : m.type === 'FIXED'
+      ? money(m.valuePaise)
+      : bpsToPercentText(m.valueBps);
 
 /** Converts the form to API params; problems are returned instead of guessed. */
 function toParams(type, f) {
@@ -335,6 +363,35 @@ function toParams(type, f) {
         })),
       };
       break;
+    case 'CANCELLATION': {
+      const amount = (t, v, label) =>
+        t === 'FIXED'
+          ? { type: t, valuePaise: rs(v, label) }
+          : t === 'PERCENT_OF_FOOD'
+            ? { type: t, valueBps: pc(v, label) }
+            : { type: t };
+      params = Object.fromEntries(
+        CANCEL_STAGES.map(([st, stLabel]) => [
+          st,
+          Object.fromEntries(
+            CANCEL_ACTORS.map(([a, aLabel]) => {
+              const c = f.matrix[st][a];
+              const where = `${stLabel}, ${aLabel}`;
+              return [
+                a,
+                {
+                  allowed: a === 'ADMIN' ? true : c.allowed,
+                  customerFee: amount(c.feeType, c.fee, `${where}: customer fee`),
+                  restaurantCompensation: amount(c.restType, c.rest, `${where}: restaurant compensation`),
+                  riderCompensation: amount(c.riderType, c.rider, `${where}: rider compensation`),
+                },
+              ];
+            }),
+          ),
+        ]),
+      );
+      break;
+    }
     default:
       params = {};
   }
@@ -843,9 +900,100 @@ function ParamsForm({ type, f, set }) {
           </div>
         </div>
       );
+    case 'CANCELLATION':
+      return <CancellationMatrix f={f} set={set} />;
     default:
       return null;
   }
+}
+
+const FEE_TYPES = [
+  ['NONE', 'None'],
+  ['FIXED', 'Fixed ₹'],
+  ['PERCENT_OF_FOOD', '% of food'],
+];
+const RESTAURANT_TYPES = [
+  ['NONE', 'None'],
+  ['FOOD_VALUE', 'Food value'],
+  ['FIXED', 'Fixed ₹'],
+  ['PERCENT_OF_FOOD', '% of food'],
+];
+const RIDER_TYPES = [
+  ['NONE', 'None'],
+  ['TRIP_ESTIMATE', 'Trip pay'],
+  ['FIXED', 'Fixed ₹'],
+];
+
+/** Stage × actor grid for cancellation rules (D-66). Admins can always cancel; the grid sets the money. */
+function CancellationMatrix({ f, set }) {
+  const upd = (st, a, k) => (v) =>
+    set({ ...f, matrix: { ...f.matrix, [st]: { ...f.matrix[st], [a]: { ...f.matrix[st][a], [k]: v } } } });
+  const amount = (st, a, typeKey, valueKey, options, label) => {
+    const c = f.matrix[st][a];
+    const needsValue = c[typeKey] === 'FIXED' || c[typeKey] === 'PERCENT_OF_FOOD';
+    return (
+      <div className="flex items-center gap-1">
+        <Select value={c[typeKey]} onValueChange={upd(st, a, typeKey)}>
+          <SelectTrigger className="h-8 w-28" aria-label={label}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map(([v, l]) => (
+              <SelectItem key={v} value={v}>
+                {l}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {needsValue ? (
+          <Input
+            className="h-8 w-20 tabular-nums"
+            aria-label={`${label} value`}
+            value={c[valueKey]}
+            onChange={(e) => upd(st, a, valueKey)(e.target.value)}
+          />
+        ) : null}
+      </div>
+    );
+  };
+  return (
+    <div className="grid gap-3">
+      <Alert>
+        <AlertDescription>
+          A customer fee can only be kept from money already paid, so with cash on delivery it is always ₹0.
+          Compensation is recorded on the cancellation and paid through settlements (Phase 8).
+        </AlertDescription>
+      </Alert>
+      {CANCEL_STAGES.map(([st, stLabel]) => (
+        <fieldset key={st} className="grid gap-2 rounded-md border p-3">
+          <legend className="px-1 text-sm font-medium">{stLabel}</legend>
+          {CANCEL_ACTORS.map(([a, aLabel]) => (
+            <div key={a} className="flex flex-wrap items-center gap-3 text-sm">
+              <span className="w-24 font-medium">{aLabel}</span>
+              {a === 'ADMIN' ? (
+                <span className="w-32 text-muted-foreground">Always allowed</span>
+              ) : (
+                <label className="flex w-32 items-center gap-2">
+                  <Switch
+                    checked={f.matrix[st][a].allowed}
+                    onCheckedChange={upd(st, a, 'allowed')}
+                    aria-label={`${stLabel}: ${aLabel} may cancel`}
+                  />
+                  {f.matrix[st][a].allowed ? 'May cancel' : 'Cannot'}
+                </label>
+              )}
+              {amount(st, a, 'feeType', 'fee', FEE_TYPES, `${stLabel}, ${aLabel}: customer fee`)}
+              {amount(st, a, 'restType', 'rest', RESTAURANT_TYPES, `${stLabel}, ${aLabel}: restaurant gets`)}
+              {amount(st, a, 'riderType', 'rider', RIDER_TYPES, `${stLabel}, ${aLabel}: rider gets`)}
+            </div>
+          ))}
+        </fieldset>
+      ))}
+      <p className="text-xs text-muted-foreground">
+        Columns: customer fee · restaurant compensation · rider compensation.
+      </p>
+    </div>
+  );
 }
 
 /**

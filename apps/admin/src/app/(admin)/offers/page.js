@@ -157,7 +157,7 @@ function OfferDialog({ kind, offer, onClose }) {
             {isCoupon
               ? 'Customers enter the code in the cart.'
               : 'Applied automatically when the cart qualifies (the best promotion wins).'}{' '}
-            Per-customer, usage and first-order limits are enforced at checkout from Phase 5.
+            Per-customer, usage and first-order limits are enforced at checkout.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">

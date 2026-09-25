@@ -1,6 +1,7 @@
 // Primary navigation (spec §28). Modules that do not exist yet are shown disabled with the phase that
 // delivers them — nothing looks finished that is not (OD-33).
 import {
+  Bell,
   Bike,
   Building2,
   Calculator,
@@ -31,7 +32,7 @@ export const NAV = [
     section: 'Operations',
     items: [
       { href: '/', label: 'Home', icon: Home, permission: 'dashboard.view' },
-      { label: 'Orders', icon: ShoppingBag, phase: 5 },
+      { href: '/orders', label: 'Orders', icon: ShoppingBag, permission: 'orders.view' },
       { label: 'Dispatch', icon: Truck, phase: 6 },
       { label: 'Support', icon: LifeBuoy, phase: 9 },
     ],
@@ -61,6 +62,7 @@ export const NAV = [
     items: [
       { href: '/cities', label: 'Cities & zones', icon: MapPinned, permission: 'geo.view' },
       { href: '/content', label: 'Home & content', icon: LayoutTemplate, permission: 'cms.manage' },
+      { href: '/notifications', label: 'Notifications', icon: Bell, permission: 'notifications.manage' },
       { href: '/media', label: 'Media', icon: Image, permission: 'media.view' },
       { href: '/settings', label: 'Configuration', icon: Settings, permission: 'config.view' },
       { label: 'Analytics', icon: ChartColumn, phase: 9 },

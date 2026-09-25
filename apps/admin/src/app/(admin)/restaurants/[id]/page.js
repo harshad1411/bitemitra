@@ -69,7 +69,7 @@ function StatusActions({ restaurant }) {
           pending?.to === 'SUSPENDED'
             ? 'The restaurant disappears from the customer app and its team loses access to the partner app until it is reinstated.'
             : pending?.to === 'ACTIVE'
-              ? 'The restaurant becomes live: customers will be able to order once ordering launches (Phase 5).'
+              ? 'The restaurant becomes live: customers can find it and order.'
               : undefined
         }
         confirmLabel={pending?.label}

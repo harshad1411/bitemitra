@@ -37,7 +37,7 @@ function Capabilities({ restaurant }) {
           <Label htmlFor="cap-auto" className="grid gap-0.5 font-normal">
             <span className="font-medium">Accept orders automatically</span>
             <span className="text-xs text-muted-foreground">
-              Takes effect when ordering launches (Phase 5).
+              New orders are accepted at once with the branch’s preparation time.
             </span>
           </Label>
         </div>

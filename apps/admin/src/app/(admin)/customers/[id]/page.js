@@ -1,6 +1,8 @@
 'use client';
 
 import { use, useState } from 'react';
+import Link from 'next/link';
+import { formatPaise } from '@jamzo/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useApiMutation } from '@/lib/mutation';
 import { formatDateTime } from '@/lib/format';
+import { statusLabel, statusTone } from '@/lib/orders';
 
 export default function CustomerPage({ params }) {
   const { id } = use(params);
@@ -68,7 +71,27 @@ export default function CustomerPage({ params }) {
           <CardHeader>
             <CardTitle>Orders</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">{c.orders.note}</CardContent>
+          <CardContent className="grid gap-1 text-sm">
+            {c.orders.recent.length ? (
+              c.orders.recent.map((o) => (
+                <Link
+                  key={o.id}
+                  href={`/orders/${o.id}`}
+                  className="flex flex-wrap justify-between gap-2 hover:underline"
+                >
+                  <span>
+                    <span className="font-mono text-xs">{o.orderNumber}</span> · {o.restaurantName}
+                  </span>
+                  <span className="tabular-nums">
+                    {formatPaise(o.totalPayablePaise)}{' '}
+                    <StatusBadge tone={statusTone(o.status)}>{statusLabel(o.status)}</StatusBadge>
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="text-muted-foreground">No orders yet.</p>
+            )}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>

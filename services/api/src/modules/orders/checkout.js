@@ -7,7 +7,7 @@ import { isUniqueViolation } from '@jamzo/database';
 import { AppError } from '../../core/errors.js';
 import { enqueueEvent } from '../../core/outbox.js';
 import { NOT_COUNTED_STATUSES, priceCart } from '../customer/cart.js';
-import { nextOrderNumber, publishOrder } from './service.js';
+import { applyResult, eventOn, nextOrderNumber, publishOrder } from './service.js';
 
 const blocked = (issues, quote) =>
   new AppError('CHECKOUT_BLOCKED', issues[0]?.message ?? 'This order cannot be placed right now.', {
@@ -79,7 +79,11 @@ export async function placeOrder(app, request, body, customer) {
   if (!address) throw new AppError('NOT_FOUND', 'Address not found.');
 
   const now = c.now;
-  const acceptance = await config.resolve('orders.restaurantAcceptance', c.ctx);
+  const [acceptance, ops] = await Promise.all([
+    config.resolve('orders.restaurantAcceptance', c.ctx),
+    config.resolve('restaurants.operations', c.ctx),
+  ]);
+  const busyExtra = ops.value.busyExtraPrepMinutes;
   const couponDiscount = q.discounts.find((d) => d.source === 'COUPON');
   const init = initialState({
     paymentMethod: body.paymentMethod,
@@ -237,7 +241,22 @@ export async function placeOrder(app, request, body, customer) {
         eventType: init.emits,
         payload: { orderId: order.id, event: 'CHECKOUT', status: order.status },
       });
-      if (order.status === 'PLACED')
+      await publishOrder(tx, order, {}, init.emits);
+      // Restaurants that accept automatically (restaurant setting): accepted by the system at once.
+      const settings = await tx.restaurantSettings.findUnique({ where: { restaurantId: c.restaurant.id } });
+      if (order.status === 'PLACED' && settings?.autoAccept) {
+        await applyResult(
+          tx,
+          order,
+          eventOn(order, 'ACCEPT', {
+            actor: { type: 'SYSTEM', id: null },
+            now: new Date(now.getTime() + init.history.length),
+            prepTimeMinutes: c.branch.prepTimeMinutes + (c.branch.busyMode ? busyExtra : 0),
+            reason: 'AUTO_ACCEPT',
+          }),
+          { now: new Date(now.getTime() + init.history.length) },
+        );
+      } else if (order.status === 'PLACED')
         // Restaurant acceptance timeout (D-68): acts only if the kitchen is still NEW when it runs.
         await enqueueEvent(tx, {
           aggregateType: 'ORDER',
@@ -246,7 +265,6 @@ export async function placeOrder(app, request, body, customer) {
           payload: { orderId: order.id, stage: 'TIMEOUT' },
           availableAt: new Date(now.getTime() + acceptance.value.timeoutSec * 1000),
         });
-      await publishOrder(tx, order, {}, init.emits);
       return order.id;
     });
     return { orderId, created: true };

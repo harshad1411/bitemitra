@@ -99,7 +99,9 @@ export function RulesTab({ type }) {
     <div className="grid gap-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          {def.help} The most specific rule wins: product → category → restaurant → zone → city → all cities.
+          {def.help} The most specific rule wins:{' '}
+          {['MARKUP', 'COMMISSION', 'TAX'].includes(type) ? 'product → category → ' : ''}restaurant → zone →
+          city → all cities.
         </p>
         {canWrite ? (
           <Button onClick={() => setDialog({ new: true })}>
@@ -140,7 +142,7 @@ export function RulesTab({ type }) {
                       </p>
                     </TableCell>
                     {type === 'SURGE' ? <TableCell className="text-xs">{r.kind}</TableCell> : null}
-                    <TableCell className="max-w-md text-sm">
+                    <TableCell className="max-w-md text-sm whitespace-normal">
                       {summarize(type, r.params)}
                       {r.pendingCaReview ? (
                         <StatusBadge tone="warning" className="ml-2">

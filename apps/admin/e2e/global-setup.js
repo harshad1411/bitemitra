@@ -1,5 +1,6 @@
 // Starts an isolated backend for the E2E run: embedded PostgreSQL → migrations → seed → API on :4100,
-// plus an in-process outbox worker so media renditions really get generated.
+// plus an in-process outbox worker (media renditions, order notifications and jobs), and a few real orders
+// placed through the API so the order screens have data (Phase 5).
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,7 +10,13 @@ import { startPostgresServer } from '@jamzo/database/postgres-server';
 import { createTemplateDatabase, urlForDatabase } from '@jamzo/database/testing';
 import { seed } from '@jamzo/database/seed';
 import { createFieldCipher } from '@jamzo/auth';
-import { createConsoleEmailProvider, createConsoleSmsProvider } from '@jamzo/notifications';
+import {
+  createConsoleEmailProvider,
+  createConsolePushProvider,
+  createConsoleSmsProvider,
+} from '@jamzo/notifications';
+import { createOrderJobs } from '@jamzo/api/order-jobs';
+import { createNotificationDispatcher } from '@jamzo/api/notification-dispatch';
 import { buildApp } from '@jamzo/api/app';
 import { createLocalStorage } from '@jamzo/api/media-storage';
 import { createOutboxRelay } from '../../../services/workers/src/outbox.js';
@@ -46,10 +53,11 @@ export default async function globalSetup() {
     AUTH_RATE_LIMIT_PER_MIN: '1000',
   });
   const storage = createLocalStorage({ root: mediaDir });
+  const sms = createConsoleSmsProvider();
   const app = await buildApp({
     env,
     prisma,
-    sms: createConsoleSmsProvider(),
+    sms,
     email: createConsoleEmailProvider(),
     storage,
     logger: false,
@@ -60,8 +68,13 @@ export default async function globalSetup() {
     prisma,
     log: console,
     workerId: 'e2e',
-    handlers: { 'media.uploaded': createMediaUploadedHandler({ prisma, storage }) },
+    handlers: {
+      'media.uploaded': createMediaUploadedHandler({ prisma, storage }),
+      ...createNotificationDispatcher({ prisma, push: createConsolePushProvider() }),
+      ...createOrderJobs({ prisma }),
+    },
   });
+  process.env.E2E_ORDERS = JSON.stringify(await placeDemoOrders(app, prisma, sms));
   const timer = setInterval(() => relay.tick().catch((e) => console.error('e2e worker', e)), 500);
 
   return async () => {
@@ -70,4 +83,98 @@ export default async function globalSetup() {
     await prisma.$disconnect();
     await pg.stop();
   };
+}
+
+/**
+ * Real orders through the real API (E2E data only): Pizza Point is opened all day while they are placed, so
+ * the run does not depend on the time of day, then its seeded hours are restored. Returns the order numbers.
+ */
+async function placeDemoOrders(app, prisma, sms) {
+  const pizza = await prisma.restaurant.findUniqueOrThrow({
+    where: { slug: 'pizza-point-unjha' },
+    include: { branches: true },
+  });
+  const branchId = pizza.branches[0].id;
+  const originalHours = await prisma.restaurantBusinessHours.findMany({ where: { branchId } });
+  await prisma.restaurantBusinessHours.deleteMany({ where: { branchId } });
+  await prisma.restaurantBusinessHours.createMany({
+    data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+      branchId,
+      dayOfWeek,
+      opensAt: '00:00',
+      closesAt: '23:59',
+    })),
+  });
+  const h = (appId, token, extra = {}) => ({
+    'x-app-id': appId,
+    'x-platform': 'IOS',
+    'x-app-version': '1.0.0',
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  });
+  const call = async (method, url, appId, token, payload, extra) => {
+    const res = await app.inject({ method, url, headers: h(appId, token, extra), payload });
+    if (res.statusCode >= 300) throw new Error(`${method} ${url}: ${res.statusCode} ${res.body}`);
+    return res.json();
+  };
+  const login = async (appId, phone) => {
+    const { challengeId } = await call('POST', '/v1/auth/otp/request', appId, null, {
+      channel: 'SMS',
+      destination: phone,
+    });
+    const code = /(\d{6})/.exec([...sms.sent].reverse().find((m) => m.to === phone).text)[1];
+    return (await call('POST', '/v1/auth/otp/verify', appId, null, { challengeId, code })).accessToken;
+  };
+  const customer = await login('CUSTOMER', '+919876500001');
+  await prisma.user.updateMany({ where: { phone: '+919876500001' }, data: { name: 'Meera Joshi' } });
+  const address = await call('POST', '/v1/customer/addresses', 'CUSTOMER', customer, {
+    label: 'Home',
+    line1: '14 Station Road',
+    lat: 23.805,
+    lng: 72.39,
+  });
+  const bread = await prisma.product.findFirstOrThrow({
+    where: { restaurantId: pizza.id, name: 'Garlic Bread' },
+  });
+  const place = async (quantity, note) => {
+    const body = {
+      restaurantId: pizza.id,
+      addressId: address.id,
+      lines: [{ key: 'a', productId: bread.id, quantity }],
+    };
+    const q = await call('POST', '/v1/customer/cart/quote', 'CUSTOMER', customer, body);
+    const { order } = await call(
+      'POST',
+      '/v1/orders',
+      'CUSTOMER',
+      customer,
+      {
+        ...body,
+        paymentMethod: 'COD',
+        expectedTotalPaise: q.bill.totalPayablePaise,
+        restaurantInstructions: note,
+      },
+      { 'idempotency-key': crypto.randomUUID() },
+    );
+    return order;
+  };
+  const waiting = await place(2, 'Extra oregano');
+  const ready = await place(3, null);
+  const toCancel = await place(4, null);
+  const owner = await login('RESTAURANT', pizza.phone);
+  const accepted = await call('POST', `/v1/restaurant/orders/${ready.id}/accept`, 'RESTAURANT', owner, {
+    prepTimeMinutes: 15,
+    version: 0,
+  });
+  await call('POST', `/v1/restaurant/orders/${ready.id}/ready`, 'RESTAURANT', owner, {
+    version: accepted.version,
+  });
+  await call('POST', `/v1/restaurant/orders/${toCancel.id}/accept`, 'RESTAURANT', owner, {
+    prepTimeMinutes: 20,
+    version: 0,
+  });
+  // Back to the seeded hours: other specs check them, and the order screens do not need the restaurant open.
+  await prisma.restaurantBusinessHours.deleteMany({ where: { branchId } });
+  await prisma.restaurantBusinessHours.createMany({ data: originalHours });
+  return { waiting: waiting.orderNumber, ready: ready.orderNumber, toCancel: toCancel.orderNumber };
 }

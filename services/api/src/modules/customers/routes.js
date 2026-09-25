@@ -54,6 +54,7 @@ export default async function customersRoutes(app) {
         user: { include: { consents: { orderBy: { createdAt: 'desc' }, take: 20 } } },
         addresses: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' } },
         favorites: { include: { restaurant: true } },
+        orders: { orderBy: { createdAt: 'desc' }, take: 10, include: { restaurant: true } },
       },
     });
     if (!c) throw notFound('Customer');
@@ -88,7 +89,17 @@ export default async function customersRoutes(app) {
       granted: r.granted,
       createdAt: r.createdAt,
     })),
-    orders: { available: false, note: 'Order history arrives with ordering (Phase 5).' },
+    orders: {
+      available: true,
+      recent: c.orders.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        restaurantName: o.restaurant.name,
+        totalPayablePaise: o.totalPayablePaise,
+        createdAt: o.createdAt,
+      })),
+    },
   });
 
   app.get(

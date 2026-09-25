@@ -44,6 +44,24 @@ export const RULE_TYPES = [
     permission: 'pricing.manage',
     help: 'Estimated delivery partner pay per order (final pay is computed at delivery, Phase 6).',
   },
+  {
+    value: 'CANCELLATION',
+    label: 'Cancellations',
+    permission: 'pricing.manage',
+    help: 'Who may cancel at each stage and what it costs. Every amount is a placeholder until the owner sets it (Q-20). No money moves before Phases 7–8.',
+  },
+];
+
+export const CANCEL_STAGES = [
+  ['BEFORE_ACCEPT', 'Before the restaurant accepts'],
+  ['AFTER_ACCEPT', 'After acceptance'],
+  ['AFTER_PREPARING', 'After preparation starts'],
+  ['AFTER_PICKUP', 'After pickup'],
+];
+export const CANCEL_ACTORS = [
+  ['CUSTOMER', 'Customer'],
+  ['RESTAURANT', 'Restaurant'],
+  ['ADMIN', 'Jamzo admin'],
 ];
 export const ruleTypeLabel = (t) => RULE_TYPES.find((r) => r.value === t)?.label ?? t;
 
@@ -69,6 +87,17 @@ const rupees = (p) => (p == null ? '—' : formatPaise(p));
 export function summarize(type, p) {
   if (!p) return '';
   switch (type) {
+    case 'CANCELLATION': {
+      const free = CANCEL_STAGES.filter(([s]) => p[s]?.CUSTOMER?.allowed).map(([, l]) => l.toLowerCase());
+      const money = CANCEL_STAGES.some(([s]) =>
+        CANCEL_ACTORS.some(([a]) =>
+          ['customerFee', 'restaurantCompensation', 'riderCompensation'].some(
+            (k) => p[s]?.[a]?.[k]?.type && p[s][a][k].type !== 'NONE',
+          ),
+        ),
+      );
+      return `Customer can cancel: ${free.length ? free.join(', ') : 'never in the app'}${money ? ' · fees/compensation set' : ' · no fees or compensation'}`;
+    }
     case 'MARKUP':
       return `${p.type === 'PERCENTAGE' ? `+${pct(p.valueBps)}` : `+${rupees(p.valuePaise)}`}${p.rounding?.mode && p.rounding.mode !== 'NONE' ? ` · round ${p.rounding.mode.replace('NEAREST_', 'to ₹').toLowerCase()}` : ''}${p.applyToAddons === false ? ' · not on add-ons' : ''}`;
     case 'COMMISSION': {

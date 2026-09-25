@@ -1,5 +1,5 @@
-// Admin home (Phase 1): platform setup counts only. Operational alerts (spec §66) need orders and arrive
-// in Phase 5 — the response says so explicitly rather than showing empty charts.
+// Admin home: platform setup counts and live order counts (Phase 5). Delivery alerts need riders and arrive
+// in Phase 6 — the response says so explicitly rather than showing empty charts.
 import { allowedCityIds } from '../../core/auth.js';
 
 /** @param {import('../../core/types.js').JamzoApp} app */
@@ -38,6 +38,45 @@ export default async function dashboardRoutes(app) {
           ? p.auditLog.findMany({ orderBy: { id: 'desc' }, take: 8 })
           : Promise.resolve(null),
       ]);
+      const orderCities = allowedCityIds(request, 'orders.view');
+      const canOrders = orderCities === null || orderCities.length > 0;
+      let operations = { available: false, message: 'You do not have access to orders.' };
+      if (canOrders) {
+        const scope = orderCities ? { cityId: { in: orderCities } } : {};
+        const now = app.clock.now();
+        const istDay = new Date(now.getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+        const since = new Date(`${istDay}T00:00:00+05:30`);
+        const TERMINAL = [
+          'DELIVERED',
+          'CUSTOMER_CANCELLED',
+          'RESTAURANT_CANCELLED',
+          'RESTAURANT_REJECTED',
+          'RIDER_ISSUE',
+          'ADMIN_CANCELLED',
+          'PAYMENT_FAILED',
+        ];
+        const [today, open, waiting, attention, ready] = await Promise.all([
+          p.order.count({ where: { ...scope, placedAt: { gte: since } } }),
+          p.order.count({
+            where: { ...scope, placedAt: { not: null }, status: { notIn: /** @type {any} */ (TERMINAL) } },
+          }),
+          p.order.count({
+            where: { ...scope, restaurantStatus: 'NEW', status: { in: ['PLACED', 'RESTAURANT_NOTIFIED'] } },
+          }),
+          p.order.count({ where: { ...scope, needsAttention: true } }),
+          p.order.count({ where: { ...scope, status: 'READY_FOR_PICKUP' } }),
+        ]);
+        operations = {
+          available: true,
+          ordersToday: today,
+          openOrders: open,
+          waitingForRestaurant: waiting,
+          needsAttention: attention,
+          readyForPickup: ready,
+          message:
+            'Delivery partners and dispatch arrive in Phase 6: ready orders wait for pickup until then.',
+        };
+      }
       return {
         setup: {
           cities: { total: citiesTotal, live: citiesLive },
@@ -48,7 +87,7 @@ export default async function dashboardRoutes(app) {
           customers,
           media,
         },
-        operations: { available: false, message: 'Order and delivery alerts become available in Phase 5.' },
+        operations,
         recentActivity: recentAudit,
       };
     },

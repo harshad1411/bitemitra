@@ -14,7 +14,7 @@ import { EmptyState, ErrorState, LoadingRows } from './states';
  * Dense, server-paginated table (spec §28/§29, OD-25). All filtering, search and paging happen on the
  * API with keyset cursors, so it stays fast on large datasets. `fetchPage({ cursor, q, limit, ...filters })`
  * must return `{ items, nextCursor }`. `selection` = { selected: string[], onChange(ids) } adds row checkboxes
- * (for bulk actions on the current page).
+ * (for bulk actions on the current page). `refetchInterval` (ms) keeps live lists such as orders fresh.
  */
 export function ResourceTable({
   queryKey,
@@ -28,6 +28,7 @@ export function ResourceTable({
   empty,
   pageSize = 25,
   selection,
+  refetchInterval,
 }) {
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -50,6 +51,7 @@ export function ResourceTable({
         ...(filters ?? {}),
       }),
     placeholderData: keepPreviousData,
+    refetchInterval,
   });
   const items = query.data?.items ?? [];
   const selectColumn = selection

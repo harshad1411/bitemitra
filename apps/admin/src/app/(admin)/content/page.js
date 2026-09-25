@@ -42,7 +42,7 @@ const TYPES = [
   ['OFFERS', 'Restaurants with offers'],
   ['NEW_RESTAURANTS', 'New restaurants'],
   ['FREE_DELIVERY', 'Free delivery'],
-  ['TOP_RATED', 'Top rated (needs ratings, Phase 5)'],
+  ['TOP_RATED', 'Top rated (needs ratings, Phase 6)'],
   ['CUISINE_COLLECTION', 'Cuisine collection'],
   ['RESTAURANT_COLLECTION', 'Chosen restaurants'],
   ['UNDER_PRICE', 'Dishes under a price'],

@@ -178,6 +178,31 @@ describe('checkout (D-60, D-63, D-64)', () => {
     expect(timer.availableAt.getTime() - row.createdAt.getTime()).toBe(180_000);
   });
 
+  it('a restaurant that accepts automatically gets the order accepted at once, with no acceptance timer', async () => {
+    await ctx.prisma.restaurantSettings.update({
+      where: { restaurantId: pizza.id },
+      data: { autoAccept: true },
+    });
+    try {
+      const { order } = await placed();
+      expect(order).toMatchObject({ status: 'RESTAURANT_ACCEPTED', prepTimeMinutes: 20 });
+      expect(order.timeline.map((t) => t.status)).toEqual(['CREATED', 'PLACED', 'RESTAURANT_ACCEPTED']);
+      const timers = await ctx.prisma.outboxEvent.count({
+        where: { aggregateId: order.id, eventType: 'order.acceptance_timeout' },
+      });
+      expect(timers).toBe(0);
+      const accepted = await ctx.prisma.orderStatusHistory.findFirst({
+        where: { orderId: order.id, toStatus: 'RESTAURANT_ACCEPTED' },
+      });
+      expect(accepted).toMatchObject({ actorType: 'SYSTEM', reason: 'AUTO_ACCEPT' });
+    } finally {
+      await ctx.prisma.restaurantSettings.update({
+        where: { restaurantId: pizza.id },
+        data: { autoAccept: false },
+      });
+    }
+  });
+
   it('a double tap never creates two orders — sequential, concurrent, or after the idempotency record expired', async () => {
     const c = await newCustomer();
     const key = randomUUID();

@@ -39,21 +39,42 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title={`Welcome${me?.user?.name ? `, ${me.user.name}` : ''}`}
-        description="Platform setup at a glance."
+        description="Orders right now and platform setup at a glance."
       />
-      <Alert className="mb-6">
-        <Info />
-        <AlertTitle>Operations alerts are not available yet</AlertTitle>
-        <AlertDescription>
-          {q.data?.operations?.message ?? 'Order and delivery alerts become available in Phase 5.'}
-        </AlertDescription>
-      </Alert>
+      {q.data?.operations?.message ? (
+        <Alert className="mb-6">
+          <Info />
+          <AlertTitle>{q.data.operations.available ? 'Delivery is not live yet' : 'Orders'}</AlertTitle>
+          <AlertDescription>{q.data.operations.message}</AlertDescription>
+        </Alert>
+      ) : null}
       {q.isPending ? (
         <LoadingRows rows={3} />
       ) : q.isError ? (
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <>
+          {q.data.operations.available ? (
+            <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <Stat
+                label="Needs attention"
+                value={q.data.operations.needsAttention}
+                href="/orders?view=ATTENTION"
+              />
+              <Stat
+                label="Waiting for restaurant"
+                value={q.data.operations.waitingForRestaurant}
+                href="/orders?view=NEW"
+              />
+              <Stat label="Open orders" value={q.data.operations.openOrders} href="/orders?view=OPEN" />
+              <Stat
+                label="Ready for pickup"
+                value={q.data.operations.readyForPickup}
+                href="/orders?view=READY"
+              />
+              <Stat label="Orders today" value={q.data.operations.ordersToday} href="/orders" />
+            </div>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat
               label="Cities"

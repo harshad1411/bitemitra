@@ -26,8 +26,8 @@ import { ROLE_LABEL } from '@/lib/restaurants';
 
 const ROLE_HELP = {
   OWNER: 'Everything for this restaurant.',
-  MANAGER: 'Store status, sold-out items, orders (Phase 5).',
-  STAFF: 'Sold-out items and orders (Phase 5).',
+  MANAGER: 'Store status, sold-out items, orders incl. cancelling and order money.',
+  STAFF: 'Sold-out items and handling orders (accept, reject, ready).',
 };
 
 function AddMemberDialog({ restaurantId, onClose }) {

@@ -22,9 +22,8 @@ export function createOrderJobs({ prisma, clock = { now: () => new Date() }, log
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order || order.restaurantStatus !== 'NEW' || !WAITING.includes(order.status)) return;
-      const setting = (
-        await config.resolve('orders.restaurantAcceptance', await config.contextFor('BRANCH', order.branchId))
-      ).value;
+      const branchCtx = await config.contextFor('BRANCH', order.branchId);
+      const setting = (await config.resolve('orders.restaurantAcceptance', branchCtx)).value;
       const reject = async (reason) => {
         await applyResult(tx, order, eventOn(order, 'REJECT', { actor: system, now, reason }), {
           now,
@@ -38,13 +37,14 @@ export function createOrderJobs({ prisma, clock = { now: () => new Date() }, log
         return reject('NO_RESPONSE: the restaurant did not respond in time');
       if (setting.fallback === 'AUTO_ACCEPT') {
         const branch = await tx.restaurantBranch.findUnique({ where: { id: order.branchId } });
+        const ops = (await config.resolve('restaurants.operations', branchCtx)).value;
         return void (await applyResult(
           tx,
           order,
           eventOn(order, 'ACCEPT', {
             actor: system,
             now,
-            prepTimeMinutes: branch.prepTimeMinutes,
+            prepTimeMinutes: branch.prepTimeMinutes + (branch.busyMode ? ops.busyExtraPrepMinutes : 0),
             reason: 'AUTO_ACCEPT',
           }),
           { now },
