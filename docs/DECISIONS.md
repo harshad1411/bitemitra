@@ -56,7 +56,7 @@ Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
 | OD-37 | **Start Phase 5 — Orders** (owner, 2026-09-25: "next phase strt"). Taken as acceptance of Phases 3 + 4. Phase 5 = §78: checkout, order creation, restaurant acceptance, order state machine, restaurant app, complete lifecycle tested. Stop for review after Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, CH-17/Q-14, D-30, Q-19) remain open. |
 | OD-38 | **Cancellation money** (owner, 2026-09-25, answers Q-20): (1) a customer who cancels **after the restaurant accepted** gets **no refund** of an online payment; if the restaurant or Jamzo cancels, the customer gets a full refund. (2) Cash-on-delivery customers who cancel after acceptance lose cash on delivery (they can still pay online) after **2** such cancellations (setting `cod.maxRefusedOrders`); cancelling before acceptance never counts; support can switch it back on. (3) **Jamzo absorbs the loss**: when a customer cancels after acceptance the restaurant is paid its full food value (its own prices minus the discount it funds), paid by Jamzo. Rider compensation is decided with dispatch (Phase 6). → D-70. |
 | OD-39 | **Owner answers of 2026-09-25** (questions listed after Phase 5): CH-5 **approved**; CH-9 **approved**; D-30 **acknowledged**; add-on prices get the markup's rounding (Q-19 → D-59 changed); a rider who has to give up a trip because of a cancellation gets the trip pay estimate, paid by Jamzo (Phase 6); the owner creates the Expo account and projects (Q-18); installing the iOS/Android build tools on the development Mac is **approved** (Q-17); SMS/OTP provider **MSG91**, Google/Apple sign-in later (Q-6); commission basis **after restaurant-funded discounts** (Q-7, as built); restaurants may edit their menus (CH-12, approval mode being confirmed); payouts automatic on request with admin approval, manual also possible (Q-5b, Phase 8); legal details to follow (Q-12). Being clarified with the owner: admin login method (CH-8/Q-15), maps provider (Q-14), brand assets upload (Q-13), tax treatment (Q-3), markup model (Q-4), hosting (Q-11). |
-| OD-40 | **Hosting** (owner, 2026-09-25, Q-11): **Supabase** for the database (managed PostgreSQL) and file storage; the admin website on **Vercel**. Supabase does not run long-lived Node servers, so the API (HTTP + Socket.IO) and the worker still need an always-on host — **to be chosen** (D-71). |
+| OD-40 | **Hosting** (owner, 2026-09-25, Q-11): a **single provider — DigitalOcean, Bangalore region** — for the API, worker, admin website, managed PostgreSQL and file storage (Spaces). Replaces the brief Supabase + Vercel idea. **Nothing is hosted during development** ($0); a pilot setup (~$54/month: 1 API, worker, admin, 1 GiB database without standby, Spaces) when testing with real phones and restaurants; the launch setup (~$114/month: 2 API instances, worker, admin, 2 GiB database **with standby** + daily backups, Spaces) before real customers. Prices checked 2026-09-25 on digitalocean.com (excl. 18% GST); **re-check and show the owner the final price at launch time**. → D-71. |
 
 ## 2. Engineering decisions
 
@@ -507,16 +507,19 @@ message. Support switches it back on in Jamzo Admin (`customers.manage`, reason 
 Existing environments keep their current rule version until an admin saves the new one (Pricing →
 Cancellations); the development seed creates it.
 
-### D-71. What running on Supabase means (OD-40)
-- **Database:** Supabase PostgreSQL in the Mumbai region (data stays in India). The app connects through
-  Supabase's connection pooler; migrations and the realtime `LISTEN` connection (D-62) need a **direct /
-  session** connection, because a transaction-mode pooler does not keep `LISTEN` alive. Two URLs in the env:
-  `DATABASE_URL` (pooled) and `DIRECT_DATABASE_URL` (direct) — to add at deployment.
-- **Files:** Supabase Storage through its S3-compatible API. The code has a `Storage` interface with a local
-  driver only (D-23); an S3 driver is added before deployment. KYC documents go to a **private** bucket.
-- **Not used:** Supabase Auth (Jamzo has its own phone OTP with MSG91, sessions and RBAC) and Supabase
-  Realtime (Socket.IO over PostgreSQL NOTIFY already exists). Using them would duplicate security logic.
-- **Still needed:** an always-on host for the API and the worker (Vercel runs only the admin website).
+### D-71. Deployment on DigitalOcean (OD-40)
+- **One region (Bangalore, BLR1):** App Platform services for the API (HTTP + Socket.IO; clients use the
+  WebSocket transport, so several API instances need no sticky sessions, and realtime notices reach every
+  instance through PostgreSQL NOTIFY — D-62), the worker and the admin website; Managed PostgreSQL; Spaces
+  (S3-compatible) for files, with a private bucket for KYC documents. Full availability of all four in BLR1
+  was confirmed on DigitalOcean's regional-availability page (verified by them 2026-09-24).
+- **Before deployment (Phase 10):** an S3 storage driver for Spaces (the code has the `Storage` interface
+  with a local driver only — D-23); production env values; database connection pooling settings; health
+  checks and alerts; backup restore drill.
+- **Single region, stated plainly:** a whole-datacenter outage would stop Jamzo until it recovers. The
+  standby database and two API instances cover the common failures. Multi-region is for much larger scale.
+- **Portability:** standard PostgreSQL and S3-compatible storage only; a later move (e.g. to AWS Mumbai) is a
+  migration, not a rewrite.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 
@@ -600,7 +603,7 @@ Cancellations); the development seed creates it.
 
 ### Open — needed for later phases or real-device testing
 - **Q-6b** MSG91 account, DLT sender id and templates (owner); email provider; Google/Apple sign-in later.
-- **Q-11** Hosting: Supabase (database, files) + Vercel (admin) decided (OD-40); **the host for the API and worker is still open**; budget; SaaS processors such as Sentry.
+- **Q-11** Hosting decided: DigitalOcean Bangalore (OD-40). Still open: SaaS processors such as Sentry for error reports.
 - **Q-13** Jamzo brand assets: logo, colours, typography (placeholders in use — D-16, D-17). Should the legacy BiteMitra kit be deleted?
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
