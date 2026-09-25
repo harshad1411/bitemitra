@@ -6,11 +6,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text as RNText,
   TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { statusTones } from '@jamzo/ui';
 import { createTheme } from './theme.js';
 
 const ThemeContext = createContext(createTheme());
@@ -216,3 +218,45 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, paddingHorizontal: 12, fontSize: 16 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
 });
+
+/** Label + description + native switch; the whole row is one accessible switch (44pt minimum). */
+export function ToggleRow({ label, description, value, onValueChange, disabled = false }) {
+  const t = useTheme();
+  return (
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing[3], minHeight: t.minTouchTarget }}
+    >
+      <View style={{ flex: 1 }}>
+        <Text variant="body">{label}</Text>
+        {description ? <Text variant="small">{description}</Text> : null}
+      </View>
+      <Switch
+        accessibilityLabel={label}
+        accessibilityHint={description}
+        value={value}
+        disabled={disabled}
+        onValueChange={onValueChange}
+        trackColor={{ true: t.colors.primary, false: t.colors.borderStrong }}
+      />
+    </View>
+  );
+}
+
+/** Small status pill using the shared status tones (neutral | info | success | warning | critical | accent). */
+export function Badge({ tone = 'neutral', children }) {
+  const t = useTheme();
+  const c = statusTones[tone] ?? statusTones.neutral;
+  return (
+    <View
+      style={{
+        alignSelf: 'flex-start',
+        backgroundColor: c.bg,
+        borderRadius: t.radius.full ?? 999,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+      }}
+    >
+      <RNText style={{ color: c.fg, fontSize: 12, fontWeight: '600' }}>{children}</RNText>
+    </View>
+  );
+}

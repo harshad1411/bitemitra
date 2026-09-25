@@ -18,6 +18,7 @@
     "@jamzo/config": "workspace:*",
     "@jamzo/mobile-foundation": "workspace:*",
     "@jamzo/mobile-ui": "workspace:*",
+    "@jamzo/ui": "workspace:*",
     "@react-native-community/netinfo": "catalog:",
     "expo": "catalog:",
     "expo-constants": "catalog:",
