@@ -21,7 +21,7 @@ export function installFakeApi({ appConfig = {}, me = {}, onRequest } = {}) {
     const path = new URL(url).pathname;
     const body = init.body ? JSON.parse(init.body) : undefined;
     calls.push({ path, method: init.method ?? 'GET', body, headers: init.headers });
-    const custom = onRequest?.(path, body);
+    const custom = onRequest?.(path, body, new URL(url));
     if (custom) return json(custom.status ?? 200, custom.body);
     if (path === '/v1/app-config') return json(200, { ...baseConfig, ...appConfig });
     if (path === '/v1/auth/otp/request')

@@ -1392,8 +1392,8 @@
         "freeReason": null,
         "freeAboveSubtotalPaise": 49900
       },
-      "canCheckout": false,
-      "checkoutNote": "Checkout and payment arrive in Phase 5.",
+      "canCheckout": true,
+      "checkoutNote": null,
       "lines": [
         {
           "key": "K",
@@ -1484,8 +1484,8 @@
         "freeReason": null,
         "freeAboveSubtotalPaise": 49900
       },
-      "canCheckout": false,
-      "checkoutNote": "Checkout and payment arrive in Phase 5.",
+      "canCheckout": true,
+      "checkoutNote": null,
       "lines": [
         {
           "key": "K",
@@ -1588,7 +1588,7 @@
         "freeAboveSubtotalPaise": 49900
       },
       "canCheckout": false,
-      "checkoutNote": "Checkout and payment arrive in Phase 5.",
+      "checkoutNote": "Remove the coupon or fix it to continue.",
       "lines": [
         {
           "key": "K",
@@ -1665,6 +1665,359 @@
       "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
       "limitsCheckedAtCheckout": true,
       "issues": []
+    }
+  },
+  "orders": {
+    "placed": {
+      "order": {
+        "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
+        "orderNumber": "UNJ-260925-00001",
+        "status": "PLACED",
+        "restaurantStatus": "NEW",
+        "deliveryStatus": "NOT_STARTED",
+        "version": 0,
+        "restaurant": {
+          "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+          "name": "Pizza Point"
+        },
+        "placedAt": "2026-09-25T05:32:36.622Z",
+        "createdAt": "2026-09-25T05:32:36.622Z",
+        "acceptedAt": null,
+        "readyAt": null,
+        "cancelledAt": null,
+        "prepTimeMinutes": null,
+        "estimatedReadyAt": null,
+        "items": [
+          {
+            "name": "Margherita",
+            "variantName": "Medium 10\"",
+            "foodType": "VEG",
+            "quantity": 1,
+            "addons": ["Cheese burst"],
+            "lineTotalPaise": 30800
+          }
+        ],
+        "bill": {
+          "lines": [
+            {
+              "code": "ITEMS",
+              "label": "Item total",
+              "amountPaise": 30800
+            },
+            {
+              "code": "OFFER",
+              "label": "Offer: Pizza Point: 10% off",
+              "amountPaise": -3080
+            },
+            {
+              "code": "DELIVERY_FEE",
+              "label": "Delivery fee",
+              "amountPaise": 2000
+            },
+            {
+              "code": "PLATFORM_FEE",
+              "label": "Platform fee",
+              "amountPaise": 500
+            },
+            {
+              "code": "TAXES",
+              "label": "Taxes",
+              "amountPaise": 1836
+            },
+            {
+              "code": "ROUNDING",
+              "label": "Rounding",
+              "amountPaise": 44
+            }
+          ],
+          "notes": [],
+          "markupDisclosure": "NONE",
+          "totalPayablePaise": 32100
+        },
+        "totalPayablePaise": 32100,
+        "payment": {
+          "method": "COD",
+          "label": "Cash on delivery",
+          "codAmountPaise": 32100
+        },
+        "address": {
+          "label": "Home",
+          "line1": "12 Station Road",
+          "landmark": null,
+          "cityName": "Unjha"
+        },
+        "deliveryInstructions": null,
+        "restaurantInstructions": "Less spicy please",
+        "contactless": false,
+        "timeline": [
+          {
+            "status": "CREATED",
+            "at": "2026-09-25T05:32:36.622Z",
+            "actorType": "CUSTOMER"
+          },
+          {
+            "status": "PLACED",
+            "at": "2026-09-25T05:32:36.623Z",
+            "actorType": "CUSTOMER"
+          }
+        ],
+        "cancellation": null,
+        "canCancel": true
+      },
+      "created": true
+    },
+    "accepted": {
+      "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
+      "orderNumber": "UNJ-260925-00001",
+      "status": "RESTAURANT_ACCEPTED",
+      "restaurantStatus": "ACCEPTED",
+      "deliveryStatus": "NOT_STARTED",
+      "version": 1,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T05:32:36.622Z",
+      "createdAt": "2026-09-25T05:32:36.622Z",
+      "acceptedAt": "2026-09-25T05:32:37.000Z",
+      "readyAt": null,
+      "cancelledAt": null,
+      "prepTimeMinutes": 20,
+      "estimatedReadyAt": "2026-09-25T05:52:37.000Z",
+      "items": [
+        {
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": ["Cheese burst"],
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 32100
+      },
+      "totalPayablePaise": 32100,
+      "payment": {
+        "method": "COD",
+        "label": "Cash on delivery",
+        "codAmountPaise": 32100
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": null,
+      "restaurantInstructions": "Less spicy please",
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T05:32:36.622Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T05:32:36.623Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "RESTAURANT_ACCEPTED",
+          "at": "2026-09-25T05:32:36.999Z",
+          "actorType": "RESTAURANT_USER"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": false
+    },
+    "cancelled": {
+      "id": "01a0d70d-2127-7881-9c4d-0297c89ca9be",
+      "orderNumber": "UNJ-260925-00002",
+      "status": "CUSTOMER_CANCELLED",
+      "restaurantStatus": "CANCELLED",
+      "deliveryStatus": "CANCELLED",
+      "version": 1,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T05:32:37.018Z",
+      "createdAt": "2026-09-25T05:32:37.018Z",
+      "acceptedAt": null,
+      "readyAt": null,
+      "cancelledAt": "2026-09-25T05:32:37.041Z",
+      "prepTimeMinutes": null,
+      "estimatedReadyAt": null,
+      "items": [
+        {
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": ["Cheese burst"],
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 32100
+      },
+      "totalPayablePaise": 32100,
+      "payment": {
+        "method": "COD",
+        "label": "Cash on delivery",
+        "codAmountPaise": 32100
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": null,
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T05:32:37.018Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T05:32:37.019Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "CUSTOMER_CANCELLED",
+          "at": "2026-09-25T05:32:37.041Z",
+          "actorType": "CUSTOMER"
+        }
+      ],
+      "cancellation": {
+        "byType": "CUSTOMER",
+        "reasonCode": "CHANGED_MIND",
+        "refundDuePaise": 0
+      },
+      "canCancel": false
+    },
+    "list": {
+      "items": [
+        {
+          "id": "01a0d70d-2127-7881-9c4d-0297c89ca9be",
+          "orderNumber": "UNJ-260925-00002",
+          "status": "CUSTOMER_CANCELLED",
+          "restaurant": {
+            "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+            "name": "Pizza Point"
+          },
+          "itemCount": 1,
+          "totalPayablePaise": 32100,
+          "createdAt": "2026-09-25T05:32:37.018Z"
+        },
+        {
+          "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
+          "orderNumber": "UNJ-260925-00001",
+          "status": "RESTAURANT_ACCEPTED",
+          "restaurant": {
+            "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+            "name": "Pizza Point"
+          },
+          "itemCount": 1,
+          "totalPayablePaise": 32100,
+          "createdAt": "2026-09-25T05:32:36.622Z"
+        }
+      ],
+      "nextCursor": null
+    },
+    "addresses": {
+      "items": [
+        {
+          "id": "01a0d70d-1f37-7943-890d-cb3f5c2b3172",
+          "label": "Home",
+          "line1": "12 Station Road",
+          "line2": null,
+          "landmark": null,
+          "area": null,
+          "cityName": "Unjha",
+          "pincode": null,
+          "lat": 23.805,
+          "lng": 72.39,
+          "contactName": null,
+          "contactPhone": null,
+          "isDefault": true,
+          "serviceable": true
+        }
+      ]
     }
   }
 }

@@ -55,8 +55,15 @@ Required document kinds come from the setting `restaurants.requiredDocuments` (d
 assumption A-21, legal review Q-12).
 
 Partner-app access: only members (`isActive`) of an **APPROVED or ACTIVE** restaurant may use partner
-endpoints; SUSPENDED blocks them. `/v1/me` continues to report `approved = ACTIVE` for the order features
-that start in Phase 5.
+endpoints; SUSPENDED blocks them. Orders can only reach an ACTIVE (live) restaurant, because only live
+restaurants are listed to customers (D-47).
+
+**Orders (Phase 5).** New orders ring in the app (looping placeholder chime + vibration, also with the iPhone
+silent switch on) until each is accepted or rejected, and arrive as push notifications with the same sound
+when the app is closed (once the Expo projects exist, Q-18). The restaurant sees its own prices and money,
+never customer prices, markup, platform fees or the customer's phone and address (D-67). If nobody responds
+within `orders.restaurantAcceptance.timeoutSec` the configured fallback runs (D-68). A restaurant with
+`autoAccept` gets every order accepted at once with the branch preparation time.
 
 ## 3. Opening state (D-38)
 
@@ -121,13 +128,16 @@ A product is **orderable now** when:
   `restaurants.approve` verifies it, which makes it primary and demotes the previous one in the same
   transaction (four-eyes: the admin who entered the details cannot verify them).
 
-## 7. Restaurant partner app (Phase 2 scope)
+## 7. Restaurant partner app (Phases 2 and 5)
 
 | Capability | OWNER | MANAGER | STAFF |
 |---|:-:|:-:|:-:|
 | View store status, hours and menu | ✓ | ✓ | ✓ |
 | Mark products / variants / add-ons sold out or back in stock | ✓ | ✓ | ✓ |
 | Close / reopen, pause (15–120 min), busy mode, preparation time | ✓ | ✓ | |
+| See and handle orders: accept (with prep time), reject (with reason), preparing, ready, +5 min (`orders.handle`) | ✓ | ✓ | ✓ |
+| Cancel an accepted order (`orders.cancel`) | ✓ | ✓ | |
+| See order money: food value, restaurant-funded discount, commission, net payable (`orders.finance`) | ✓ | ✓ | |
 | Edit menu content and prices | not in Phase 2 (flag `restaurant_self_edit_menu` stays off; D-39) | | |
 
 ## 8. Admin screens
@@ -140,8 +150,7 @@ A product is **orderable now** when:
   availability, schedules). The customer-price preview arrives with pricing rules (Phase 4).
 - **Food categories** — the platform taxonomy.
 
-## 9. Not in Phase 2
+## 9. Not built yet
 
-Customer browsing/search of menus (Phase 3), markup / tax / customer price (Phase 4), order acceptance
-and alerts (Phase 5), restaurant self-edit of menu content (flagged, later), shared add-on libraries,
+Delivery partners and pickup (Phase 6), settlements and statements (Phase 8), restaurant self-edit of menu content (flagged, later), shared add-on libraries,
 menu import from spreadsheets, multi-branch menu differences (one menu per restaurant; A-2).

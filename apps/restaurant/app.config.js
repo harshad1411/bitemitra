@@ -9,6 +9,7 @@ module.exports = ({ config }) =>
     version,
     base: config,
     tablet: true, // counter tablets are common in restaurants
+    notificationSounds: ['./assets/sounds/new_order.wav'], // placeholder chime (Q-13)
     env: {
       variant: process.env.APP_VARIANT,
       apiUrl: process.env.EXPO_PUBLIC_API_URL,

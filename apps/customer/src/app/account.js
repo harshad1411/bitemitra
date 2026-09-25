@@ -42,6 +42,7 @@ export default function Account() {
       {signedIn ? (
         <>
           <Text variant="muted">Signed in as {session.me?.user.phone ?? session.me?.user.email}</Text>
+          <Button title="Your orders" variant="secondary" onPress={() => router.push('/orders')} />
           <Button title="Saved addresses" variant="secondary" onPress={() => router.push('/addresses')} />
           <Favorites />
           <Card>
@@ -52,7 +53,15 @@ export default function Account() {
             <Button
               title="Enable notifications"
               variant="secondary"
-              onPress={async () => setPush(await registerForPush({ api, easProjectId: env.easProjectId }))}
+              onPress={async () =>
+                setPush(
+                  await registerForPush({
+                    api,
+                    easProjectId: env.easProjectId,
+                    androidChannel: { id: 'order-updates', name: 'Order updates', importance: 'HIGH' },
+                  }),
+                )
+              }
             />
           </Card>
         </>

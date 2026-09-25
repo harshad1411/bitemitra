@@ -3,7 +3,25 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
-## Phases 3 + 4 — Customer discovery & pricing (2026-09-25) — awaiting owner review
+## Phase 5 — Orders (2026-09-25) — awaiting owner review
+
+### Added
+- `@jamzo/order-engine`: the ORDERS.md state machine (kitchen and delivery tracks, derived status, actor rules, cancellation stages and money), tested against a separately written table for every state × event × actor.
+- Database: 12 tables (orders, items, add-ons, status history, frozen pricing snapshot, address copy, notes, cancellations, cancellation rules, coupon usages, notifications, templates); 2 migrations; 19 more database rules.
+- Checkout (`POST /v1/orders`): cash on delivery and ₹0 orders (online payment is Phase 7), full re-pricing with `PRICE_CHANGED`, `CHECKOUT_BLOCKED` with reasons, frozen snapshot of every price component, coupon limits, double-tap safety.
+- Restaurant order handling (seen, accept with prep time, reject, preparing, ready, +prep time, cancel), auto-accept, acceptance timeout with escalation to operations.
+- Cancellations by customer, restaurant and admin with a versioned cancellation rule (placeholder amounts) and an audited admin override.
+- Notifications from editable templates; console and Expo push providers (Expo not verified against the real service); realtime order notices over Socket.IO fed by PostgreSQL NOTIFY.
+- API (+21 endpoints, 152 total).
+- Jamzo Admin: Orders (list, views, search, detail, cancel, notes, needs attention), Cancellations tab in Pricing, Notifications, live order counts on the dashboard, recent orders on customers.
+- Customer app: checkout, order tracking with live updates, cancel before acceptance, order list, active-order card on home.
+- Restaurant Partner app: orders screen with a looping new-order alert (placeholder chime), accept/reject/preparing/ready, order detail with the restaurant's money.
+
+### Changed
+- Pricing engine: commission is also allocated per order line (largest remainder).
+- `canCheckout` in the cart quote now reflects whether the order can be placed.
+
+## Phases 3 + 4 — Customer discovery & pricing (2026-09-25) — accepted
 
 ### Added
 - `@jamzo/pricing-engine`: the full PRICING.md pipeline — markup with rounding, promotions and coupons with funding split, packaging, per-charge tax (inclusive/exclusive/exempt), delivery fee strategies with free-delivery threshold and small-order fee, night/demand/weather/manual surcharges with cap and kill switch, platform fee, tips, final rounding, commission and withholdings, restaurant payable, rider earning estimate, gateway cost estimate, and invariant checks (engine `2026.09-1`, D-49).

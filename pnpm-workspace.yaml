@@ -42,6 +42,7 @@ minimumReleaseAgeExclude:
 # Sharing foundations means the apps move to a new Expo SDK together (DECISIONS D-30); releases stay independent.
 catalog:
   expo: '~57.0.25'
+  expo-audio: '~57.0.5'
   expo-constants: '~57.0.19'
   expo-device: '~57.0.2'
   expo-linking: '~57.0.11'

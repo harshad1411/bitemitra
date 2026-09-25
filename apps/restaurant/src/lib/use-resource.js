@@ -1,5 +1,4 @@
 // Minimal data loading for the partner screens: loading / error / data, reload, and optimistic replace.
-// (TanStack Query arrives with the data-heavy screens of Phase 5 — DECISIONS D-29.)
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useResource(load, deps) {

@@ -4,7 +4,10 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 /**
- * @param {{ api: any, easProjectId: string | null, androidChannel?: { id: string, name: string } }} opts
+ * @param {{ api: any, easProjectId: string | null,
+ *           androidChannel?: { id: string, name: string, importance?: 'DEFAULT' | 'HIGH' | 'MAX', sound?: string } }} opts
+ * `sound` is a bundled file name (see the app's notificationSounds); Android fixes a channel's sound when it is
+ * first created.
  * @returns {Promise<{ status: 'registered' | 'denied' | 'unavailable' | 'error', reason?: string }>}
  */
 export async function registerForPush({
@@ -21,7 +24,8 @@ export async function registerForPush({
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(androidChannel.id, {
       name: androidChannel.name,
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance[androidChannel.importance ?? 'DEFAULT'],
+      ...(androidChannel.sound ? { sound: androidChannel.sound, vibrationPattern: [0, 600, 300, 600] } : {}),
     });
   }
   let { status } = await Notifications.getPermissionsAsync();

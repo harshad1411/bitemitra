@@ -1,6 +1,6 @@
 # Security & privacy
 
-Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. **Phase 2 adds** application-layer encryption of bank account numbers with four-eyes verification (D-35), private KYC documents (D-36) and restaurant-partner authorisation re-checked on every request (D-42). Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
+Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. **Phase 2 adds** application-layer encryption of bank account numbers with four-eyes verification (D-35), private KYC documents (D-36) and restaurant-partner authorisation re-checked on every request (D-42). **Phase 5 adds** order authorisation (customers see only their orders, restaurants only their own and never customer contact details or platform margins — D-67), realtime sockets authenticated with the same token and session checks as HTTP and joined only to rooms the user may see (D-62), and double-order protection (idempotency key + unique `(customerId, idempotencyKey)`). Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
 
 Covers MASTER_SPEC §48, §49, §50, §52.
 

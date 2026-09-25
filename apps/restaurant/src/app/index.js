@@ -166,16 +166,16 @@ function Store({ restaurantId }) {
         <BranchControls key={b.id} branch={b} store={s} onChange={store.setData} />
       ))}
       <Button
+        title="Orders"
+        onPress={() =>
+          router.push({ pathname: '/orders', params: { restaurantId, timeZone: s.restaurant.city.timezone } })
+        }
+      />
+      <Button
         title="Menu & sold-out items"
         onPress={() => router.push({ pathname: '/menu', params: { restaurantId } })}
       />
-      <Card>
-        <Text variant="heading">Coming next</Text>
-        <Text variant="muted">
-          New-order alerts and order management arrive in Phase 5. Menu content and prices are edited by Jamzo
-          for now.
-        </Text>
-      </Card>
+      <Text variant="small">Menu content and prices are edited by Jamzo for now.</Text>
     </>
   );
 }
@@ -219,7 +219,7 @@ export default function Home() {
         <Text variant="muted">
           {push
             ? `${push.status}${push.reason ? ` — ${push.reason}` : ''}`
-            : 'Allow notifications so new orders are hard to miss (from Phase 5).'}
+            : 'Allow notifications so new orders reach you with a sound even when the app is closed.'}
         </Text>
         <Button
           title="Enable notifications"
@@ -229,7 +229,12 @@ export default function Home() {
               await registerForPush({
                 api,
                 easProjectId: env.easProjectId,
-                androidChannel: { id: 'orders', name: 'New orders' },
+                androidChannel: {
+                  id: 'new-orders',
+                  name: 'New orders',
+                  importance: 'MAX',
+                  sound: 'new_order.wav',
+                },
               }),
             )
           }

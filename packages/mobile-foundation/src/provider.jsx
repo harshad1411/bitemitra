@@ -88,6 +88,8 @@ export function JamzoProvider({ appId, accent, children }) {
       configStatus: config.status,
       configError: config.error,
       refreshConfig,
+      /** Current access token (memory only) — for the realtime connection. */
+      getAccessToken: tokens.getAccessToken,
       session: {
         ...session,
         reloadMe,

@@ -5,8 +5,16 @@ import fixtures from './fixtures.json';
 
 export { fixtures };
 
-export function installFakeApi({ appConfig = {}, me = {}, onRequest } = {}) {
+export function installFakeApi({ appConfig = {}, me = {}, onRequest, withAddress = false } = {}) {
   const calls = [];
+  // Orders captured from the real API (placed → accepted by the restaurant / cancelled by the customer).
+  const orderState = {
+    current: fixtures.orders.placed.order,
+    list: { ...fixtures.orders.list, items: [] },
+    addresses: withAddress ? fixtures.orders.addresses : { items: [] },
+    checkouts: [],
+  };
+  calls.orders = orderState;
   const baseConfig = {
     appId: 'CUSTOMER',
     platform: 'IOS',
@@ -66,8 +74,19 @@ export function installFakeApi({ appConfig = {}, me = {}, onRequest } = {}) {
       // The fixture was captured for one line (Margherita, Medium, Cheese burst); echo the app's line key.
       return json(200, { ...q, lines: q.lines.map((l) => ({ ...l, key: body.lines[0].key })) });
     }
-    if (path === '/v1/customer/favorites' || path === '/v1/customer/addresses')
-      return json(200, { items: [] });
+    if (path === '/v1/customer/favorites') return json(200, { items: [] });
+    if (path === '/v1/customer/addresses') return json(200, orderState.addresses);
+    if (path === '/v1/orders') {
+      orderState.checkouts.push({ body, key: init.headers['idempotency-key'] });
+      return json(201, { order: orderState.current, created: true });
+    }
+    if (path === '/v1/customer/orders') return json(200, orderState.list);
+    if (path === `/v1/customer/orders/${fixtures.orders.placed.order.id}/cancel`) {
+      orderState.current = fixtures.orders.cancelled;
+      return json(200, orderState.current);
+    }
+    if (path === `/v1/customer/orders/${fixtures.orders.placed.order.id}`)
+      return json(200, orderState.current);
     if (path.startsWith('/v1/cms/pages/'))
       return json(404, { error: { code: 'NOT_FOUND', message: 'Page not found.', requestId: 'r' } });
     return json(404, { error: { code: 'NOT_FOUND', message: 'Route not found.', requestId: 'r' } });

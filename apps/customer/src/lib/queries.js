@@ -62,3 +62,33 @@ export function useAddresses(enabled) {
   const { api } = useJamzo();
   return useQuery({ queryKey: ['addresses'], queryFn: () => api.get('/v1/customer/addresses'), enabled });
 }
+
+export const TERMINAL = [
+  'DELIVERED',
+  'CUSTOMER_CANCELLED',
+  'RESTAURANT_CANCELLED',
+  'RESTAURANT_REJECTED',
+  'RIDER_ISSUE',
+  'ADMIN_CANCELLED',
+  'PAYMENT_FAILED',
+];
+
+export function useOrders(enabled) {
+  const { api } = useJamzo();
+  return useQuery({
+    queryKey: ['orders'],
+    queryFn: () => api.get('/v1/customer/orders', { limit: 20 }),
+    enabled,
+  });
+}
+
+/** One order; polls every 20 s until it is finished (sockets refresh it sooner, D-62). */
+export function useOrder(id) {
+  const { api } = useJamzo();
+  return useQuery({
+    queryKey: ['order', id],
+    queryFn: () => api.get(`/v1/customer/orders/${id}`),
+    enabled: Boolean(id),
+    refetchInterval: (q) => (q.state.data && TERMINAL.includes(q.state.data.status) ? false : 20_000),
+  });
+}

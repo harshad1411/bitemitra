@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 (customer discovery, pricing) complete, awaiting review.** Decisions referenced as OD-/D-/CH- are
+Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 accepted (2026-09-25); Phase 5 (orders) complete, awaiting review.** Decisions referenced as OD-/D-/CH- are
 recorded in [DECISIONS.md](DECISIONS.md), which is authoritative.
 
 Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md) · [ORDER_FLOW](ORDER_FLOW.md) ·
@@ -71,7 +71,7 @@ jamzo/  (repository: bitemitra)
 │   ├── logger/            pino with redaction
 │   ├── notifications/     SMS/email/push provider interfaces (+ console providers)
 │   ├── pricing-engine/    PURE pricing: markup, offers, tax, delivery, fees, commission, quote (Phase 4)
-│   ├── order-engine/      PURE state machine (Phase 5)
+│   ├── order-engine/      PURE state machine: both tracks, derived status, cancellations (Phase 5)
 │   ├── delivery-engine/   PURE geo + serviceability now; dispatch/earnings in Phase 6
 │   ├── settlement-engine/ PURE ledger postings (Phase 8)
 │   ├── ui/                design tokens (provisional Jamzo palette, D-17)
@@ -131,10 +131,12 @@ payment expiry/reconciliation, notifications, settlement runs.
 - **Idempotency** at three levels: `Idempotency-Key` records (API), business unique keys (orders, refunds, ledger postings), provider event ids (webhooks).
 - **Optimistic concurrency** (`version` columns) and database constraints for races (`constraints.sql`).
 
-## 5. Realtime (from Phase 5)
+## 5. Realtime (Phase 5, D-62)
 
-Socket.IO; rooms per order/restaurant/rider/ops-city. Sockets only notify; clients re-fetch over REST.
-Single API instance → in-memory adapter; Redis adapter at the D-9 trigger.
+Order changes call `pg_notify` inside their transaction; every API process `LISTEN`s and forwards to
+Socket.IO rooms (`restaurant:<id>`, `customer:<id>`). Sockets only notify; clients re-fetch over REST and
+also poll, so a dropped socket never hides an order. Because the notice travels through PostgreSQL, several
+API processes already work without a Redis adapter. Jamzo Admin polls (15 s) for now.
 
 ## 6. External providers — all behind interfaces
 
@@ -144,7 +146,7 @@ Single API instance → in-memory adapter; Redis adapter at the D-9 trigger.
 | SMS OTP | `SmsProvider` | DLT provider (Q-6) | **console provider only** (dev/test) |
 | Email OTP | `EmailProvider` | TBD (Q-6) | **console provider only** |
 | Social login | `IdentityProvider` | Google, Apple | **slots only — returns AUTH_METHOD_UNAVAILABLE** |
-| Push | `PushProvider` | Expo Push (FCM/APNs) | device token registration only; sending in Phase 5 |
+| Push | `PushProvider` | Expo Push (FCM/APNs) | **console provider in development**; Expo provider implemented and tested against a fake endpoint only — not verified with Expo until the EAS projects exist (Q-18) |
 | Maps / route distance | `DistanceProvider` | Q-14 | **fallback only**: straight line × road factor, flagged `FALLBACK` (D-48) |
 | Object storage | `Storage` | S3-compatible | **local filesystem driver only** (D-23) |
 

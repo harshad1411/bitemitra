@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 5 in progress).
+Last updated: 2026-09-25 (Phase 5 complete — awaiting owner review).
 
 ---
 
@@ -488,7 +488,8 @@ Order events create `notifications` rows from `notification_templates` (seeded, 
 `notifications.manage`), which appear in the apps' order screens and are pushed through the push
 provider. Development and tests use the console provider. The Expo push provider is implemented and
 tested against a fake Expo endpoint only — **not verified against Expo's service** until the EAS projects
-exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) while an order is NEW.
+exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) while an order is NEW. Android channels:
+`new-orders` (restaurant, maximum importance, custom sound) and `order-updates` (customer).
 
 
 

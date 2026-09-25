@@ -7,3 +7,5 @@ export { useNetwork, OfflineBanner } from './network.jsx';
 export { useAppLifecycle } from './lifecycle.js';
 export { ErrorBoundary } from './error-boundary.jsx';
 export { getAppEnv } from './env.js';
+export { useRealtime } from './realtime.js';
+export { newIdempotencyKey } from '@jamzo/api-client';

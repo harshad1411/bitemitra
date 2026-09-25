@@ -1,0 +1,110 @@
+{
+  "newOrder": {
+    "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
+    "orderNumber": "UNJ-260925-00001",
+    "shortNumber": "0001",
+    "status": "PLACED",
+    "restaurantStatus": "NEW",
+    "deliveryStatus": "NOT_STARTED",
+    "version": 0,
+    "placedAt": "2026-09-25T05:32:36.622Z",
+    "acceptBy": "2026-09-25T05:35:36.622Z",
+    "acceptedAt": null,
+    "readyAt": null,
+    "cancelledAt": null,
+    "prepTimeMinutes": null,
+    "estimatedPickupAt": null,
+    "customer": {
+      "firstName": "Customer"
+    },
+    "items": [
+      {
+        "name": "Margherita",
+        "variantName": "Medium 10\"",
+        "foodType": "VEG",
+        "quantity": 1,
+        "addons": [
+          {
+            "group": "Crust",
+            "name": "Cheese burst",
+            "unitPricePaise": 6000
+          }
+        ],
+        "unitPricePaise": 22000,
+        "lineTotalPaise": 28000
+      }
+    ],
+    "itemCount": 1,
+    "foodValuePaise": 28000,
+    "restaurantInstructions": "Less spicy please",
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery (collected by the delivery partner)"
+    },
+    "cancellation": null,
+    "finance": {
+      "foodValuePaise": 28000,
+      "restaurantFundedDiscountPaise": 3080,
+      "packagingPaise": 0,
+      "commissionPaise": 3738,
+      "commissionTaxPaise": 673,
+      "withholdingPaise": 0,
+      "netPayablePaise": 20509,
+      "estimate": true
+    }
+  },
+  "accepted": {
+    "id": "01a0d70d-1f9e-7d22-976d-54d43bda31e7",
+    "orderNumber": "UNJ-260925-00001",
+    "shortNumber": "0001",
+    "status": "RESTAURANT_ACCEPTED",
+    "restaurantStatus": "ACCEPTED",
+    "deliveryStatus": "NOT_STARTED",
+    "version": 1,
+    "placedAt": "2026-09-25T05:32:36.622Z",
+    "acceptBy": "2026-09-25T05:35:36.622Z",
+    "acceptedAt": "2026-09-25T05:32:37.000Z",
+    "readyAt": null,
+    "cancelledAt": null,
+    "prepTimeMinutes": 20,
+    "estimatedPickupAt": "2026-09-25T05:52:37.000Z",
+    "customer": {
+      "firstName": "Customer"
+    },
+    "items": [
+      {
+        "name": "Margherita",
+        "variantName": "Medium 10\"",
+        "foodType": "VEG",
+        "quantity": 1,
+        "addons": [
+          {
+            "group": "Crust",
+            "name": "Cheese burst",
+            "unitPricePaise": 6000
+          }
+        ],
+        "unitPricePaise": 22000,
+        "lineTotalPaise": 28000
+      }
+    ],
+    "itemCount": 1,
+    "foodValuePaise": 28000,
+    "restaurantInstructions": "Less spicy please",
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery (collected by the delivery partner)"
+    },
+    "cancellation": null,
+    "finance": {
+      "foodValuePaise": 28000,
+      "restaurantFundedDiscountPaise": 3080,
+      "packagingPaise": 0,
+      "commissionPaise": 3738,
+      "commissionTaxPaise": 673,
+      "withholdingPaise": 0,
+      "netPayablePaise": 20509,
+      "estimate": true
+    }
+  }
+}

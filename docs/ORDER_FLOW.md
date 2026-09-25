@@ -1,6 +1,8 @@
 # Order flow (end to end)
 
-Status: **Phase 0 design.** State definitions live in [ORDERS.md](ORDERS.md); money in
+Status: **Phase 5 implements checkout (cash on delivery), restaurant acceptance, the acceptance timeout,
+cancellations, notifications and realtime; online payment is Phase 7 and riders Phase 6.** The diagram is the
+target flow. State definitions live in [ORDERS.md](ORDERS.md); money in
 [PRICING.md](PRICING.md), [PAYMENTS.md](PAYMENTS.md), [SETTLEMENTS.md](SETTLEMENTS.md).
 
 ## Happy path — online payment

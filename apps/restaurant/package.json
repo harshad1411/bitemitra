@@ -21,6 +21,7 @@
     "@jamzo/ui": "workspace:*",
     "@react-native-community/netinfo": "catalog:",
     "expo": "catalog:",
+    "expo-audio": "catalog:",
     "expo-constants": "catalog:",
     "expo-device": "catalog:",
     "expo-linking": "catalog:",

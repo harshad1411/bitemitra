@@ -2,8 +2,8 @@
 
 Food-delivery platform launching in **Unjha, Gujarat**, built for many cities (jamzo.in).
 
-> **Status: Phases 3 + 4 (customer discovery, pricing) complete — awaiting owner review.** Phases 1 and 2 were
-> accepted. Orders and checkout, dispatch, payments and settlements arrive in Phases 5–8. Decisions and open
+> **Status: Phase 5 (orders) complete — awaiting owner review.** Phases 1–4 were accepted. Dispatch and
+> riders, online payments and settlements arrive in Phases 6–8. Decisions and open
 > questions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Products

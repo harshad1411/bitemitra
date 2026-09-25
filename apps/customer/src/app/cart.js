@@ -1,5 +1,4 @@
-// Cart: the bill is always the server's quote (D-46) — the app shows it, never computes it. Checkout
-// (addresses, payment, order placement) is Phase 5.
+// Cart: the bill is always the server's quote (D-46) — the app shows it, never computes it.
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -206,8 +205,13 @@ export default function CartScreen() {
           ))}
       </Card>
 
-      <Button title="Proceed to checkout" disabled accessibilityHint={data?.checkoutNote} />
-      <Text variant="small">{data?.checkoutNote ?? 'Checkout and payment arrive in Phase 5.'}</Text>
+      <Button
+        title="Proceed to checkout"
+        disabled={!data?.canCheckout}
+        accessibilityHint={data?.checkoutNote ?? undefined}
+        onPress={() => router.push('/checkout')}
+      />
+      {data?.checkoutNote ? <Text variant="small">{data.checkoutNote}</Text> : null}
       <Button title="Clear cart" variant="secondary" onPress={cart.clear} />
     </Screen>
   );

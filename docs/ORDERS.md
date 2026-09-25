@@ -1,7 +1,9 @@
 # Orders — state machine
 
-Status: **Design (updated for OD-17).** Implemented as a pure module in `packages/order-engine` (Phase 5) with
-exhaustive transition tests. End-to-end narrative: [ORDER_FLOW.md](ORDER_FLOW.md).
+Status: **Implemented in Phase 5** as the pure module `packages/order-engine` with exhaustive transition
+tests (every state × event × actor checked against a separately written table). The API drives the payment
+phase (cash on delivery and ₹0 only until Phase 7, D-60), the kitchen track and cancellations; the delivery
+track is driven from Phase 6 (D-61). End-to-end narrative: [ORDER_FLOW.md](ORDER_FLOW.md).
 
 Covers MASTER_SPEC §17, §18, §20, §35, §40, §56, §68, §69.
 
@@ -133,6 +135,8 @@ overrides require a reason, are flagged `isAdminOverride` and audit-logged.
 Coupon usages are released (`reversedAt`) and stock restored on cancellation before pickup.
 
 ## 6. Checkout & creation (§17, §40)
+
+Implementation details and what the write transaction re-checks: DECISIONS D-64, D-65.
 
 `POST /v1/orders` requires an `Idempotency-Key` (client generates one per checkout attempt and reuses it
 on retry). In one transaction:

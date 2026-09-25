@@ -1,7 +1,7 @@
 # Mobile applications
 
-Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); checkout is Phase 5. Remaining product
-features arrive in Phase 5 (customer checkout, restaurant orders) and 6 (rider). Nothing in the shells pretends to be a
+Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); **Phase 5** adds checkout (cash on delivery), order tracking and cancellation to the customer app and the order
+screens with a looping new-order alert to the Restaurant Partner app (§9). Rider features arrive in Phase 6. Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.
 
@@ -109,7 +109,9 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 | `search.js` | Dishes and restaurants that deliver to the location |
 | `restaurant/[id].js` | Menu with Jamzo prices, offers, open/closed and "doesn't deliver here" states, favourite toggle |
 | `customize.js` | Size and add-on choices with required/min/max rules and quantity |
-| `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues; checkout disabled until Phase 5 |
+| `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues |
+| `checkout.js` | Saved address, cash on delivery (online methods shown as coming soon — D-60), notes, contactless, the server bill; one idempotency key per attempt (a retry never creates a second order) |
+| `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; cancel while the restaurant has not accepted; refreshed by realtime notices and polling |
 | `account.js`, `sign-in.js`, `addresses.js` | Guest or signed-in account, phone OTP sign-in when needed, saved addresses, favourites, notifications, legal pages, build info |
 | `page/[slug].js` | Published CMS pages (legal drafts show "Not published yet", Q-12) |
 
@@ -123,4 +125,21 @@ addresses remain available. A map pin picker needs the maps provider (Q-14).
 fake API whose customer responses (`fixtures.json`) were captured from the real API on the seeded
 development database (restaurant marked open so the tests do not depend on the time of day).
 **Not verified on a simulator or device** — see §7 and Q-17.
+
+## 9. Restaurant Partner app orders (Phase 5)
+
+| Screen (`apps/restaurant/src/app/`) | What it does |
+|---|---|
+| `orders.js` | New / In the kitchen / Past. New orders on top with items, choices, notes, food value and time left to accept; accept with a preparation time or reject with a reason; start preparing, ready, +5 minutes. Tells the API the order was seen. |
+| `order/[id].js` | Full order; owners and managers also see the money and can cancel an accepted order (D-67). |
+
+**New-order alert.** While any order waits for acceptance and the app is open, a chime loops and the phone
+vibrates (`expo-audio`, plays with the iPhone silent switch on); it stops when every new order is accepted or
+rejected. When the app is closed, the push notification uses the same sound on a high-importance Android
+channel (`new-orders`) and as the iOS notification sound. The chime is a **placeholder**
+(`scripts/generate-order-sound.mjs`, Q-13). **Not verified on a device** — sound, vibration and background
+push need a simulator/device and the Expo projects (Q-17, Q-18).
+
+**Realtime.** Both apps use `useRealtime` from `@jamzo/mobile-foundation` (Socket.IO, D-62) and also poll
+(restaurant 15 s, customer order 20 s).
 

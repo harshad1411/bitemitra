@@ -109,7 +109,8 @@ export function createNotificationDispatcher({ prisma, push, clock = { now: () =
             body: row.body,
             data,
             sound: newOrder ? 'new_order.wav' : 'default',
-            channelId: newOrder ? 'new-orders' : 'order-updates',
+            // Android channels created by the apps (registerForPush): restaurant 'new-orders', customer 'order-updates'.
+            channelId: t.appId === 'RESTAURANT' ? 'new-orders' : 'order-updates',
             priority: 'high',
           })),
         );

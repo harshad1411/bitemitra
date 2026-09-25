@@ -1,4 +1,4 @@
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import RootLayout from '../src/app/_layout';
 import Home from '../src/app/index';
 import ChooseLocation from '../src/app/location';
@@ -10,6 +10,10 @@ import Account from '../src/app/account';
 import Addresses from '../src/app/addresses';
 import SignIn from '../src/app/sign-in';
 import CmsPage from '../src/app/page/[slug]';
+import Checkout from '../src/app/checkout';
+import OrdersList from '../src/app/orders/index';
+import OrderScreen from '../src/app/orders/[id]';
+import { lineKey } from '../src/lib/cart';
 import NotFound from '../src/app/+not-found';
 import { fixtures, installFakeApi } from './fake-api';
 
@@ -41,6 +45,9 @@ const routes = {
   addresses: Addresses,
   'sign-in': SignIn,
   'page/[slug]': CmsPage,
+  checkout: Checkout,
+  'orders/index': OrdersList,
+  'orders/[id]': OrderScreen,
   '+not-found': NotFound,
 };
 
@@ -106,9 +113,8 @@ describe('customer app', () => {
     expect(await screen.findByText('WELCOME50: Coupon applied.')).toBeTruthy();
     expect(await screen.findByText('₹216.00')).toBeTruthy();
 
-    // Checkout is honestly unavailable until Phase 5.
-    expect(screen.getByLabelText('Proceed to checkout').props.accessibilityState.disabled).toBe(true);
-    expect(screen.getByText('Checkout and payment arrive in Phase 5.')).toBeTruthy();
+    // Nothing blocks this cart, so checkout is open (sign-in is asked for there).
+    expect(screen.getByLabelText('Proceed to checkout').props.accessibilityState.disabled).toBe(false);
   });
 
   it('asks for sign-in only when needed (saved addresses)', async () => {
@@ -184,5 +190,151 @@ describe('customer app', () => {
     await renderRouter(routes, { initialUrl: '/' });
     expect(await screen.findByText("Can't reach Jamzo")).toBeTruthy();
     await waitFor(() => expect(screen.getByLabelText('Try again')).toBeTruthy());
+  });
+
+  describe('checkout and tracking (Phase 5)', () => {
+    const placed = fixtures.orders.placed.order;
+    const address = fixtures.orders.addresses.items[0];
+    async function withCart() {
+      const p = fixtures.restaurant.sections.flatMap((x) => x.products).find((x) => x.name === 'Margherita');
+      const item = {
+        productId: p.id,
+        variantId: p.variants[1].id,
+        addonIds: [p.addonGroups[0].addons[2].id],
+        quantity: 1,
+        name: 'Margherita',
+        variantName: 'Medium 10"',
+        addonNames: ['Cheese burst'],
+        unitPricePaise: 30_800,
+        foodType: 'VEG',
+      };
+      await AsyncStorage.setItem(
+        'jamzo.cart.v2',
+        JSON.stringify({
+          restaurant: { id: fixtures.restaurant.restaurant.id, name: 'Pizza Point' },
+          lines: [{ ...item, key: lineKey(item) }],
+          couponCode: null,
+          tipPaise: 0,
+        }),
+      );
+      await AsyncStorage.setItem(
+        'jamzo.location.v1',
+        JSON.stringify({ lat: address.lat, lng: address.lng, label: 'Home', addressId: address.id }),
+      );
+    }
+    async function signInFromCheckout() {
+      await fireEvent.press(await screen.findByLabelText('Sign in'));
+      await fireEvent.changeText(await screen.findByLabelText('Mobile number'), '98765 43210');
+      await fireEvent.press(screen.getByLabelText('Send code'));
+      await fireEvent.changeText(await screen.findByLabelText('Verification code'), '123456');
+      await fireEvent.press(screen.getByLabelText('Verify and continue'));
+      expect(await screen.findByText('Checkout')).toBeTruthy();
+      expect(await screen.findByText(`Home, ${address.line1}`)).toBeTruthy(); // the saved address has loaded
+    }
+
+    it('places a cash-on-delivery order and follows it live; the restaurant accepting removes Cancel', async () => {
+      await withCart();
+      const calls = installFakeApi({ withAddress: true });
+      await renderRouter(routes, { initialUrl: '/checkout' });
+      expect(await screen.findByText('Sign in to place your order')).toBeTruthy();
+      await signInFromCheckout();
+      expect(screen.getByText('○ UPI — coming soon')).toBeTruthy();
+      await fireEvent.changeText(
+        screen.getByLabelText('Note for the restaurant (optional)'),
+        'Less spicy please',
+      );
+      await fireEvent.press(await screen.findByLabelText('Place order · ₹321.00'));
+
+      await waitFor(() => expect(calls.orders.checkouts).toHaveLength(1));
+      expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();
+      expect(screen.getByText('Waiting for Pizza Point to accept it.')).toBeTruthy();
+      expect(screen.getByLabelText('Cancel order')).toBeTruthy();
+      const [checkout] = calls.orders.checkouts;
+      expect(checkout.body).toMatchObject({
+        addressId: address.id,
+        paymentMethod: 'COD',
+        expectedTotalPaise: 32_100,
+        restaurantInstructions: 'Less spicy please',
+        contactless: false,
+      });
+      expect(checkout.key).toMatch(/^[0-9a-f-]{36}$/);
+
+      // The restaurant accepts: a realtime notice makes the screen re-fetch.
+      calls.orders.current = fixtures.orders.accepted;
+      await act(() =>
+        global.__realtime.emit('order.updated', { orderId: placed.id, status: 'RESTAURANT_ACCEPTED' }),
+      );
+      expect(await screen.findByRole('header', { name: 'Order accepted' })).toBeTruthy();
+      expect(screen.getByText('Ready in about 20 minutes.')).toBeTruthy();
+      expect(screen.queryByLabelText('Cancel order')).toBeNull();
+    });
+
+    it('cancels before the restaurant accepts', async () => {
+      await withCart();
+      installFakeApi({ withAddress: true });
+      await renderRouter(routes, { initialUrl: '/checkout' });
+      await signInFromCheckout();
+      await fireEvent.press(await screen.findByLabelText('Place order · ₹321.00'));
+      await fireEvent.press(await screen.findByLabelText('Cancel order'));
+      await fireEvent.press(screen.getByLabelText('I changed my mind'));
+      expect(await screen.findByText('You cancelled this order.')).toBeTruthy();
+    });
+
+    it('prices changed: shows the new total and starts a new attempt; a network error retries with the same key', async () => {
+      await withCart();
+      let mode = 'price';
+      const calls = installFakeApi({
+        withAddress: true,
+        onRequest: (path, body) => {
+          if (path !== '/v1/orders') return null;
+          if (mode === 'price') {
+            mode = 'network';
+            calls.orders.checkouts.push({ failed: 'price' });
+            return {
+              status: 409,
+              body: {
+                error: {
+                  code: 'PRICE_CHANGED',
+                  message: 'Prices changed.',
+                  requestId: 'r',
+                  details: {
+                    quote: { bill: { totalPayablePaise: 33_000 } },
+                    previousTotalPaise: body.expectedTotalPaise,
+                  },
+                },
+              },
+            };
+          }
+          return null;
+        },
+      });
+      const realFetch = global.fetch;
+      const keys = [];
+      global.fetch = jest.fn(async (url, init = {}) => {
+        if (new URL(url).pathname === '/v1/orders') {
+          keys.push(init.headers['idempotency-key']);
+          if (mode === 'network') {
+            mode = 'ok';
+            throw new TypeError('Network request failed');
+          }
+        }
+        return realFetch(url, init);
+      });
+      await renderRouter(routes, { initialUrl: '/checkout' });
+      await signInFromCheckout();
+      await fireEvent.press(await screen.findByLabelText('Place order · ₹321.00'));
+      expect(await screen.findByText(/Prices changed\. The new total is ₹330\.00/)).toBeTruthy();
+      // Second attempt: the network drops once; the client retries by itself with the same key.
+      // The press waits for the request, and the client's retry back-off runs on (fake) timers: start the press,
+      // advance time, then let it finish.
+      const pressing = fireEvent.press(screen.getByLabelText('Place order · ₹321.00'));
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      await pressing;
+      expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();
+      expect(keys).toHaveLength(3);
+      expect(keys[1]).not.toBe(keys[0]); // a new total is a new attempt
+      expect(keys[2]).toBe(keys[1]); // a retry is the same attempt: never two orders
+      expect(calls.orders.checkouts.filter((c) => !c.failed)).toHaveLength(1);
+    }, 15_000);
   });
 });

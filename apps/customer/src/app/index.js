@@ -2,7 +2,7 @@
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { userMessage } from '@jamzo/mobile-foundation';
+import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
 import {
   Banner,
   Button,
@@ -17,7 +17,8 @@ import {
 import { CartBar, DishRow, RestaurantCard, useMediaUrl } from '../components/bits';
 import { notServedLabel } from '../lib/format';
 import { useLocation } from '../lib/location';
-import { useHome } from '../lib/queries';
+import { TERMINAL, useHome, useOrders } from '../lib/queries';
+import { TIMELINE_LABEL } from '../lib/order-status';
 
 function Section({ s }) {
   const router = useRouter();
@@ -117,6 +118,9 @@ export default function Home() {
   const t = useTheme();
   const { place, ready } = useLocation();
   const home = useHome(place);
+  const { session } = useJamzo();
+  const orders = useOrders(session.status === 'signedIn');
+  const active = orders.data?.items.find((o) => !TERMINAL.includes(o.status));
   if (!ready) return <LoadingState label="Loading" />;
   return (
     <View style={{ flex: 1 }}>
@@ -129,6 +133,13 @@ export default function Home() {
           <Text variant="small">Delivering to</Text>
           <Text variant="heading">{place ? `${place.label} ▾` : 'Choose your location ▾'}</Text>
         </Pressable>
+        {active ? (
+          <Card>
+            <Text variant="heading">{`Your order from ${active.restaurant.name}`}</Text>
+            <Text variant="muted">{TIMELINE_LABEL[active.status] ?? active.status}</Text>
+            <Button title="Track order" onPress={() => router.push(`/orders/${active.id}`)} />
+          </Card>
+        ) : null}
         <View style={{ flexDirection: 'row', gap: t.spacing[2] }}>
           <View style={{ flex: 1 }}>
             <Button

@@ -12,6 +12,7 @@ import { mobileIdentity } from './apps.js';
  * @param {object} [p.android] extra Android config (permissions etc.)
  * @param {any[]} [p.plugins] extra config plugins
  * @param {boolean} [p.tablet] support iPad layouts
+ * @param {string[]} [p.notificationSounds] sound files bundled for push notifications (e.g. a new-order alert)
  */
 export function buildExpoConfig({
   appId,
@@ -22,6 +23,7 @@ export function buildExpoConfig({
   android = {},
   plugins = [],
   tablet = false,
+  notificationSounds = [],
 }) {
   const variant = /** @type {any} */ (env.variant ?? 'development');
   const id = mobileIdentity(appId, variant);
@@ -87,7 +89,14 @@ export function buildExpoConfig({
           resizeMode: 'contain',
         },
       ],
-      ['expo-notifications', { icon: './assets/notification-icon.png', color: id.color }],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/notification-icon.png',
+          color: id.color,
+          ...(notificationSounds.length ? { sounds: notificationSounds } : {}),
+        },
+      ],
       ...plugins,
     ],
     extra: {
