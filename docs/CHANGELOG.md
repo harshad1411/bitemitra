@@ -3,7 +3,25 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
-## Phase 2 — Restaurants & menus (2026-09-25) — awaiting owner review
+## Phases 3 + 4 — Customer discovery & pricing (2026-09-25) — awaiting owner review
+
+### Added
+- `@jamzo/pricing-engine`: the full PRICING.md pipeline — markup with rounding, promotions and coupons with funding split, packaging, per-charge tax (inclusive/exclusive/exempt), delivery fee strategies with free-delivery threshold and small-order fee, night/demand/weather/manual surcharges with cap and kill switch, platform fee, tips, final rounding, commission and withholdings, restaurant payable, rider earning estimate, gateway cost estimate, and invariant checks (engine `2026.09-1`, D-49).
+- Database: 15 tables (customer addresses, favourites, consents, home sections, banners, CMS pages, 7 versioned rule tables, coupons, promotions); 2 migrations; 34 more database rules including "one open version per rule target".
+- API (+44 endpoints, 131 total): customer discovery (restaurants for a location, search, CMS home, restaurant menu with Jamzo prices), server cart quote, addresses/favourites/consents, published CMS pages; admin pricing rules with versions, history, stale-edit protection and surge kill switch, effective rules, preview and test quote, coupons, promotions, home sections, banners, pages, masked customers with an audited reveal.
+- Distance: provider interface with a straight-line × road-factor fallback, clearly flagged (D-48).
+- Jamzo Admin: Pricing (rules per type, new versions, history, test quote showing customer/restaurant/platform side), Offers & coupons, Home & content, Customers; restaurant Pricing tab and customer-price preview on products.
+- Customer app: location (current / saved / development demo point), CMS home, search, restaurant menus, item customisation, cart with the server bill, coupons and tips, sign-in when needed, saved addresses, favourites, legal pages. Checkout is Phase 5.
+- Seed: placeholder pricing rules, 2 coupons, 1 promotion, home layout, draft legal pages (A-23).
+
+### Changed
+- Settings `delivery.eta` and `payments.gatewayFees` added.
+- Customer app: guests can browse (A-11); iOS asks only for "while using" location.
+
+### Fixed
+- `pnpm db:migrate` could not find the Prisma CLI with the hoisted pnpm layout (Phase 1 script bug); it now resolves the CLI through Node.
+
+## Phase 2 — Restaurants & menus (2026-09-25) — accepted
 
 ### Added
 - Database: 16 tables (branches, hours, delivery areas, documents, bank accounts, restaurant settings and zones, food categories, menu sections, products, variants, add-on groups and add-ons, images, sold-out windows, schedules); 2 migrations; 24 more database rules.

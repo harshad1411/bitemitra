@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phases 3 + 4 in progress).
+Last updated: 2026-09-25 (Phases 3 + 4 complete — awaiting owner review).
 
 ---
 
@@ -397,6 +397,19 @@ today) and says so in the admin.
 Customer list/detail show masked phone numbers and addresses unless the admin holds `customers.pii`
 (RBAC §2). Viewing unmasked data is audit-logged.
 
+### D-58. Customer app: cart line keys, when sign-in is asked, what the app computes
+A cart line is identified by product + size + sorted add-ons, hashed to a short key (the quote API
+accepts keys of at most 64 characters; a raw id list with two add-ons is longer). Guests browse, build a
+cart and see the server bill; sign-in is asked for only for saved addresses and favourites (and, from
+Phase 5, checkout). The app never computes a bill: the price on the "Add" button of the customise
+screen is menu price × quantity for guidance, and the cart shows only the server quote.
+
+### D-59. Add-on markup is not rounded (current behaviour — owner to confirm, Q-19)
+PRICING.md §4.2 says add-ons get "the same markup rule" but does not say whether its rounding applies.
+The engine applies the percentage exactly to add-ons and rounds only the main item (e.g. Sweet corn ₹25
++10% = ₹27.50), so several add-ons do not accumulate rounding. Changing this is one engine function
+plus golden-test updates.
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 | # | Change | Why | Consequence | Approval |
@@ -473,4 +486,5 @@ Customer list/detail show masked phone numbers and addresses unless the admin ho
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
 - **Q-17 (toolchains)** Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
+- **Q-19 (business)** Should a markup rule's rounding also apply to add-on prices? Today it does not (D-59); e.g. an add-on can show ₹27.50.
 - **Q-18 (Expo/EAS)** An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).

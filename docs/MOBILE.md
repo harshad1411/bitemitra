@@ -1,7 +1,7 @@
 # Mobile applications
 
-Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). Product
-features arrive in Phase 3 (customer), 2/5 (restaurant), 6 (rider). Nothing in the shells pretends to be a
+Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); checkout is Phase 5. Remaining product
+features arrive in Phase 5 (customer checkout, restaurant orders) and 6 (rider). Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.
 
@@ -33,7 +33,9 @@ release workflow. **No store publication happens during development** (OD-3).
 |---|---|
 | Framework | Expo SDK 57 (React Native 0.86.3, React 19.2.3), JavaScript — `.js`/`.jsx` only; one version for all three apps via the pnpm catalog (SDK upgrades are coordinated, releases are not — D-30) |
 | Navigation / deep links | Expo Router (`src/app/`) |
-| Server state | TanStack Query — introduced with the first data-heavy screens (Phase 3, D-29) |
+| Server state | TanStack Query (customer app since Phase 3, D-29, D-55) |
+| Device state | AsyncStorage — customer cart and chosen location (no secrets, D-55) |
+| Location | `expo-location`, foreground only (customer app) |
 | Tokens | `expo-secure-store` (Keychain / Android Keystore) |
 | Networking | `@jamzo/api-client` via `@jamzo/mobile-foundation` |
 | Network state | `@react-native-community/netinfo` |
@@ -97,3 +99,28 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 | Android native build | Gradle via CI (`ubuntu`) or `eas build` | **no — CI/owner** |
 | iOS native build | `xcodebuild` on a Mac with a simulator runtime + CocoaPods, or `eas build` | **no — needs `xcodebuild -downloadPlatform iOS` + CocoaPods** |
 | Real push delivery, deep links from other apps, keyboard/safe areas on devices, screen sizes | Maestro flows on emulator/simulator, then device checks | **no — listed in the phase report with owner steps** |
+
+## 8. Customer app (Phases 3 + 4)
+
+| Screen (`apps/customer/src/app/`) | What it does |
+|---|---|
+| `index.js` | Home for the chosen location: server-resolved CMS sections (D-56), "not served here" explanations, cart bar |
+| `location.js` | Current location (foreground permission), saved addresses (signed in), demo point (development builds only) |
+| `search.js` | Dishes and restaurants that deliver to the location |
+| `restaurant/[id].js` | Menu with Jamzo prices, offers, open/closed and "doesn't deliver here" states, favourite toggle |
+| `customize.js` | Size and add-on choices with required/min/max rules and quantity |
+| `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues; checkout disabled until Phase 5 |
+| `account.js`, `sign-in.js`, `addresses.js` | Guest or signed-in account, phone OTP sign-in when needed, saved addresses, favourites, notifications, legal pages, build info |
+| `page/[slug].js` | Published CMS pages (legal drafts show "Not published yet", Q-12) |
+
+**Location permission.** Only foreground location is requested (`NSLocationWhenInUseUsageDescription`,
+Android `ACCESS_COARSE/FINE_LOCATION`). The plugin's default "Always" and motion usage descriptions are
+removed and Android background location is blocked (`blockedPermissions`) — checked in the prebuild
+output (`Info.plist`, `AndroidManifest.xml`) — the customer app never tracks in the background. Denial is explained and saved
+addresses remain available. A map pin picker needs the maps provider (Q-14).
+
+**Tests.** `apps/customer/__tests__/app.test.js` drives the real screens through Expo Router against a
+fake API whose customer responses (`fixtures.json`) were captured from the real API on the seeded
+development database (restaurant marked open so the tests do not depend on the time of day).
+**Not verified on a simulator or device** — see §7 and Q-17.
+

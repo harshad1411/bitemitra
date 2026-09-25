@@ -16,7 +16,7 @@
     "schema:generate": "node scripts/generate-active-schema.mjs && prisma generate",
     "schema:check": "node scripts/generate-active-schema.mjs --check",
     "db:generate": "prisma generate",
-    "db:deploy": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy",
+    "db:deploy": "node scripts/prisma.mjs migrate deploy",
     "db:seed": "node --env-file-if-exists=../../.env src/seed/cli.js",
     "dev:db": "node scripts/dev-db.mjs",
     "test": "vitest run"

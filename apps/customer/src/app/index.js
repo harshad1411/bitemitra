@@ -1,43 +1,163 @@
-// Phase 1 shell: honest about what exists. Ordering (discovery, menus, cart, checkout) arrives in Phase 3–5.
-import { useState } from 'react';
+// Home: the CMS-driven sections for the customer's location (D-56). Nothing here is hard-coded per city.
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { registerForPush, useJamzo, useNetwork } from '@jamzo/mobile-foundation';
-import { Button, Card, Screen, Text } from '@jamzo/mobile-ui';
+import { userMessage } from '@jamzo/mobile-foundation';
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Screen,
+  Text,
+  useTheme,
+} from '@jamzo/mobile-ui';
+import { CartBar, DishRow, RestaurantCard, useMediaUrl } from '../components/bits';
+import { notServedLabel } from '../lib/format';
+import { useLocation } from '../lib/location';
+import { useHome } from '../lib/queries';
+
+function Section({ s }) {
+  const router = useRouter();
+  const t = useTheme();
+  const url = useMediaUrl();
+  const title = s.title ? <Text variant="heading">{s.title}</Text> : null;
+  if (s.type === 'BANNER_CAROUSEL')
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: t.spacing[3] }}
+      >
+        {s.banners.map((b) => (
+          <Pressable
+            key={b.id}
+            accessibilityRole="button"
+            accessibilityLabel={b.title ?? 'Offer'}
+            onPress={() => b.deepLink?.startsWith('/') && router.push(b.deepLink)}
+          >
+            <Image
+              source={{ uri: url(b.image, 'medium') }}
+              style={{ width: 280, height: 140, borderRadius: t.radius.lg }}
+            />
+          </Pressable>
+        ))}
+      </ScrollView>
+    );
+  if (s.type === 'CATEGORIES')
+    return (
+      <View style={{ gap: t.spacing[2] }}>
+        {title}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: t.spacing[2] }}
+        >
+          {s.categories.map((c) => (
+            <Pressable
+              key={c.id}
+              accessibilityRole="button"
+              accessibilityLabel={c.name}
+              onPress={() => router.push({ pathname: '/search', params: { q: c.name } })}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: t.colors.border,
+                backgroundColor: t.colors.surface,
+              }}
+            >
+              <Text>{c.name}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  if (s.restaurants)
+    return (
+      <Card>
+        {title}
+        {s.restaurants.map((r) => (
+          <RestaurantCard key={r.id} r={r} />
+        ))}
+      </Card>
+    );
+  if (s.dishes)
+    return (
+      <Card>
+        {title}
+        {s.dishes.map((d) => (
+          <DishRow key={d.id} d={d} onPress={() => router.push(`/restaurant/${d.restaurant.id}`)} />
+        ))}
+      </Card>
+    );
+  if (s.type === 'IMAGE_PROMO')
+    return (
+      <Image
+        accessibilityLabel={s.title ?? 'Promotion'}
+        source={{ uri: url(s.image, 'medium') }}
+        style={{ width: '100%', height: 160, borderRadius: t.radius.lg }}
+      />
+    );
+  if (s.type === 'TEXT')
+    return (
+      <Card>
+        {title}
+        {s.subtitle ? <Text variant="muted">{s.subtitle}</Text> : null}
+      </Card>
+    );
+  return null;
+}
 
 export default function Home() {
-  const { session, env, config, api } = useJamzo();
-  const network = useNetwork();
-  const [push, setPush] = useState(null);
+  const router = useRouter();
+  const t = useTheme();
+  const { place, ready } = useLocation();
+  const home = useHome(place);
+  if (!ready) return <LoadingState label="Loading" />;
   return (
-    <Screen>
-      <Text variant="title">{MOBILE_APPS.CUSTOMER.displayName}</Text>
-      <Text variant="muted">Signed in as {session.me?.user.phone ?? session.me?.user.email}</Text>
-      <Card>
-        <Text variant="heading">Coming soon</Text>
-        <Text variant="muted">
-          Restaurant discovery, menus and your cart arrive in Phase 3; ordering and payment in Phases 4–7.
-        </Text>
-      </Card>
-      <Card>
-        <Text variant="heading">Notifications</Text>
-        <Text variant="muted">
-          {push ? `${push.status}${push.reason ? ` — ${push.reason}` : ''}` : 'Not requested yet.'}
-        </Text>
-        <Button
-          title="Enable notifications"
-          variant="secondary"
-          onPress={async () => setPush(await registerForPush({ api, easProjectId: env.easProjectId }))}
-        />
-      </Card>
-      <Card>
-        <Text variant="heading">About this build</Text>
-        <Text variant="small">
-          Version {env.appVersion} ({env.variant}) · {env.platform} · {network.online ? 'online' : 'offline'}
-        </Text>
-        <Text variant="small">API {env.apiUrl}</Text>
-        {config?.support?.phone ? <Text variant="small">Support {config.support.phone}</Text> : null}
-      </Card>
-      <Button title="Sign out" variant="secondary" onPress={() => session.signOut()} />
-    </Screen>
+    <View style={{ flex: 1 }}>
+      <Screen>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change delivery location"
+          onPress={() => router.push('/location')}
+        >
+          <Text variant="small">Delivering to</Text>
+          <Text variant="heading">{place ? `${place.label} ▾` : 'Choose your location ▾'}</Text>
+        </Pressable>
+        <View style={{ flexDirection: 'row', gap: t.spacing[2] }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Search dishes & restaurants"
+              variant="secondary"
+              onPress={() => router.push('/search')}
+            />
+          </View>
+          <Button title="Account" variant="secondary" onPress={() => router.push('/account')} />
+        </View>
+        {!place ? (
+          <EmptyState
+            title={`Welcome to ${MOBILE_APPS.CUSTOMER.displayName}`}
+            message="Tell us where to deliver to see restaurants near you."
+            action={<Button title="Choose location" onPress={() => router.push('/location')} />}
+          />
+        ) : home.isPending ? (
+          <LoadingState label="Finding restaurants near you" />
+        ) : home.isError ? (
+          <ErrorState message={userMessage(home.error)} onRetry={() => home.refetch()} />
+        ) : !home.data.serviceable ? (
+          <Banner tone="warning">{notServedLabel(home.data.reason)}</Banner>
+        ) : !home.data.restaurantCount ? (
+          <EmptyState title="No restaurants deliver here yet" message="Try another address nearby." />
+        ) : (
+          home.data.sections.map((s) => <Section key={s.id} s={s} />)
+        )}
+      </Screen>
+      <CartBar />
+    </View>
   );
 }

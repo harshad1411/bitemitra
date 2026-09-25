@@ -1,4 +1,10 @@
 // A small fake of the Jamzo API behind global.fetch, so screens are tested against realistic responses.
+// Customer responses (fixtures.json) were captured from the real API on the seeded development database;
+// the restaurant is marked open so the tests do not depend on the time of day.
+import fixtures from './fixtures.json';
+
+export { fixtures };
+
 export function installFakeApi({ appConfig = {}, me = {}, onRequest } = {}) {
   const calls = [];
   const baseConfig = {
@@ -52,6 +58,18 @@ export function installFakeApi({ appConfig = {}, me = {}, onRequest } = {}) {
         },
       });
     }
+    if (path === '/v1/customer/home') return json(200, fixtures.home);
+    if (path === `/v1/customer/restaurants/${fixtures.restaurant.restaurant.id}`)
+      return json(200, fixtures.restaurant);
+    if (path === '/v1/customer/cart/quote') {
+      const q = fixtures.quotes[body.couponCode ?? 'none'] ?? fixtures.quotes.NOPE;
+      // The fixture was captured for one line (Margherita, Medium, Cheese burst); echo the app's line key.
+      return json(200, { ...q, lines: q.lines.map((l) => ({ ...l, key: body.lines[0].key })) });
+    }
+    if (path === '/v1/customer/favorites' || path === '/v1/customer/addresses')
+      return json(200, { items: [] });
+    if (path.startsWith('/v1/cms/pages/'))
+      return json(404, { error: { code: 'NOT_FOUND', message: 'Page not found.', requestId: 'r' } });
     return json(404, { error: { code: 'NOT_FOUND', message: 'Route not found.', requestId: 'r' } });
   });
   return calls;

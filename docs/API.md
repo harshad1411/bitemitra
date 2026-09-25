@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (87 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (131 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -109,6 +109,25 @@ _Generated from the route definitions by `pnpm docs:api` (87 endpoints). Do not 
 | `GET` | `/v1/admin/categories` | admin token | ADMIN | `restaurants.view` |  |
 | `POST` | `/v1/admin/categories` | admin token | ADMIN | `products.manage` |  |
 | `PATCH` | `/v1/admin/categories/:id` | admin token | ADMIN | `products.manage` |  |
+| `GET` | `/v1/admin/cms/banners` | admin token | ADMIN | `cms.manage` |  |
+| `POST` | `/v1/admin/cms/banners` | admin token | ADMIN | `cms.manage` |  |
+| `DELETE` | `/v1/admin/cms/banners/:id` | admin token | ADMIN | `cms.manage` |  |
+| `PUT` | `/v1/admin/cms/banners/:id` | admin token | ADMIN | `cms.manage` |  |
+| `GET` | `/v1/admin/cms/home-sections` | admin token | ADMIN | `cms.manage` |  |
+| `POST` | `/v1/admin/cms/home-sections` | admin token | ADMIN | `cms.manage` |  |
+| `DELETE` | `/v1/admin/cms/home-sections/:id` | admin token | ADMIN | `cms.manage` |  |
+| `PUT` | `/v1/admin/cms/home-sections/:id` | admin token | ADMIN | `cms.manage` |  |
+| `PUT` | `/v1/admin/cms/home-sections/order` | admin token | ADMIN | `cms.manage` |  |
+| `GET` | `/v1/admin/cms/pages` | admin token | ADMIN | `cms.manage` |  |
+| `POST` | `/v1/admin/cms/pages` | admin token | ADMIN | `cms.manage` |  |
+| `GET` | `/v1/admin/cms/pages/:id` | admin token | ADMIN | `cms.manage` |  |
+| `PUT` | `/v1/admin/cms/pages/:id` | admin token | ADMIN | `cms.manage` |  |
+| `GET` | `/v1/admin/coupons` | admin token | ADMIN | `promotions.manage` |  |
+| `POST` | `/v1/admin/coupons` | admin token | ADMIN | `promotions.manage` |  |
+| `PATCH` | `/v1/admin/coupons/:id` | admin token | ADMIN | `promotions.manage` |  |
+| `GET` | `/v1/admin/customers` | admin token | ADMIN | `customers.view` |  |
+| `GET` | `/v1/admin/customers/:id` | admin token | ADMIN | `customers.view` |  |
+| `POST` | `/v1/admin/customers/:id/reveal` | admin token | ADMIN | `customers.view + customers.pii` |  |
 | `GET` | `/v1/admin/dashboard` | admin token | ADMIN | `dashboard.view` |  |
 | `GET` | `/v1/admin/flags` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/flags/:key` | admin token | ADMIN | `flags.manage` |  |
@@ -132,12 +151,23 @@ _Generated from the route definitions by `pnpm docs:api` (87 endpoints). Do not 
 | `DELETE` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
 | `PATCH` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
 | `GET` | `/v1/admin/permissions` | admin token | ADMIN | `roles.view` |  |
+| `GET` | `/v1/admin/pricing/effective` | admin token | ADMIN | `pricing.view` |  |
+| `POST` | `/v1/admin/pricing/preview` | admin token | ADMIN | `pricing.view` |  |
+| `POST` | `/v1/admin/pricing/quote` | admin token | ADMIN | `pricing.view` |  |
+| `GET` | `/v1/admin/pricing/rules` | admin token | ADMIN | `pricing.view` |  |
+| `POST` | `/v1/admin/pricing/rules` | admin token | ADMIN | `pricing.view` |  |
+| `POST` | `/v1/admin/pricing/rules/:type/:id/end` | admin token | ADMIN | `pricing.view` |  |
+| `GET` | `/v1/admin/pricing/rules/:type/:id/history` | admin token | ADMIN | `pricing.view` |  |
+| `PATCH` | `/v1/admin/pricing/surge/:id/switch` | admin token | ADMIN | `pricing.surge` |  |
 | `GET` | `/v1/admin/products` | admin token | ADMIN | `restaurants.view` |  |
 | `POST` | `/v1/admin/products` | admin token | ADMIN | `products.manage` |  |
 | `GET` | `/v1/admin/products/:id` | admin token | ADMIN | `restaurants.view` |  |
 | `PUT` | `/v1/admin/products/:id` | admin token | ADMIN | `products.manage` |  |
 | `POST` | `/v1/admin/products/:id/availability` | admin token | ADMIN | `products.manage` |  |
 | `POST` | `/v1/admin/products/bulk` | admin token | ADMIN | `products.manage` |  |
+| `GET` | `/v1/admin/promotions` | admin token | ADMIN | `promotions.manage` |  |
+| `POST` | `/v1/admin/promotions` | admin token | ADMIN | `promotions.manage` |  |
+| `PATCH` | `/v1/admin/promotions/:id` | admin token | ADMIN | `promotions.manage` |  |
 | `POST` | `/v1/admin/restaurant-bank-accounts/:id/verify` | admin token | ADMIN | `restaurants.approve` |  |
 | `GET` | `/v1/admin/restaurant-documents/:id/file` | admin token | ADMIN | `restaurants.view` |  |
 | `POST` | `/v1/admin/restaurant-documents/:id/review` | admin token | ADMIN | `restaurants.approve` |  |
@@ -175,6 +205,20 @@ _Generated from the route definitions by `pnpm docs:api` (87 endpoints). Do not 
 | `POST` | `/v1/auth/otp/verify` | none | CUSTOMER, RESTAURANT, RIDER | — | 2× auth limit/min |
 | `POST` | `/v1/auth/refresh` | none | any | — | 60/min |
 | `POST` | `/v1/auth/social/:provider` | none | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `GET` | `/v1/cms/pages/:slug` | none | any | — |  |
+| `GET` | `/v1/customer/addresses` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/addresses` | required | CUSTOMER | — |  |
+| `DELETE` | `/v1/customer/addresses/:id` | required | CUSTOMER | — |  |
+| `PATCH` | `/v1/customer/addresses/:id` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/cart/quote` | optional | CUSTOMER | — | 120/min |
+| `POST` | `/v1/customer/consents` | required | CUSTOMER | — |  |
+| `GET` | `/v1/customer/favorites` | required | CUSTOMER | — |  |
+| `DELETE` | `/v1/customer/favorites/:id` | required | CUSTOMER | — |  |
+| `PUT` | `/v1/customer/favorites/:id` | required | CUSTOMER | — |  |
+| `GET` | `/v1/customer/home` | optional | CUSTOMER | — |  |
+| `GET` | `/v1/customer/restaurants` | optional | CUSTOMER | — |  |
+| `GET` | `/v1/customer/restaurants/:id` | optional | CUSTOMER | — |  |
+| `GET` | `/v1/customer/search` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/geo/serviceability` | optional | any | — | 60/min |
 | `GET` | `/v1/me` | required | any | — |  |
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |

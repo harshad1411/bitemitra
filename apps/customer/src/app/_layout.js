@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { AppGate, JamzoProvider, OfflineBanner, PhoneSignIn, useJamzo } from '@jamzo/mobile-foundation';
+import { AppGate, JamzoProvider, OfflineBanner, useJamzo } from '@jamzo/mobile-foundation';
 import { LoadingState, Screen } from '@jamzo/mobile-ui';
+import { CartProvider } from '../lib/cart';
+import { LocationProvider } from '../lib/location';
 
 const APP = MOBILE_APPS.CUSTOMER;
 
@@ -11,29 +15,31 @@ function Root() {
   if (session.status === 'restoring') {
     return (
       <Screen scroll={false}>
-        <LoadingState label="Signing you in" />
+        <LoadingState label="Starting Jamzo" />
       </Screen>
     );
   }
-  if (session.status === 'signedOut') {
-    return (
-      <PhoneSignIn
-        title={`Welcome to ${APP.displayName}`}
-        subtitle="Sign in with your mobile number. We'll send you a one-time code."
-      />
-    );
-  }
+  // Guests can browse (setting customer.guestBrowsing, A-11); sign-in is asked for when it is needed.
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } }),
+  );
   return (
     <JamzoProvider appId="CUSTOMER" accent={APP.color}>
-      <StatusBar style="dark" />
-      <OfflineBanner />
-      <AppGate>
-        <Root />
-      </AppGate>
+      <QueryClientProvider client={queryClient}>
+        <LocationProvider>
+          <CartProvider>
+            <StatusBar style="dark" />
+            <OfflineBanner />
+            <AppGate>
+              <Root />
+            </AppGate>
+          </CartProvider>
+        </LocationProvider>
+      </QueryClientProvider>
     </JamzoProvider>
   );
 }

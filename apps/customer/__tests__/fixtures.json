@@ -1,0 +1,1670 @@
+{
+  "home": {
+    "serviceable": true,
+    "city": {
+      "id": "01a0d326-3a2e-7302-ae0e-8fb94009c7a6",
+      "name": "Unjha"
+    },
+    "zone": {
+      "id": "01a0d326-3a30-7dc0-b0bc-c64b80730f1b",
+      "name": "Unjha Central"
+    },
+    "restaurantCount": 5,
+    "sections": [
+      {
+        "id": "01a0d617-99b2-76c3-b17d-99df2f3d901b",
+        "type": "CATEGORIES",
+        "title": "What are you craving?",
+        "subtitle": null,
+        "background": null,
+        "ctaLabel": null,
+        "deepLink": null,
+        "categories": [
+          {
+            "id": "01a0d617-9919-7212-ae68-4fd8e2db12a7",
+            "slug": "thali",
+            "name": "Thali",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991a-7363-8021-6bf493e0aaa3",
+            "slug": "gujarati",
+            "name": "Gujarati",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991b-7ab0-a238-7f592f21b8b2",
+            "slug": "punjabi",
+            "name": "Punjabi",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991b-7ab0-a238-7f6c671cb5d4",
+            "slug": "chinese",
+            "name": "Chinese",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991b-7ab0-a238-7f70669379b5",
+            "slug": "pizza",
+            "name": "Pizza",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991c-7c71-97b4-9c9afd59d037",
+            "slug": "street-food",
+            "name": "Street food",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991d-7d50-9872-4a8735a97c7b",
+            "slug": "farsan",
+            "name": "Farsan & snacks",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991d-7d50-9872-4a9cf0d0a8b9",
+            "slug": "sweets",
+            "name": "Sweets",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991e-73c1-947b-99017fa4c9b7",
+            "slug": "beverages",
+            "name": "Beverages",
+            "icon": null
+          },
+          {
+            "id": "01a0d617-991e-73c1-947b-99162430e5ae",
+            "slug": "bakery",
+            "name": "Bakery",
+            "icon": null
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-99b3-7eb3-a666-6ec7a17a8107",
+        "type": "OFFERS",
+        "title": "Offers near you",
+        "subtitle": null,
+        "background": null,
+        "ctaLabel": null,
+        "deepLink": null,
+        "restaurants": [
+          {
+            "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+            "slug": "pizza-point-unjha",
+            "name": "Pizza Point",
+            "cuisines": ["Pizza", "Fast food"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Upera Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 793,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 28,
+              "maxMinutes": 38,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": [
+              {
+                "id": "01a0d617-99b0-7680-a9d2-cc0531d71e36",
+                "text": "10% off up to ₹75 above ₹199",
+                "discountType": "PERCENTAGE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-99b3-7eb3-a666-6edbba27a976",
+        "type": "RECOMMENDED",
+        "title": "Recommended for you",
+        "subtitle": null,
+        "background": null,
+        "ctaLabel": null,
+        "deepLink": null,
+        "restaurants": [
+          {
+            "id": "01a0d617-9971-75e3-870b-ae699733b8d9",
+            "slug": "bapa-sitaram-farsan",
+            "name": "Bapa Sitaram Farsan House",
+            "cuisines": ["Farsan", "Sweets", "Gujarati"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Bhagwati Chowk",
+            "logo": null,
+            "cover": null,
+            "distanceM": 277,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 26,
+              "maxMinutes": 36,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          },
+          {
+            "id": "01a0d326-3a34-7e41-b8cd-4f80f6173a10",
+            "slug": "demo-kitchen",
+            "name": "Jamzo Demo Kitchen",
+            "cuisines": ["Gujarati", "North Indian"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Station Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 338,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 27,
+              "maxMinutes": 37,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          },
+          {
+            "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+            "slug": "pizza-point-unjha",
+            "name": "Pizza Point",
+            "cuisines": ["Pizza", "Fast food"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Upera Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 793,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 28,
+              "maxMinutes": 38,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": [
+              {
+                "id": "01a0d617-99b0-7680-a9d2-cc0531d71e36",
+                "text": "10% off up to ₹75 above ₹199",
+                "discountType": "PERCENTAGE"
+              }
+            ]
+          },
+          {
+            "id": "01a0d617-9932-7111-94b7-c2af7d4f5b92",
+            "slug": "umiya-thali-house",
+            "name": "Umiya Thali House",
+            "cuisines": ["Gujarati", "Thali"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Ganj Bazar",
+            "logo": null,
+            "cover": null,
+            "distanceM": 861,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 28,
+              "maxMinutes": 38,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          },
+          {
+            "id": "01a0d617-994c-7971-a9bb-9d0c46348c76",
+            "slug": "dragon-wok-unjha",
+            "name": "Dragon Wok Unjha",
+            "cuisines": ["Chinese", "Indo-Chinese"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Kamli Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 1408,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 30,
+              "maxMinutes": 40,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-99b3-7eb3-a666-6ee0aac8407c",
+        "type": "CUISINE_COLLECTION",
+        "title": "Gujarati thalis",
+        "subtitle": null,
+        "background": null,
+        "ctaLabel": null,
+        "deepLink": null,
+        "restaurants": [
+          {
+            "id": "01a0d617-9932-7111-94b7-c2af7d4f5b92",
+            "slug": "umiya-thali-house",
+            "name": "Umiya Thali House",
+            "cuisines": ["Gujarati", "Thali"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Ganj Bazar",
+            "logo": null,
+            "cover": null,
+            "distanceM": 861,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 28,
+              "maxMinutes": 38,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-99b3-7eb3-a666-6ef2c0c8d09d",
+        "type": "UNDER_PRICE",
+        "title": "Under ₹99",
+        "subtitle": null,
+        "background": null,
+        "ctaLabel": null,
+        "deepLink": null,
+        "dishes": [
+          {
+            "id": "01a0d617-9956-70d2-aa95-04e011730b4d",
+            "name": "Hakka Noodles",
+            "foodType": "VEG",
+            "pricePaise": 9000,
+            "image": null,
+            "restaurant": {
+              "id": "01a0d617-994c-7971-a9bb-9d0c46348c76",
+              "name": "Dragon Wok Unjha"
+            }
+          },
+          {
+            "id": "01a0d617-993a-7a22-a71d-58f3e9118f01",
+            "name": "Shrikhand",
+            "foodType": "VEG",
+            "pricePaise": 9000,
+            "image": null,
+            "restaurant": {
+              "id": "01a0d617-9932-7111-94b7-c2af7d4f5b92",
+              "name": "Umiya Thali House"
+            }
+          },
+          {
+            "id": "01a0d617-9977-70a2-8283-33dc0afccd0a",
+            "name": "Khaman Dhokla",
+            "foodType": "VEG",
+            "pricePaise": 6000,
+            "image": null,
+            "restaurant": {
+              "id": "01a0d617-9971-75e3-870b-ae699733b8d9",
+              "name": "Bapa Sitaram Farsan House"
+            }
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-99b4-71b3-805d-9ef138d3763e",
+        "type": "NEW_RESTAURANTS",
+        "title": "New on Jamzo",
+        "subtitle": null,
+        "background": null,
+        "ctaLabel": null,
+        "deepLink": null,
+        "restaurants": [
+          {
+            "id": "01a0d617-9971-75e3-870b-ae699733b8d9",
+            "slug": "bapa-sitaram-farsan",
+            "name": "Bapa Sitaram Farsan House",
+            "cuisines": ["Farsan", "Sweets", "Gujarati"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Bhagwati Chowk",
+            "logo": null,
+            "cover": null,
+            "distanceM": 277,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 26,
+              "maxMinutes": 36,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          },
+          {
+            "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+            "slug": "pizza-point-unjha",
+            "name": "Pizza Point",
+            "cuisines": ["Pizza", "Fast food"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Upera Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 793,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 28,
+              "maxMinutes": 38,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": [
+              {
+                "id": "01a0d617-99b0-7680-a9d2-cc0531d71e36",
+                "text": "10% off up to ₹75 above ₹199",
+                "discountType": "PERCENTAGE"
+              }
+            ]
+          },
+          {
+            "id": "01a0d617-994c-7971-a9bb-9d0c46348c76",
+            "slug": "dragon-wok-unjha",
+            "name": "Dragon Wok Unjha",
+            "cuisines": ["Chinese", "Indo-Chinese"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Kamli Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 1408,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 30,
+              "maxMinutes": 40,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          },
+          {
+            "id": "01a0d617-9932-7111-94b7-c2af7d4f5b92",
+            "slug": "umiya-thali-house",
+            "name": "Umiya Thali House",
+            "cuisines": ["Gujarati", "Thali"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Ganj Bazar",
+            "logo": null,
+            "cover": null,
+            "distanceM": 861,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 28,
+              "maxMinutes": 38,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          },
+          {
+            "id": "01a0d326-3a34-7e41-b8cd-4f80f6173a10",
+            "slug": "demo-kitchen",
+            "name": "Jamzo Demo Kitchen",
+            "cuisines": ["Gujarati", "North Indian"],
+            "isPureVeg": true,
+            "isPromoted": false,
+            "rating": {
+              "average": 0,
+              "count": 0
+            },
+            "area": "Station Road",
+            "logo": null,
+            "cover": null,
+            "distanceM": 338,
+            "distanceSource": "FALLBACK",
+            "eta": {
+              "minMinutes": 27,
+              "maxMinutes": 37,
+              "estimate": true
+            },
+            "delivery": {
+              "feePaise": 2000,
+              "freeAboveSubtotalPaise": 49900
+            },
+            "open": {
+              "isOpen": true,
+              "reason": "OPEN",
+              "closesAt": "2026-09-25T18:00:00.000Z",
+              "pausedUntil": null,
+              "nextOpenLocal": null
+            },
+            "offers": []
+          }
+        ]
+      }
+    ]
+  },
+  "restaurant": {
+    "restaurant": {
+      "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+      "slug": "pizza-point-unjha",
+      "name": "Pizza Point",
+      "description": null,
+      "cuisines": ["Pizza", "Fast food"],
+      "isPureVeg": true,
+      "rating": {
+        "average": 0,
+        "count": 0
+      },
+      "address": "Upera Road, Unjha, Gujarat, Upera Road",
+      "fssaiNumber": null,
+      "hours": [
+        {
+          "dayOfWeek": 0,
+          "opensAt": "11:00",
+          "closesAt": "23:30"
+        }
+      ],
+      "open": {
+        "isOpen": true,
+        "reason": "OPEN",
+        "closesAt": "2026-09-25T18:00:00.000Z",
+        "pausedUntil": null,
+        "nextOpenLocal": null
+      },
+      "isFavorite": false
+    },
+    "delivery": {
+      "checked": true,
+      "deliverable": true,
+      "distanceM": 793,
+      "distanceSource": "FALLBACK",
+      "eta": {
+        "minMinutes": 28,
+        "maxMinutes": 38,
+        "estimate": true
+      },
+      "feePaise": 2000,
+      "freeAboveSubtotalPaise": 49900,
+      "offers": [
+        {
+          "id": "01a0d617-99b0-7680-a9d2-cc0531d71e36",
+          "text": "10% off up to ₹75 above ₹199",
+          "discountType": "PERCENTAGE"
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "01a0d617-995c-7ac1-bf42-f3143c229aca",
+        "name": "Pizzas",
+        "products": [
+          {
+            "id": "01a0d617-995d-7fc0-9146-086234ab7269",
+            "name": "Margherita",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 13200,
+            "isBestseller": true,
+            "isRecommended": false,
+            "images": [],
+            "variants": [
+              {
+                "id": "01a0d617-995d-7fc0-9146-0878f713ca63",
+                "name": "Regular 7\"",
+                "isDefault": true,
+                "isAvailable": true,
+                "pricePaise": 13200
+              },
+              {
+                "id": "01a0d617-995d-7fc0-9146-088b64467654",
+                "name": "Medium 10\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 24200
+              },
+              {
+                "id": "01a0d617-995d-7fc0-9146-0899b6dd50a7",
+                "name": "Large 12\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 35200
+              }
+            ],
+            "addonGroups": [
+              {
+                "id": "01a0d617-995d-7fc0-9146-08a38030651c",
+                "name": "Crust",
+                "minSelect": 1,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-08b972d050b3",
+                    "name": "Classic hand-tossed",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-08cc4f539ad8",
+                    "name": "Thin crust",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-08d14304ac99",
+                    "name": "Cheese burst",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 6600
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-995d-7fc0-9146-08eeeb2d9369",
+                "name": "Add cheese",
+                "minSelect": 0,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-08f7dbf2df8b",
+                    "name": "Extra cheese",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3300
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-995d-7fc0-9146-090a1412bc73",
+                "name": "Extra toppings",
+                "minSelect": 0,
+                "maxSelect": 4,
+                "addons": [
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-091f9cec0599",
+                    "name": "Onion",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 2200
+                  },
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-092b79a07d0a",
+                    "name": "Capsicum",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 2200
+                  },
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-0939324c5f09",
+                    "name": "Sweet corn",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 2750
+                  },
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-0943cbff6484",
+                    "name": "Paneer",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 4400
+                  },
+                  {
+                    "id": "01a0d617-995d-7fc0-9146-0958c714ccb0",
+                    "name": "Jalapeño",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3300
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-995e-7160-9e86-489c6a1a873f",
+            "name": "Farmhouse",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 18400,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [
+              {
+                "id": "01a0d617-995e-7160-9e86-48a35a991184",
+                "name": "Regular 7\"",
+                "isDefault": true,
+                "isAvailable": true,
+                "pricePaise": 18400
+              },
+              {
+                "id": "01a0d617-995e-7160-9e86-48b8f553cffc",
+                "name": "Medium 10\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 33400
+              },
+              {
+                "id": "01a0d617-995e-7160-9e86-48cbf6225d53",
+                "name": "Large 12\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 47200
+              }
+            ],
+            "addonGroups": [
+              {
+                "id": "01a0d617-995e-7160-9e86-48d7ea0088ce",
+                "name": "Crust",
+                "minSelect": 1,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-995e-7160-9e86-48e801f8b508",
+                    "name": "Classic hand-tossed",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-995e-7160-9e86-48f0303ae266",
+                    "name": "Thin crust",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-995e-7160-9e86-49078dae8f66",
+                    "name": "Cheese burst",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 6900
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-995e-7160-9e86-491fce702755",
+                "name": "Add cheese",
+                "minSelect": 0,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-995e-7160-9e86-49237a360eec",
+                    "name": "Extra cheese",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3450
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-995e-7160-9e86-493e662ab812",
+                "name": "Extra toppings",
+                "minSelect": 0,
+                "maxSelect": 4,
+                "addons": [
+                  {
+                    "id": "01a0d617-995e-7160-9e86-49412cafbedf",
+                    "name": "Onion",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 2300
+                  },
+                  {
+                    "id": "01a0d617-995e-7160-9e86-49548b96430b",
+                    "name": "Capsicum",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 2300
+                  },
+                  {
+                    "id": "01a0d617-995e-7160-9e86-4965539a0f94",
+                    "name": "Sweet corn",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 2875
+                  },
+                  {
+                    "id": "01a0d617-995e-7160-9e86-4975de1acdf4",
+                    "name": "Paneer",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 4600
+                  },
+                  {
+                    "id": "01a0d617-995e-7160-9e86-49895b9ca061",
+                    "name": "Jalapeño",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3450
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-995f-73b1-b674-3523eb929517",
+            "name": "Paneer Tikka Pizza",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 19800,
+            "isBestseller": false,
+            "isRecommended": true,
+            "images": [],
+            "variants": [
+              {
+                "id": "01a0d617-995f-73b1-b674-353174c83986",
+                "name": "Regular 7\"",
+                "isDefault": true,
+                "isAvailable": true,
+                "pricePaise": 19800
+              },
+              {
+                "id": "01a0d617-995f-73b1-b674-354382b1b9c4",
+                "name": "Medium 10\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 35200
+              },
+              {
+                "id": "01a0d617-995f-73b1-b674-355838fb54be",
+                "name": "Large 12\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 49500
+              }
+            ],
+            "addonGroups": [
+              {
+                "id": "01a0d617-995f-73b1-b674-3562bd7cc873",
+                "name": "Crust",
+                "minSelect": 1,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-995f-73b1-b674-3577aea76323",
+                    "name": "Classic hand-tossed",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-995f-73b1-b674-358757549a4a",
+                    "name": "Thin crust",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-995f-73b1-b674-3598110591aa",
+                    "name": "Cheese burst",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 6600
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-995f-73b1-b674-35aea7175f4a",
+                "name": "Add cheese",
+                "minSelect": 0,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-995f-73b1-b674-35b72c1a64c5",
+                    "name": "Extra cheese",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3300
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-9960-7721-88e5-063902b5c8b5",
+            "name": "Jain Veggie Delight",
+            "description": "No onion, no garlic, no root vegetables.",
+            "foodType": "VEG",
+            "pricePaise": 16500,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [
+              {
+                "id": "01a0d617-9960-7721-88e5-0640a9b5b261",
+                "name": "Regular 7\"",
+                "isDefault": true,
+                "isAvailable": true,
+                "pricePaise": 16500
+              },
+              {
+                "id": "01a0d617-9960-7721-88e5-0655c250449f",
+                "name": "Medium 10\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 29700
+              }
+            ],
+            "addonGroups": [
+              {
+                "id": "01a0d617-9960-7721-88e5-0661f5f6f510",
+                "name": "Crust",
+                "minSelect": 1,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-9960-7721-88e5-067b6ec710e2",
+                    "name": "Classic hand-tossed",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-9960-7721-88e5-068c7e9e930a",
+                    "name": "Thin crust",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-9960-7721-88e5-069efed9af3b",
+                    "name": "Cheese burst",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 6600
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-9960-7721-88e5-06acc2848087",
+                "name": "Add cheese",
+                "minSelect": 0,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-9960-7721-88e5-06b6cbf24c87",
+                    "name": "Extra cheese",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3300
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-9961-7780-8738-9e1a2b5b7025",
+            "name": "Corn & Cheese",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 15400,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [
+              {
+                "id": "01a0d617-9961-7780-8738-9e259668e541",
+                "name": "Regular 7\"",
+                "isDefault": true,
+                "isAvailable": true,
+                "pricePaise": 15400
+              },
+              {
+                "id": "01a0d617-9961-7780-8738-9e37cac2b0c1",
+                "name": "Medium 10\"",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 27500
+              }
+            ],
+            "addonGroups": [
+              {
+                "id": "01a0d617-9961-7780-8738-9e470fa5949e",
+                "name": "Crust",
+                "minSelect": 1,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-9961-7780-8738-9e59c5104d96",
+                    "name": "Classic hand-tossed",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-9961-7780-8738-9e63cae7ee1f",
+                    "name": "Thin crust",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 0
+                  },
+                  {
+                    "id": "01a0d617-9961-7780-8738-9e7a6187e7b4",
+                    "name": "Cheese burst",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 6600
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-9961-7780-8738-9e8a5e470acb",
+                "name": "Add cheese",
+                "minSelect": 0,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-9961-7780-8738-9e997a0e4ec0",
+                    "name": "Extra cheese",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3300
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-9962-7630-b9a7-27d4d6eb937f",
+        "name": "Sides",
+        "products": [
+          {
+            "id": "01a0d617-9962-7630-b9a7-27fe5b9ab11c",
+            "name": "Garlic Bread",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 9900,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [],
+            "addonGroups": [
+              {
+                "id": "01a0d617-9962-7630-b9a7-28076ddb9563",
+                "name": "Add cheese",
+                "minSelect": 0,
+                "maxSelect": 1,
+                "addons": [
+                  {
+                    "id": "01a0d617-9962-7630-b9a7-2817430ade2f",
+                    "name": "Extra cheese",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 3300
+                  }
+                ]
+              },
+              {
+                "id": "01a0d617-9962-7630-b9a7-282746982da7",
+                "name": "Dips",
+                "minSelect": 0,
+                "maxSelect": 2,
+                "addons": [
+                  {
+                    "id": "01a0d617-9962-7630-b9a7-283d4239bc68",
+                    "name": "Mayonnaise",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 1650
+                  },
+                  {
+                    "id": "01a0d617-9962-7630-b9a7-28455eebe71c",
+                    "name": "Schezwan sauce",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 1650
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-9963-7753-917c-de11ebc2b83c",
+            "name": "French Fries",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 7700,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [
+              {
+                "id": "01a0d617-9963-7753-917c-de2c684686c9",
+                "name": "Regular",
+                "isDefault": true,
+                "isAvailable": true,
+                "pricePaise": 7700
+              },
+              {
+                "id": "01a0d617-9963-7753-917c-de3d6ed6ff09",
+                "name": "Large",
+                "isDefault": false,
+                "isAvailable": true,
+                "pricePaise": 12100
+              }
+            ],
+            "addonGroups": [
+              {
+                "id": "01a0d617-9963-7753-917c-de4fefa5bc68",
+                "name": "Dips",
+                "minSelect": 0,
+                "maxSelect": 2,
+                "addons": [
+                  {
+                    "id": "01a0d617-9963-7753-917c-de5e9cb736ce",
+                    "name": "Mayonnaise",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 1650
+                  },
+                  {
+                    "id": "01a0d617-9963-7753-917c-de64274bc067",
+                    "name": "Schezwan sauce",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 1650
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-9963-7753-917c-de8ade82b1d9",
+            "name": "Cheese Sandwich",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 8800,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [],
+            "addonGroups": [],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "01a0d617-9964-7b83-8c7e-315d42437d57",
+        "name": "Drinks",
+        "products": [
+          {
+            "id": "01a0d617-9964-7b83-8c7e-31735fed2a85",
+            "name": "Cold Coffee",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 9900,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [],
+            "addonGroups": [
+              {
+                "id": "01a0d617-9964-7b83-8c7e-318b9f8c4236",
+                "name": "Add a scoop",
+                "minSelect": 0,
+                "maxSelect": 2,
+                "addons": [
+                  {
+                    "id": "01a0d617-9964-7b83-8c7e-319838578128",
+                    "name": "Vanilla",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 4400
+                  },
+                  {
+                    "id": "01a0d617-9964-7b83-8c7e-31aacec2707a",
+                    "name": "Chocolate",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 5500
+                  },
+                  {
+                    "id": "01a0d617-9964-7b83-8c7e-31b187cb6c8f",
+                    "name": "Kesar pista",
+                    "foodType": "VEG",
+                    "isAvailable": true,
+                    "pricePaise": 6600
+                  }
+                ]
+              }
+            ],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          },
+          {
+            "id": "01a0d617-9965-7fa2-96cb-b0116157da44",
+            "name": "Soft Drink (300 ml)",
+            "description": null,
+            "foodType": "VEG",
+            "pricePaise": 4400,
+            "isBestseller": false,
+            "isRecommended": false,
+            "images": [],
+            "variants": [],
+            "addonGroups": [],
+            "schedules": [],
+            "availability": {
+              "available": true,
+              "reason": "AVAILABLE",
+              "until": null,
+              "nextAvailableAt": null
+            }
+          }
+        ]
+      }
+    ],
+    "pricesInclude": "Menu prices are Jamzo prices; taxes and fees are shown in your cart."
+  },
+  "quotes": {
+    "none": {
+      "deliverable": true,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point",
+        "isOpen": true
+      },
+      "delivery": {
+        "distanceM": 793,
+        "distanceSource": "FALLBACK",
+        "eta": {
+          "minMinutes": 28,
+          "maxMinutes": 38,
+          "estimate": true
+        },
+        "freeReason": null,
+        "freeAboveSubtotalPaise": 49900
+      },
+      "canCheckout": false,
+      "checkoutNote": "Checkout and payment arrive in Phase 5.",
+      "lines": [
+        {
+          "key": "K",
+          "productId": "01a0d617-995d-7fc0-9146-086234ab7269",
+          "variantId": "01a0d617-995d-7fc0-9146-088b64467654",
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": [
+            {
+              "addonId": "01a0d617-995d-7fc0-9146-08d14304ac99",
+              "name": "Cheese burst",
+              "unitPricePaise": 6600
+            }
+          ],
+          "unitPricePaise": 30800,
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "totalPayablePaise": 32100,
+        "markupDisclosure": "NONE",
+        "notes": []
+      },
+      "coupon": null,
+      "offers": [
+        {
+          "name": "Pizza Point: 10% off",
+          "amountPaise": 3080
+        }
+      ],
+      "tips": {
+        "enabled": true,
+        "presetsPaise": [1000, 2000, 3000]
+      },
+      "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
+      "limitsCheckedAtCheckout": true,
+      "issues": []
+    },
+    "WELCOME50": {
+      "deliverable": true,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point",
+        "isOpen": true
+      },
+      "delivery": {
+        "distanceM": 793,
+        "distanceSource": "FALLBACK",
+        "eta": {
+          "minMinutes": 28,
+          "maxMinutes": 38,
+          "estimate": true
+        },
+        "freeReason": null,
+        "freeAboveSubtotalPaise": 49900
+      },
+      "canCheckout": false,
+      "checkoutNote": "Checkout and payment arrive in Phase 5.",
+      "lines": [
+        {
+          "key": "K",
+          "productId": "01a0d617-995d-7fc0-9146-086234ab7269",
+          "variantId": "01a0d617-995d-7fc0-9146-088b64467654",
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": [
+            {
+              "addonId": "01a0d617-995d-7fc0-9146-08d14304ac99",
+              "name": "Cheese burst",
+              "unitPricePaise": 6600
+            }
+          ],
+          "unitPricePaise": 30800,
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "COUPON",
+            "label": "Coupon WELCOME50",
+            "amountPaise": -10000
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1336
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "totalPayablePaise": 21600,
+        "markupDisclosure": "NONE",
+        "notes": []
+      },
+      "coupon": {
+        "code": "WELCOME50",
+        "status": "APPLIED",
+        "reason": null,
+        "shortByPaise": null,
+        "message": "Coupon applied."
+      },
+      "offers": [
+        {
+          "name": "Pizza Point: 10% off",
+          "amountPaise": 3080
+        }
+      ],
+      "tips": {
+        "enabled": true,
+        "presetsPaise": [1000, 2000, 3000]
+      },
+      "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
+      "limitsCheckedAtCheckout": true,
+      "issues": []
+    },
+    "NOPE": {
+      "deliverable": true,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point",
+        "isOpen": true
+      },
+      "delivery": {
+        "distanceM": 793,
+        "distanceSource": "FALLBACK",
+        "eta": {
+          "minMinutes": 28,
+          "maxMinutes": 38,
+          "estimate": true
+        },
+        "freeReason": null,
+        "freeAboveSubtotalPaise": 49900
+      },
+      "canCheckout": false,
+      "checkoutNote": "Checkout and payment arrive in Phase 5.",
+      "lines": [
+        {
+          "key": "K",
+          "productId": "01a0d617-995d-7fc0-9146-086234ab7269",
+          "variantId": "01a0d617-995d-7fc0-9146-088b64467654",
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": [
+            {
+              "addonId": "01a0d617-995d-7fc0-9146-08d14304ac99",
+              "name": "Cheese burst",
+              "unitPricePaise": 6600
+            }
+          ],
+          "unitPricePaise": 30800,
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "totalPayablePaise": 32100,
+        "markupDisclosure": "NONE",
+        "notes": []
+      },
+      "coupon": {
+        "code": "NOPE",
+        "status": "NOT_APPLICABLE",
+        "reason": "NOT_FOUND",
+        "message": "This coupon code does not exist."
+      },
+      "offers": [
+        {
+          "name": "Pizza Point: 10% off",
+          "amountPaise": 3080
+        }
+      ],
+      "tips": {
+        "enabled": true,
+        "presetsPaise": [1000, 2000, 3000]
+      },
+      "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
+      "limitsCheckedAtCheckout": true,
+      "issues": []
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Pricing
 
-Status: **Design (Phase 0, updated for owner decisions OD-7..OD-16).** Only money math exists in Phase 1. Implemented in Phase 4 (`packages/pricing-engine`) with the test matrix below
+Status: **Implemented in Phases 3 + 4** (`packages/pricing-engine`, engine version `2026.09-1`, D-49) with the test matrix in §10 and the §6 worked example as a golden test. Tax values are placeholders pending the CA (Q-3); coupon limits needing order history apply from Phase 5 (D-52). The test matrix was
 written *before* the implementation. Items marked **⚠ Qn** depend on an owner decision in
 [DECISIONS.md](DECISIONS.md#5-questions); the stated default is used until answered.
 
@@ -104,7 +104,7 @@ Global 5%, City (Unjha) 7%, Restaurant (ABC Pizza) 10%, Product (Farmhouse Pizza
 Executed in this order; each step's output is recorded in the quote.
 
 1. **Revalidate** (orders module, before the engine): restaurant open/not paused, address serviceable, every item/variant/add-on exists, is available and inside its schedule, add-on group min/max satisfied, stock available.
-2. **Line prices.** For each line: `base = variant.basePrice (or product.basePrice)`; resolve markup (§2); `display = round(base + markup)` per the rule's rounding; `markupAmount = display − base` (rounding delta is part of markup, so the identity always holds). Add-ons: same markup rule when `applyToAddons` (percentage rules only; FIXED markups apply to the main item only). **Restaurant base prices are never modified.**
+2. **Line prices.** For each line: `base = variant.basePrice (or product.basePrice)`; resolve markup (§2); `display = round(base + markup)` per the rule's rounding; `markupAmount = display − base` (rounding delta is part of markup, so the identity always holds). Add-ons: same markup rule when `applyToAddons` (percentage rules only; FIXED markups apply to the main item only; the rule's rounding is applied to the main item only — D-59, **⚠ Q-19**). **Restaurant base prices are never modified.**
 3. **Food subtotal** `= Σ display × qty` (incl. add-ons). Restaurant base subtotal `= Σ base × qty`.
 4. **Discounts.** Automatic promotion(s) first, then at most one coupon (stacking configurable, default: one promotion + one coupon). Eligibility (min order, first order, targeting, per-user/usage limits, payment method) evaluated on the **pre-discount food subtotal**. Discount computed on the display food subtotal **⚠ Q-7**, capped by `maxDiscountPaise`, never > subtotal. Funding split: PLATFORM / RESTAURANT / SHARED(`restaurantShareBps`). The discount is allocated across lines (largest remainder) so tax can be computed per line.
 5. **Packaging** (restaurant-configured, per item or per order, passed through to the restaurant, no markup).

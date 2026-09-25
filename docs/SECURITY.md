@@ -58,7 +58,7 @@ See [RBAC.md](RBAC.md). Object-level checks on every resource (IDOR protection),
 | Bank account numbers | AES-256-GCM application encryption (`FIELD_ENCRYPTION_KEY`, key id in the ciphertext), `last4` only in API responses and audit logs; no Phase 2 endpoint decrypts; a different admin must verify new details (D-35) |
 | KYC document files | private storage keys (`private/…`), never served by the public media route, downloaded only by admins with `restaurants.view`, every view audit-logged (D-36). Document *numbers* (FSSAI, PAN, GSTIN) are stored in clear text — they are public-registry identifiers, not secrets |
 | OTPs, refresh tokens, passwords | hashes only |
-| Customer phone/address | masked for riders/restaurants (first name + masked number; call bridge); full values only to roles with `customers.pii` |
+| Customer phone/address | masked for riders/restaurants (first name + masked number; call bridge); full values only to roles with `customers.pii`. Admin customer screens are masked by default; revealing a customer's phone/addresses is a separate request, audit-logged (D-57) |
 | Rider live location | visible to the customer only during an active delivery |
 
 ## 5. Logging (§50)

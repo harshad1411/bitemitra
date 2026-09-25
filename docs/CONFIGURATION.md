@@ -56,8 +56,10 @@ Every key below exists in `packages/config/src/settings-registry.js` with a zod 
 | Restaurants | `restaurants.packaging` | Default packaging charge | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 4 | **placeholder** | `{"perItemPaise": 0}` |
 | Delivery | `delivery.distance` | Distance rules | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 3 | — | `{"maxDistanceM": 7000, "fallback": "HAVERSINE_FACTOR", "roadFactorBps": 13000}` |
 | Delivery | `dispatch.offers` | Dispatch offers | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"startAt": "ON_ACCEPT", "leadMinutes": 10, "offerTimeoutSec": 30, "maxOffers": 5, "noRiderEscalationSec": 600, "maxActiveOrders": 1}` |
+| Delivery | `delivery.eta` | Delivery time estimate | GLOBAL, COUNTRY, STATE, CITY, ZONE | 3 | — | `{"avgSpeedKmph": 18, "bufferMinutes": 5, "rangeMinutes": 10}` |
 | Payments | `payments.methods` | Payment methods | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 7 | — | `{"enabled": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"], "expirySec": 900}` |
 | COD | `cod` | Cash on delivery | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 6 | reason required, **placeholder** | `{"enabled": true, "maxOrderValuePaise": 100000, "riderLimitPaise": 500000, "maxRefusedOrders": 2, "netAgainstEarnings": true}` |
+| Payments | `payments.gatewayFees` | Payment gateway fee estimate | GLOBAL | 4 | **placeholder** | `{"methods": {"UPI": {"bps": 0, "fixedPaise": 0}, "CARD": {"bps": 200, "fixedPaise": 0}, "NETBANKING": {"bps": 190, "fixedPaise": 0}, "WALLET": {"bps": 190, "fixedPaise": 0}, "COD": {"bps": 0, "fixedPaise": 0}}, "gstBps": 1800, "defaultMethod": "UPI"}` |
 | Payments | `refunds.approval` | Refund approval threshold | GLOBAL | 7 | reason required, **placeholder** | `{"thresholdPaise": 100000}` |
 | Pricing | `pricing.finalRounding` | Final bill rounding | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required | `{"mode": "NEAREST_1", "direction": "HALF_UP", "absorbedBy": "PLATFORM"}` |
 | Pricing | `pricing.markupDisclosure` | Markup disclosure | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required, **legal review** | `"NONE"` |

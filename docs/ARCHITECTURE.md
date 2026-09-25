@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 (restaurants & menus) complete, awaiting review.** Decisions referenced as OD-/D-/CH- are
+Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 (customer discovery, pricing) complete, awaiting review.** Decisions referenced as OD-/D-/CH- are
 recorded in [DECISIONS.md](DECISIONS.md), which is authoritative.
 
 Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md) · [ORDER_FLOW](ORDER_FLOW.md) ·
@@ -70,7 +70,7 @@ jamzo/  (repository: bitemitra)
 │   ├── auth/              permission catalogue, roles, password/OTP/token primitives
 │   ├── logger/            pino with redaction
 │   ├── notifications/     SMS/email/push provider interfaces (+ console providers)
-│   ├── pricing-engine/    PURE money math now; full pricing in Phase 4
+│   ├── pricing-engine/    PURE pricing: markup, offers, tax, delivery, fees, commission, quote (Phase 4)
 │   ├── order-engine/      PURE state machine (Phase 5)
 │   ├── delivery-engine/   PURE geo + serviceability now; dispatch/earnings in Phase 6
 │   ├── settlement-engine/ PURE ledger postings (Phase 8)
@@ -145,7 +145,7 @@ Single API instance → in-memory adapter; Redis adapter at the D-9 trigger.
 | Email OTP | `EmailProvider` | TBD (Q-6) | **console provider only** |
 | Social login | `IdentityProvider` | Google, Apple | **slots only — returns AUTH_METHOD_UNAVAILABLE** |
 | Push | `PushProvider` | Expo Push (FCM/APNs) | device token registration only; sending in Phase 5 |
-| Maps / route distance | `MapsProvider` | Q-14 | not started (Phase 3/6) |
+| Maps / route distance | `DistanceProvider` | Q-14 | **fallback only**: straight line × road factor, flagged `FALLBACK` (D-48) |
 | Object storage | `Storage` | S3-compatible | **local filesystem driver only** (D-23) |
 
 ## 7. Mobile applications
