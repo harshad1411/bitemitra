@@ -31,7 +31,7 @@ test('refund: an amount from the order, processed by the worker; listed under Re
   const { online } = orders();
   await signIn(page);
   await nav(page, 'Orders');
-  await page.getByPlaceholder('Order number, restaurant or customer name').fill(online);
+  await page.getByPlaceholder('Order number, restaurant, customer or partner name, or phone').fill(online);
   await page.getByRole('row', { name: new RegExp(online) }).click();
   await expect(page.getByRole('heading', { name: `Order ${online}` })).toBeVisible();
   await page.getByRole('button', { name: 'Refund', exact: true }).click();

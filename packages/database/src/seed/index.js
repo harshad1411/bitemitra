@@ -71,6 +71,12 @@ export const NOTIFICATION_TEMPLATES =
       body: '{{amount}} for order {{orderNumber}} is on its way back to you. Banks usually take 5–7 working days.',
     },
     {
+      event: 'support.replied',
+      appId: 'CUSTOMER',
+      title: 'Jamzo support replied',
+      body: 'About {{ticketNumber}}: open the app to read the reply.',
+    },
+    {
       event: 'order.rider_accepted',
       appId: 'CUSTOMER',
       title: 'Delivery partner assigned',

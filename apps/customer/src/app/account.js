@@ -44,6 +44,7 @@ export default function Account() {
           <Text variant="muted">Signed in as {session.me?.user.phone ?? session.me?.user.email}</Text>
           <Button title="Your orders" variant="secondary" onPress={() => router.push('/orders')} />
           <Button title="Saved addresses" variant="secondary" onPress={() => router.push('/addresses')} />
+          <Button title="Help" variant="secondary" onPress={() => router.push('/support')} />
           <Favorites />
           <Card>
             <Text variant="heading">Notifications</Text>

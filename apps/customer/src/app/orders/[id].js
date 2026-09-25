@@ -136,6 +136,16 @@ export default function OrderScreen() {
         </Card>
       ) : null}
 
+      {!['CREATED', 'PAYMENT_PENDING'].includes(o.status) ? (
+        <Button
+          title="Get help with this order"
+          variant="secondary"
+          onPress={() =>
+            router.push({ pathname: '/support/new', params: { orderId: o.id, orderNumber: o.orderNumber } })
+          }
+        />
+      ) : null}
+
       <Card>
         <Text variant="heading">Progress</Text>
         {o.timeline.map((t, i) => (

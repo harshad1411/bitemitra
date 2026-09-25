@@ -1134,5 +1134,17 @@
         "createdAt": "2026-09-25T17:03:10.333Z"
       }
     ]
+  },
+  "stats": {
+    "range": "WEEK",
+    "from": "2026-09-20T18:30:00.000Z",
+    "trips": 3,
+    "distanceM": 5649,
+    "earningsPaise": 13500,
+    "tipsPaise": 6000,
+    "incentivesPaise": 0,
+    "cashCollectedPaise": 77100,
+    "onlineMinutes": 0,
+    "acceptanceRate": 1
   }
 }

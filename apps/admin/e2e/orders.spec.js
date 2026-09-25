@@ -36,7 +36,7 @@ test('orders: an admin cancels an accepted order and overrides the compensation'
   const { toCancel } = orders();
   await signIn(page);
   await nav(page, 'Orders');
-  await page.getByPlaceholder('Order number, restaurant or customer name').fill(toCancel);
+  await page.getByPlaceholder('Order number, restaurant, customer or partner name, or phone').fill(toCancel);
   await page.getByRole('row', { name: new RegExp(toCancel) }).click();
   await expect(page.getByText('Accepted', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Cancel order' }).click();

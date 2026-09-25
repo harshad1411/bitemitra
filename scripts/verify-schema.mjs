@@ -470,5 +470,11 @@ async function checkGuarantees(db) {
     `insert into rider_cod_deposits (id, "riderId", "amountPaise", method, status, "idempotencyKey") values ('${id()}', '${ids.rider1}', 5000, 'UPI', 'VERIFIED', 'dep-1')`,
     CHECK,
   );
+  // Phase 9 (D-93)
+  const ticket = (n, status = 'OPEN') =>
+    `insert into support_tickets (id, "ticketNumber", "customerId", "orderId", "raisedByType", "issueType", status, subject, "updatedAt") values ('${id()}', 'SUP-${n}', '${ids.customer}', '${ids.order}', 'CUSTOMER', 'MISSING_ITEM', '${status}', 'Missing dip', now())`;
+  await db.exec(ticket('1'));
+  await rejects('a second open ticket for the same order and issue', ticket('2'), UNIQUE);
+  await rejects('a resolved ticket without a resolution', ticket('3', 'RESOLVED'), CHECK);
   console.log('✓ database-level guarantees hold');
 }

@@ -345,6 +345,26 @@ enum HomeSectionType {
   TEXT
 }
 
+enum SupportIssueType {
+  MISSING_ITEM
+  WRONG_ITEM
+  FOOD_QUALITY
+  LATE_DELIVERY
+  RIDER_ISSUE
+  RESTAURANT_ISSUE
+  PAYMENT_ISSUE
+  REFUND_ISSUE
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
 enum NotificationChannel {
   PUSH
   EMAIL
@@ -655,6 +675,7 @@ model Customer {
   orders         Order[]
   favorites      FavoriteRestaurant[]
   couponUsages   CouponUsage[]
+  supportTickets SupportTicket[]
 
   @@map("customers")
 }
@@ -1552,6 +1573,7 @@ model Order {
   refunds         Refund[]
   couponUsage     CouponUsage?
   riderEarning    RiderEarning?
+  supportTickets  SupportTicket[]
   cancellation    OrderCancellation?
 
   @@unique([customerId, idempotencyKey])
@@ -2005,6 +2027,53 @@ model PlatformLedgerEntry {
   @@map("platform_ledger_entries")
 }
 
+model SupportTicket {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  ticketNumber    String              @unique
+  customerId      String?             @db.Uuid
+  orderId         String?             @db.Uuid
+  raisedByType    ActorType
+  raisedById      String?             @db.Uuid
+  issueType       SupportIssueType
+  status          SupportTicketStatus @default(OPEN)
+  subject         String
+  description     String?
+  assignedToId    String?             @db.Uuid
+  resolution      String?
+  /// The order's city (or the customer's), so city-scoped support admins see their tickets (D-93).
+  cityId          String?             @db.Uuid
+  firstResponseAt DateTime?           @db.Timestamptz(3)
+  resolvedAt      DateTime?           @db.Timestamptz(3)
+  lastMessageAt   DateTime?           @db.Timestamptz(3)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
+
+  customer Customer?              @relation(fields: [customerId], references: [id])
+  order    Order?                 @relation(fields: [orderId], references: [id])
+  messages SupportTicketMessage[]
+
+  @@index([status, createdAt])
+  @@index([orderId])
+  @@index([customerId, createdAt])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  ticketId   String    @db.Uuid
+  authorType ActorType
+  authorId   String?   @db.Uuid
+  body       String
+  isInternal Boolean   @default(false) // agent-only note
+  mediaIds   String[]  @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("support_ticket_messages")
+}
+
 model NotificationTemplate {
   id        String              @id @default(uuid(7)) @db.Uuid
   event     String // ORDER_PLACED, RESTAURANT_ACCEPTED …
@@ -2239,4 +2308,19 @@ model RiderCodDeposit {
   @@index([riderId, createdAt])
   @@index([status])
   @@map("rider_cod_deposits")
+}
+
+/// Saved table views (spec §29): filters + columns + sort, private or shared.
+model AdminSavedView {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  adminUserId String   @db.Uuid
+  resource    String // orders | restaurants | riders | …
+  name        String
+  query       Json
+  isShared    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([adminUserId, resource])
+  @@map("admin_saved_views")
 }

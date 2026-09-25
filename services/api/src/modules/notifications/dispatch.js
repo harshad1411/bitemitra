@@ -19,6 +19,7 @@ export const NOTIFYING_EVENTS = [
   'order.delivered',
   'order.payment_failed',
   'order.refunded',
+  'support.replied',
 ];
 /** Every order event the worker must accept (the outbox parks unknown events). */
 export const ORDER_EVENTS = [
@@ -47,7 +48,9 @@ export const render = (text, vars) =>
 export function createNotificationDispatcher({ prisma, push, clock = { now: () => new Date() }, log }) {
   async function recipients(appId, order, event) {
     if (appId === 'CUSTOMER') {
-      const c = await prisma.customer.findUnique({ where: { id: order.customerId } });
+      const c = await prisma.customer.findUnique({
+        where: { id: order?.customerId ?? event.payload.customerId },
+      });
       return c ? [c.userId] : [];
     }
     if (appId === 'RIDER') {
@@ -72,24 +75,28 @@ export function createNotificationDispatcher({ prisma, push, clock = { now: () =
   /** @param {{ id: string, eventType: string, payload: any }} event */
   async function handle(event) {
     if (!NOTIFYING_EVENTS.includes(event.eventType)) return;
-    const order = await prisma.order.findUnique({
-      where: { id: event.payload.orderId },
-      include: { restaurant: true, cancellation: true },
-    });
-    if (!order) return;
-    const rider = order.riderId
+    // Support replies may concern no order (D-93): then only the customer is told.
+    const order = event.payload.orderId
+      ? await prisma.order.findUnique({
+          where: { id: event.payload.orderId },
+          include: { restaurant: true, cancellation: true },
+        })
+      : null;
+    if (!order && !event.payload.customerId) return;
+    const rider = order?.riderId
       ? await prisma.rider.findUnique({ where: { id: order.riderId }, include: { user: true } })
       : null;
     const templates = await prisma.notificationTemplate.findMany({
       where: { event: event.eventType, isActive: true, channel: 'PUSH', locale: 'en' },
     });
     const vars = {
-      orderNumber: order.orderNumber,
-      shortNumber: order.orderNumber.slice(-4),
-      restaurantName: order.restaurant.name,
-      itemCount: order.itemCount,
-      prepTimeMinutes: order.prepTimeMinutes,
-      total: `₹${(order.totalPayablePaise / 100).toFixed(2)}`,
+      orderNumber: order?.orderNumber ?? '',
+      shortNumber: order?.orderNumber.slice(-4) ?? '',
+      restaurantName: order?.restaurant.name ?? '',
+      itemCount: order?.itemCount,
+      prepTimeMinutes: order?.prepTimeMinutes,
+      total: order ? `₹${(order.totalPayablePaise / 100).toFixed(2)}` : '',
+      ticketNumber: event.payload.ticketNumber ?? '',
       riderName: (rider?.user?.name ?? '').trim().split(/\s+/)[0] || 'Your delivery partner',
       amount: event.payload.amountPaise != null ? `₹${(event.payload.amountPaise / 100).toFixed(2)}` : '',
     };
@@ -97,9 +104,13 @@ export function createNotificationDispatcher({ prisma, push, clock = { now: () =
       const users = await recipients(t.appId, order, event);
       for (const userId of users) {
         const data = {
-          orderId: order.id,
+          orderId: order?.id ?? null,
           event: event.eventType,
-          url: t.appId === 'RIDER' ? '/' : `/orders/${order.id}`,
+          url: event.payload.ticketId
+            ? `/support/${event.payload.ticketId}`
+            : t.appId === 'RIDER'
+              ? '/'
+              : `/orders/${order.id}`,
         };
         let row;
         try {

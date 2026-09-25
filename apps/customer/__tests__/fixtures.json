@@ -3087,5 +3087,69 @@
         }
       ]
     }
+  },
+  "support": {
+    "created": {
+      "id": "01a0d99d-f844-7ff2-bc9a-267fc2b0401b",
+      "ticketNumber": "SUP-260925-00001",
+      "orderId": "01a0d984-a67a-72c0-b5b2-3e4ba0e46dc7",
+      "orderNumber": "UNJ-260925-00010",
+      "issueType": "MISSING_ITEM",
+      "subject": "Missing item · UNJ-260925-00010",
+      "status": "OPEN",
+      "resolution": null,
+      "createdAt": "2026-09-25T17:30:03.708Z",
+      "lastMessageAt": "2026-09-25T17:30:03.708Z",
+      "messages": [
+        {
+          "id": "01a0d99d-f844-7ff2-bc9a-2683ba52fb98",
+          "from": "YOU",
+          "body": "The garlic dip was missing",
+          "createdAt": "2026-09-25T17:30:03.708Z"
+        }
+      ]
+    },
+    "replied": {
+      "id": "01a0d99d-f844-7ff2-bc9a-267fc2b0401b",
+      "ticketNumber": "SUP-260925-00001",
+      "orderId": "01a0d984-a67a-72c0-b5b2-3e4ba0e46dc7",
+      "orderNumber": "UNJ-260925-00010",
+      "issueType": "MISSING_ITEM",
+      "subject": "Missing item · UNJ-260925-00010",
+      "status": "WAITING_ON_CUSTOMER",
+      "resolution": null,
+      "createdAt": "2026-09-25T17:30:03.708Z",
+      "lastMessageAt": "2026-09-25T17:30:04.094Z",
+      "messages": [
+        {
+          "id": "01a0d99d-f844-7ff2-bc9a-2683ba52fb98",
+          "from": "YOU",
+          "body": "The garlic dip was missing",
+          "createdAt": "2026-09-25T17:30:03.708Z"
+        },
+        {
+          "id": "01a0d99d-f9c1-7491-b094-1b7149326897",
+          "from": "JAMZO",
+          "body": "Sorry! We are refunding the dip.",
+          "createdAt": "2026-09-25T17:30:04.094Z"
+        }
+      ]
+    },
+    "list": {
+      "items": [
+        {
+          "id": "01a0d99d-f844-7ff2-bc9a-267fc2b0401b",
+          "ticketNumber": "SUP-260925-00001",
+          "orderId": "01a0d984-a67a-72c0-b5b2-3e4ba0e46dc7",
+          "orderNumber": "UNJ-260925-00010",
+          "issueType": "MISSING_ITEM",
+          "subject": "Missing item · UNJ-260925-00010",
+          "status": "WAITING_ON_CUSTOMER",
+          "resolution": null,
+          "createdAt": "2026-09-25T17:30:03.708Z",
+          "lastMessageAt": "2026-09-25T17:30:04.094Z"
+        }
+      ]
+    }
   }
 }

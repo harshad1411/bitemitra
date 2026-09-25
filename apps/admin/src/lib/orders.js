@@ -50,6 +50,12 @@ export const ORDER_VIEWS = [
   { value: 'NEW', label: 'Waiting for restaurant', filters: { status: 'PLACED,RESTAURANT_NOTIFIED' } },
   { value: 'OPEN', label: 'In the kitchen', filters: { status: 'RESTAURANT_ACCEPTED,PREPARING' } },
   { value: 'READY', label: 'Ready for pickup', filters: { status: 'READY_FOR_PICKUP' } },
+  { value: 'FINDING', label: 'Finding a partner', filters: { status: 'RIDER_SEARCHING,RIDER_ASSIGNED' } },
+  {
+    value: 'OUT',
+    label: 'Out for delivery',
+    filters: { status: 'RIDER_ACCEPTED,RIDER_AT_RESTAURANT,PICKED_UP,ON_THE_WAY,ARRIVED' },
+  },
   { value: 'DONE', label: 'Delivered', filters: { status: 'DELIVERED' } },
   {
     value: 'CANCELLED',

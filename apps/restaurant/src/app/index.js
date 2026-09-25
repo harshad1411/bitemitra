@@ -178,6 +178,13 @@ function Store({ restaurantId }) {
           onPress={() => router.push({ pathname: '/payouts', params: { restaurantId } })}
         />
       ) : null}
+      {s.capabilities['orders.finance'] ? (
+        <Button
+          title="Sales"
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/sales', params: { restaurantId } })}
+        />
+      ) : null}
       <Button
         title="Menu & sold-out items"
         onPress={() => router.push({ pathname: '/menu', params: { restaurantId } })}

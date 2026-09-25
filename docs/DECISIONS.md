@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 8 complete; Phase 9 next, OD-42).
+Last updated: 2026-09-25 (Phase 9 complete; Phase 10 next, OD-42).
 
 ---
 
@@ -739,6 +739,53 @@ pays nothing and carries forward; the rider app shows what the rider owes.
   settlement's breakdown. PDFs come later.
 - **Invoices and credit notes** are **not built**: who issues which document is the CA's decision (Q-3,
   Q-12). The `invoices` tables stay LATER.
+
+## 2g. Engineering decisions — Phase 9 (admin operations)
+
+### D-93. Customer support
+- **Raising a ticket:** a customer raises one from an order ("Get help": missing item, wrong item, food
+  quality, late delivery, delivery partner, restaurant, payment, refund, other — §47) or without an order.
+  Ticket number `SUP-YYMMDD-NNNNN`; one open ticket per order and issue type (a repeat tap returns it).
+- **Conversation:** the customer and support write messages. Agents can also add **internal notes** that
+  the customer never sees. The customer gets a push when support replies (template `support.reply`).
+- **Agents** (`support.manage`): assign to themselves or another admin, move through
+  OPEN → IN_PROGRESS → WAITING_ON_CUSTOMER → RESOLVED (a resolution note is required) → CLOSED, reopen on a
+  new customer message. The ticket page shows the full order (the admin order view), so refunds use the
+  existing Refund dialog (`refunds.create`).
+- **Scope and measures:** tickets carry the order's city, for city-scoped support; first-response and
+  resolution times are recorded.
+- **Not built:** tickets raised by restaurants and delivery partners, and photo attachments.
+
+### D-94. Orders page: filters, saved views, bulk actions
+- **Filters:** status, delivery status, money status (refunds), payment method, city, zone, restaurant,
+  delivery partner, amount range and dates. Search also matches the partner's name, and a customer's full
+  phone number, but only for admins with `customers.pii`.
+- **Saved views:** the filter set, private or shared with every admin who can see orders
+  (`admin_saved_views`).
+- **Bulk actions (only safe ones):** export the filtered orders as CSV (phones masked without
+  `customers.pii`, at most 5 000 rows, audited), and "mark handled" for flagged orders (`orders.edit`, one
+  note, audited per order). There is no bulk cancel or refund: each needs its own check.
+
+### D-95. Analytics (computed on demand)
+KPIs are computed from orders and the Jamzo ledger when asked, with no data warehouse:
+- orders, GMV (delivered orders' totals), net platform revenue (Phase 8 ledger), average order value;
+- completed, cancelled and refunded;
+- active restaurants, active and online delivery partners;
+- average delivery time (placed → delivered) and preparation time (accepted → ready).
+
+Filters are a date range and a breakdown by city, zone, restaurant or payment method, limited to the admin's
+cities. Results are cached for 60 seconds. None of this is on the ordering path (§44).
+
+### D-96. Restaurant and delivery partner analytics
+- **Restaurant app** (owners and managers): orders, sales at their own prices, average order value, top
+  products, cancelled orders, commission, their discounts, net, and busy hours — today / 7 / 30 days (§45).
+- **Delivery Partner app:** trips, distance, earnings, tips, incentives, cash collected, online hours (from
+  shifts) and acceptance rate (offers accepted ÷ offered) (§46).
+
+### D-97. Audit log
+The audit log (Phase 1) already records actor, action, entity, old and new values, IP and device. Phase 9
+adds, in Jamzo Admin, filters by action prefix and dates and a CSV export (`audit.view`, audited).
+Notification preferences (`notification_preferences`) stay LATER: there are no promotional messages yet.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

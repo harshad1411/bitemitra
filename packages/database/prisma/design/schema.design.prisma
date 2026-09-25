@@ -2109,20 +2109,25 @@ model Review {
 }
 
 model SupportTicket {
-  id           String              @id @default(uuid(7)) @db.Uuid
-  ticketNumber String              @unique
-  customerId   String?             @db.Uuid
-  orderId      String?             @db.Uuid
-  raisedByType ActorType
-  raisedById   String?             @db.Uuid
-  issueType    SupportIssueType
-  status       SupportTicketStatus @default(OPEN)
-  subject      String
-  description  String?
-  assignedToId String?             @db.Uuid
-  resolution   String?
-  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime            @updatedAt @db.Timestamptz(3)
+  id              String              @id @default(uuid(7)) @db.Uuid
+  ticketNumber    String              @unique
+  customerId      String?             @db.Uuid
+  orderId         String?             @db.Uuid
+  raisedByType    ActorType
+  raisedById      String?             @db.Uuid
+  issueType       SupportIssueType
+  status          SupportTicketStatus @default(OPEN)
+  subject         String
+  description     String?
+  assignedToId    String?             @db.Uuid
+  resolution      String?
+  /// The order's city (or the customer's), so city-scoped support admins see their tickets (D-93).
+  cityId          String?             @db.Uuid
+  firstResponseAt DateTime?           @db.Timestamptz(3)
+  resolvedAt      DateTime?           @db.Timestamptz(3)
+  lastMessageAt   DateTime?           @db.Timestamptz(3)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
 
   customer Customer?              @relation(fields: [customerId], references: [id])
   order    Order?                 @relation(fields: [orderId], references: [id])
@@ -2130,6 +2135,7 @@ model SupportTicket {
 
   @@index([status, createdAt])
   @@index([orderId])
+  @@index([customerId, createdAt])
   @@map("support_tickets")
 }
 

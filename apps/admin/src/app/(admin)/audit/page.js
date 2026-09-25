@@ -2,6 +2,8 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/jamzo/page-header';
@@ -9,6 +11,7 @@ import { ResourceTable } from '@/components/jamzo/resource-table';
 import { EmptyState } from '@/components/jamzo/states';
 import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
+import { downloadFile } from '@/lib/upload';
 
 const columns = [
   {
@@ -39,8 +42,19 @@ function AuditContent() {
     entityType: entityType.trim() || undefined,
     actorId: params.get('actorId') ?? undefined,
   };
+  const exportCsv = () => {
+    const q = new URLSearchParams(Object.entries(filters).filter(([, v]) => v));
+    downloadFile(`/v1/admin/audit-logs/export.csv?${q}`, 'jamzo-audit-log.csv').catch((e) =>
+      toast.error(e.message),
+    );
+  };
   return (
     <>
+      <div className="mb-3 flex justify-end">
+        <Button variant="outline" onClick={exportCsv}>
+          Export CSV (these filters)
+        </Button>
+      </div>
       <ResourceTable
         queryKey={['audit']}
         fetchPage={({ cursor, limit, ...f }) => api.get('/v1/admin/audit-logs', { cursor, limit, ...f })}

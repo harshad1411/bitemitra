@@ -5,6 +5,7 @@ import Menu from '../src/app/menu';
 import Orders from '../src/app/orders';
 import OrderDetail from '../src/app/order/[id]';
 import Payouts from '../src/app/payouts';
+import Sales from '../src/app/sales';
 import ORDERS from './order-fixtures.json';
 import { Vibration } from 'react-native';
 import NotFound from '../src/app/+not-found';
@@ -33,6 +34,7 @@ const routes = {
   orders: Orders,
   'order/[id]': OrderDetail,
   payouts: Payouts,
+  sales: Sales,
   '+not-found': NotFound,
 };
 const OWNER_ME = {
@@ -144,6 +146,7 @@ function partnerApi(role = 'OWNER') {
     }
     if (path === '/v1/restaurant/restaurants/r1/menu') return { body: MENU };
     if (path === '/v1/restaurant/payouts') return { body: ORDERS.payouts };
+    if (path === '/v1/restaurant/analytics') return { body: ORDERS.sales };
     if (path === '/v1/restaurant/products/p1/availability')
       return {
         body: product('p1', 'Gujarati Thali', {
@@ -203,6 +206,18 @@ describe('restaurant partner app', () => {
     expect(JSON.stringify(p)).not.toMatch(/markup|platformFee|commissionRevenue/i);
   });
 
+  it('sales: own orders, sales at own prices, top items and busy hours', async () => {
+    const calls = await signIn(OWNER_ME, partnerApi('OWNER'));
+    await fireEvent.press(await screen.findByLabelText('Sales'));
+    const a = ORDERS.sales;
+    expect(
+      await screen.findByText(`₹${(a.salesPaise / 100).toFixed(2)} from ${a.delivered} delivered orders`),
+    ).toBeTruthy();
+    expect(screen.getByText(`${a.topItems[0].quantity} sold`)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('This month'));
+    await waitFor(() => expect(calls.some((c) => c.url.includes('range=MONTH'))).toBe(true));
+  });
+
   it('staff do not see payouts', async () => {
     await signIn(
       { ...OWNER_ME, restaurants: [{ ...OWNER_ME.restaurants[0], role: 'STAFF' }] },
@@ -210,6 +225,7 @@ describe('restaurant partner app', () => {
     );
     expect(await screen.findByLabelText('Orders')).toBeTruthy();
     expect(screen.queryByLabelText('Payouts')).toBeNull();
+    expect(screen.queryByLabelText('Sales')).toBeNull();
   });
 
   it('marks an item sold out for today from the menu screen', async () => {

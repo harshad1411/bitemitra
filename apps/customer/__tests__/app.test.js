@@ -13,6 +13,9 @@ import CmsPage from '../src/app/page/[slug]';
 import Checkout from '../src/app/checkout';
 import OrdersList from '../src/app/orders/index';
 import OrderScreen from '../src/app/orders/[id]';
+import NewTicket from '../src/app/support/new';
+import TicketScreen from '../src/app/support/[id]';
+import Tickets from '../src/app/support/index';
 import { lineKey } from '../src/lib/cart';
 import NotFound from '../src/app/+not-found';
 import { fixtures, installFakeApi } from './fake-api';
@@ -48,6 +51,9 @@ const routes = {
   checkout: Checkout,
   'orders/index': OrdersList,
   'orders/[id]': OrderScreen,
+  'support/new': NewTicket,
+  'support/[id]': TicketScreen,
+  'support/index': Tickets,
   '+not-found': NotFound,
 };
 
@@ -219,6 +225,41 @@ describe('customer app', () => {
     expect(track.delivery.contact).toEqual({ via: 'SUPPORT', phone: null });
     expect(screen.queryByText('Call your delivery partner (via Jamzo support)')).toBeNull();
     expect(JSON.stringify(track)).not.toContain('+919000000002');
+  });
+
+  it('get help: from a delivered order, choose what went wrong, write, and follow the conversation', async () => {
+    const order = fixtures.delivery.delivered;
+    const { created, replied } = fixtures.support;
+    let sent = null;
+    let ticket = created;
+    installFakeApi({
+      onRequest: (path, body) => {
+        if (path === `/v1/customer/orders/${order.id}`) return { body: order };
+        if (path === '/v1/customer/support/tickets') return ((sent = body), { status: 201, body: created });
+        if (path === `/v1/customer/support/tickets/${created.id}`) return { body: ticket };
+        return null;
+      },
+    });
+    await renderRouter(routes, { initialUrl: `/orders/${order.id}` });
+    await fireEvent.press(await screen.findByLabelText('Get help with this order'));
+    expect(await screen.findByRole('header', { name: 'Get help' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Something is missing' }));
+    await fireEvent.changeText(screen.getByLabelText('Tell us more'), 'The garlic dip was missing');
+    await fireEvent.press(screen.getByLabelText('Send to Jamzo support'));
+    expect(await screen.findByText('Waiting for Jamzo')).toBeTruthy();
+    expect(screen.getByText(created.ticketNumber)).toBeTruthy();
+    expect(sent).toEqual({
+      orderId: order.id,
+      issueType: 'MISSING_ITEM',
+      message: 'The garlic dip was missing',
+    });
+    // Support answered (captured from the real API: the internal note is not in the customer's view).
+    ticket = replied;
+    expect(replied.messages.map((m) => m.from)).toEqual(['YOU', 'JAMZO']);
+    await renderRouter(routes, { initialUrl: `/support/${created.id}` });
+    expect(await screen.findByText('Sorry! We are refunding the dip.')).toBeTruthy();
+    expect(screen.getByText('Jamzo replied')).toBeTruthy();
+    expect(screen.queryByText('Checked: not packed.')).toBeNull();
   });
 
   describe('checkout and tracking (Phase 5)', () => {

@@ -1,6 +1,6 @@
 # Database
 
-Status: **Phase 8.** 90 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
+Status: **Phase 9.** 93 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
 
 | File | Purpose |
 |---|---|
@@ -36,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active now (migrated): Phase 1–8 tables. **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1–9 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -141,13 +141,21 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | rider_payouts | Payout history shown to the partner (D-91) |
 | rider_cod_deposits | Cash handed over by UPI, bank or at a hub; verified or rejected with a reason (D-90) |
 
-### 3.2 LATER PHASE (7 tables)
+### 3.1g CORE — Phase 9, admin operations (3 tables)
+
+| Table | Why |
+|---|---|
+| support_tickets | Customer questions with issue type, order, city (for city-scoped support), owner, status, resolution and response times; one open ticket per order and issue (database rule) (D-93) |
+| support_ticket_messages | The conversation; internal notes are never shown to the customer |
+| admin_saved_views | Named order filters, private or shared (D-94) |
+
+### 3.2 LATER PHASE (4 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
 | 6+ — Ratings | reviews | Ratings of delivered orders (CH-20); built with the ratings flag |
 | After the CA's answer (Q-3, Q-12) | invoices, invoice_sequences | Tax invoices and credit notes: who issues which document is a tax decision (D-92) |
-| 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views, notification_preferences | Support with full order context, saved table views |
+| When promotional messages exist | notification_preferences | Per-topic opt-outs (order updates are always sent); nothing to opt out of yet (D-97) |
 
 ### 3.3 FUTURE (1 table)
 

@@ -16,6 +16,8 @@ import {
   restaurantCancelBody,
   restaurantOrdersQuery,
   uuid,
+  bulkAttentionBody,
+  normalizeIndianMobile,
 } from '@jamzo/validation';
 import { canCancel, cancel } from '@jamzo/order-engine';
 import { arrivalEstimate } from '@jamzo/delivery-engine';
@@ -36,7 +38,8 @@ import { parse } from '../../core/validate.js';
 import { audit } from '../../core/audit.js';
 import { withIdempotency } from '../../core/idempotency.js';
 import { idPage, toPage } from '../../core/pagination.js';
-import { allowedCityIds, canInCity } from '../../core/auth.js';
+import { allowedCityIds, canInCity, hasGlobal } from '../../core/auth.js';
+import { maskPhone } from '@jamzo/logger';
 import { createMemberGuard } from '../restaurants/membership.js';
 import { placeOrder } from './checkout.js';
 import {
@@ -479,51 +482,182 @@ export default async function orderRoutes(app) {
 
   // ── Jamzo Admin ─────────────────────────────────────────────────────────
 
+  /**
+   * The admin orders filter (spec §29, D-94), shared by the list and the CSV export: cities the admin may see,
+   * statuses, delivery and money status, payment, place, restaurant, partner, amount, dates and search (order
+   * number, restaurant, customer or partner name; a full phone number only with customers.pii).
+   */
+  async function orderListWhere(request, q) {
+    const cities = allowedCityIds(request, 'orders.view');
+    if (q.cityId && cities && !cities.includes(q.cityId)) throw forbidden();
+    const list = (v) =>
+      v
+        ? v
+            .split(',')
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : null;
+    const statuses = list(q.status);
+    const deliveryStatuses = list(q.deliveryStatus);
+    const search = q.q?.trim();
+    const or = [];
+    if (search) {
+      or.push(
+        { orderNumber: { contains: search.toUpperCase() } },
+        { restaurant: { name: { contains: search, mode: 'insensitive' } } },
+        { customer: { user: { name: { contains: search, mode: 'insensitive' } } } },
+      );
+      const riders = await prisma.rider.findMany({
+        where: { user: { name: { contains: search, mode: 'insensitive' } } },
+        select: { id: true },
+        take: 50,
+      });
+      if (riders.length) or.push({ riderId: { in: riders.map((r) => r.id) } });
+      // A customer's phone number: only for admins who may see customer contact details (D-57).
+      const phone = /\d{10}/.test(search.replace(/\D/g, '')) ? normalizeIndianMobile(search) : null;
+      if (phone && (hasGlobal(request, 'customers.pii') || allowedCityIds(request, 'customers.pii')?.length))
+        or.push({ customer: { user: { phone } } });
+    }
+    return {
+      ...(cities ? { cityId: { in: q.cityId ? [q.cityId] : cities } } : q.cityId ? { cityId: q.cityId } : {}),
+      ...(statuses ? { status: { in: /** @type {any} */ (statuses) } } : {}),
+      ...(deliveryStatuses ? { deliveryStatus: { in: /** @type {any} */ (deliveryStatuses) } } : {}),
+      ...(q.financialStatus ? { financialStatus: q.financialStatus } : {}),
+      ...(q.restaurantId ? { restaurantId: q.restaurantId } : {}),
+      ...(q.zoneId ? { zoneId: q.zoneId } : {}),
+      ...(q.riderId ? { riderId: q.riderId } : {}),
+      ...(q.paymentMethod ? { paymentMethod: q.paymentMethod } : {}),
+      ...(q.needsAttention ? { needsAttention: q.needsAttention === 'true' } : {}),
+      ...(q.minTotalPaise != null || q.maxTotalPaise != null
+        ? {
+            totalPayablePaise: {
+              ...(q.minTotalPaise != null ? { gte: q.minTotalPaise } : {}),
+              ...(q.maxTotalPaise != null ? { lte: q.maxTotalPaise } : {}),
+            },
+          }
+        : {}),
+      ...(q.from || q.to
+        ? {
+            createdAt: {
+              ...(q.from ? { gte: new Date(q.from) } : {}),
+              ...(q.to ? { lt: new Date(q.to) } : {}),
+            },
+          }
+        : {}),
+      ...(or.length ? { OR: or } : {}),
+    };
+  }
+
+  // Bulk actions (D-94) — only safe ones: export, and marking flagged orders as handled.
+  app.get(
+    '/v1/admin/orders/export.csv',
+    { config: { permission: 'orders.view' } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request, reply) => {
+      const q = parse(adminOrderListQuery, request.query);
+      const rows = await prisma.order.findMany({
+        where: await orderListWhere(request, q),
+        orderBy: { createdAt: 'desc' },
+        take: 5000,
+        include: { restaurant: { include: { city: true } }, customer: { include: { user: true } } },
+      });
+      const cell = (v) => {
+        const t = v == null ? '' : String(v);
+        return /[",\n]/.test(t) ? `"${t.replaceAll('"', '""')}"` : t;
+      };
+      const lines = [
+        [
+          'Order',
+          'Created (UTC)',
+          'Status',
+          'Kitchen',
+          'Delivery',
+          'Money',
+          'Payment',
+          'Total (₹)',
+          'Restaurant',
+          'City',
+          'Customer',
+          'Phone',
+        ],
+        ...rows.map((o) => {
+          const phone = o.customer?.user?.phone ?? null;
+          return [
+            o.orderNumber,
+            o.createdAt.toISOString(),
+            o.status,
+            o.restaurantStatus,
+            o.deliveryStatus,
+            o.financialStatus,
+            o.paymentMethod,
+            (o.totalPayablePaise / 100).toFixed(2),
+            o.restaurant.name,
+            o.restaurant.city?.name ?? '',
+            o.customer?.user?.name ?? '',
+            canInCity(request, 'customers.pii', o.cityId) ? phone : maskPhone(phone),
+          ];
+        }),
+      ];
+      await audit(prisma, request, {
+        action: 'order.export',
+        entityType: 'order',
+        entityId: '00000000-0000-0000-0000-000000000000',
+        newValue: { rows: rows.length, filters: q },
+      });
+      reply
+        .header('content-type', 'text/csv; charset=utf-8')
+        .header('content-disposition', 'attachment; filename="jamzo-orders.csv"');
+      return lines.map((l) => l.map(cell).join(',')).join('\n') + '\n';
+    },
+  );
+
+  app.post(
+    '/v1/admin/orders/bulk/attention',
+    { config: { permission: 'orders.edit' } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const body = parse(bulkAttentionBody, request.body);
+      const orders = await prisma.order.findMany({
+        where: { id: { in: body.orderIds }, needsAttention: true },
+      });
+      let handled = 0;
+      for (const o of orders) {
+        if (!canInCity(request, 'orders.edit', o.cityId)) continue;
+        await prisma.$transaction(async (tx) => {
+          const res = await tx.order.updateMany({
+            where: { id: o.id, version: o.version, needsAttention: true },
+            data: { needsAttention: false, attentionReason: null, version: { increment: 1 } },
+          });
+          if (res.count !== 1) return;
+          await tx.orderNote.create({
+            data: {
+              orderId: o.id,
+              authorType: 'ADMIN',
+              authorId: request.auth.userId,
+              body: `Handled: ${body.note}`,
+              createdAt: app.clock.now(),
+            },
+          });
+          await audit(tx, request, {
+            action: 'order.attention_resolved',
+            entityType: 'order',
+            entityId: o.id,
+            oldValue: { attentionReason: o.attentionReason },
+            newValue: { note: body.note, bulk: true },
+          });
+          handled += 1;
+        });
+      }
+      return { handled, skipped: body.orderIds.length - handled };
+    },
+  );
+
   app.get(
     '/v1/admin/orders',
     { config: { permission: 'orders.view' } },
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
       const q = parse(adminOrderListQuery, request.query);
-      const cities = allowedCityIds(request, 'orders.view');
-      if (q.cityId && cities && !cities.includes(q.cityId)) throw forbidden();
       const page = idPage(q);
-      const statuses = q.status
-        ? q.status
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : null;
-      const search = q.q?.trim();
       const rows = await prisma.order.findMany({
-        where: {
-          ...page.where,
-          ...(cities
-            ? { cityId: { in: q.cityId ? [q.cityId] : cities } }
-            : q.cityId
-              ? { cityId: q.cityId }
-              : {}),
-          ...(statuses ? { status: { in: /** @type {any} */ (statuses) } } : {}),
-          ...(q.restaurantId ? { restaurantId: q.restaurantId } : {}),
-          ...(q.paymentMethod ? { paymentMethod: q.paymentMethod } : {}),
-          ...(q.needsAttention ? { needsAttention: q.needsAttention === 'true' } : {}),
-          ...(q.from || q.to
-            ? {
-                createdAt: {
-                  ...(q.from ? { gte: new Date(q.from) } : {}),
-                  ...(q.to ? { lt: new Date(q.to) } : {}),
-                },
-              }
-            : {}),
-          ...(search
-            ? {
-                OR: [
-                  { orderNumber: { contains: search.toUpperCase() } },
-                  { restaurant: { name: { contains: search, mode: 'insensitive' } } },
-                  { customer: { user: { name: { contains: search, mode: 'insensitive' } } } },
-                ],
-              }
-            : {}),
-        },
+        where: { ...page.where, ...(await orderListWhere(request, q)) },
         orderBy: page.orderBy,
         take: page.take,
         include: { restaurant: { include: { city: true } }, customer: { include: { user: true } } },

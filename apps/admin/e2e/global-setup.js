@@ -165,6 +165,12 @@ async function placeDemoOrders(app, prisma, sms) {
     return order;
   };
   const waiting = await place(2, 'Extra oregano');
+  // Phase 9: the customer asks for help about the waiting order.
+  await call('POST', '/v1/customer/support/tickets', 'CUSTOMER', customer, {
+    orderId: waiting.id,
+    issueType: 'PAYMENT_ISSUE',
+    message: 'Can I pay by UPI instead of cash?',
+  });
   // Phase 7: an online (UPI) order paid through the fake gateway's signed webhook.
   const online = await place(1, null, 'UPI');
   const payment = await prisma.payment.findFirstOrThrow({ where: { orderId: online.id } });

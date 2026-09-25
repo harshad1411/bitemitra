@@ -29,7 +29,7 @@ Decisions: OD-13, OD-24, CH-9. Source of truth in code: `packages/auth/src/permi
 | `config.view` / `config.manage` | operational settings, app version policies, maintenance | P1 |
 | `flags.manage` | feature flags | P1 |
 | `media.view` / `media.manage` | media library | P1 |
-| `audit.view` | audit log | P1 |
+| `audit.view` | audit log; CSV export (Phase 9, itself audited) | P1 |
 | `orders.view`, `orders.edit`, `orders.cancel`, `orders.assign_rider` | orders | 5–6 |
 | `payments.view`, `payments.reconcile` | payments (list, detail, "Check with gateway"), COD deposits (Phase 8) | 7–8 |
 | `refunds.create`, `refunds.approve` | refunds: create, record a cash payout; approve / reject / retry — never your own refund above the limit (maker-checker) | 7 |
@@ -39,8 +39,8 @@ Decisions: OD-13, OD-24, CH-9. Source of truth in code: `packages/auth/src/permi
 | `customers.view`, `customers.pii`, `customers.manage` | customers | 3 |
 | `pricing.view`, `pricing.manage`, `pricing.surge`, `commissions.manage`, `taxes.manage` | commercial rules | 4 |
 | `promotions.manage`, `cms.manage`, `notifications.manage` | marketing & content | 3–5 |
-| `support.manage` | support tickets | 9 |
-| `reports.view`, `analytics.view` | reporting | 9 |
+| `support.manage` | support queue: reply, internal notes, assign, resolve (city-scoped by the order's city) | 9 |
+| `reports.view`, `analytics.view` | reporting; Analytics page (limited to the admin's cities) | 9 |
 
 ## 3. Admin roles (seeded system roles)
 

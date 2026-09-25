@@ -906,6 +906,13 @@ export const adminOrderListQuery = pageQuery.extend({
   needsAttention: z.enum(['true', 'false']).optional(),
   from: isoDateTime.optional(),
   to: isoDateTime.optional(),
+  // Phase 9 (D-94)
+  zoneId: uuid.optional(),
+  riderId: uuid.optional(),
+  deliveryStatus: z.string().trim().max(200).optional(), // comma-separated DeliveryStatus values
+  financialStatus: z.enum(['NONE', 'REFUND_PENDING', 'PARTIALLY_REFUNDED', 'REFUNDED']).optional(),
+  minTotalPaise: z.coerce.number().int().min(0).optional(),
+  maxTotalPaise: z.coerce.number().int().min(0).optional(),
 });
 export const orderNoteBody = z.object({ body: z.string().trim().min(1).max(1000) });
 export const attentionBody = z.object({ resolved: z.literal(true), note: z.string().trim().min(3).max(500) });
@@ -1098,6 +1105,64 @@ export const codDepositListQuery = pageQuery.extend({
 export const financeRangeQuery = z
   .object({ from: dateOnly, to: dateOnly })
   .refine((b) => b.from < b.to, { message: 'The end must be after the start', path: ['to'] });
+
+// ── Phase 9: support, saved views, bulk actions, analytics (D-93 … D-97) ────
+
+export const SUPPORT_ISSUE_TYPES = [
+  'MISSING_ITEM',
+  'WRONG_ITEM',
+  'FOOD_QUALITY',
+  'LATE_DELIVERY',
+  'RIDER_ISSUE',
+  'RESTAURANT_ISSUE',
+  'PAYMENT_ISSUE',
+  'REFUND_ISSUE',
+  'OTHER',
+];
+export const SUPPORT_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING_ON_CUSTOMER', 'RESOLVED', 'CLOSED'];
+export const createTicketBody = z.object({
+  orderId: uuid.nullable().optional(),
+  issueType: z.enum(SUPPORT_ISSUE_TYPES),
+  message: z.string().trim().min(3).max(2000),
+});
+export const ticketMessageBody = z.object({
+  body: z.string().trim().min(1).max(2000),
+  internal: z.boolean().default(false),
+});
+export const ticketUpdateBody = z
+  .object({
+    status: z.enum(SUPPORT_STATUSES).optional(),
+    assignedToId: uuid.nullable().optional(),
+    resolution: z.string().trim().min(3).max(1000).optional(),
+  })
+  .refine((b) => !['RESOLVED', 'CLOSED'].includes(b.status ?? '') || b.resolution, {
+    message: 'Say how it was resolved',
+    path: ['resolution'],
+  });
+export const ticketListQuery = pageQuery.extend({
+  status: z.string().trim().max(120).optional(), // comma-separated
+  mine: z.enum(['true', 'false']).optional(),
+  issueType: z.enum(SUPPORT_ISSUE_TYPES).optional(),
+});
+export const savedViewBody = z.object({
+  resource: z.enum(['orders']),
+  name: z.string().trim().min(2).max(60),
+  query: z.record(z.string(), z.string().max(400)),
+  isShared: z.boolean().default(false),
+});
+export const bulkAttentionBody = z.object({
+  orderIds: z.array(uuid).min(1).max(200),
+  note: z.string().trim().min(3).max(500),
+});
+export const analyticsQuery = z
+  .object({
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    by: z.enum(['NONE', 'CITY', 'ZONE', 'RESTAURANT', 'PAYMENT_METHOD']).default('NONE'),
+    cityId: uuid.optional(),
+  })
+  .refine((b) => b.from < b.to, { message: 'The end must be after the start', path: ['to'] });
+export const appAnalyticsQuery = z.object({ range: z.enum(['TODAY', 'WEEK', 'MONTH']).default('WEEK') });
 
 /**
  * Converts a ZodError into `{ field: [messages] }` for the standard error body (API.md §3).

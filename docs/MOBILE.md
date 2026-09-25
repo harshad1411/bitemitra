@@ -1,7 +1,7 @@
 # Mobile applications
 
 Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); **Phase 5** adds checkout (cash on delivery), order tracking and cancellation to the customer app and the order
-screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 8** adds Payouts to the Restaurant Partner app and "Your money" (cash in hand, deposits, payouts) to the Delivery Partner app. **Phase 7** adds online payment to the customer app (in-app browser payment page, "Pay now", refunds). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
+screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 9** adds "Get help" and support conversations to the customer app, Sales to the Restaurant Partner app and own stats to the Delivery Partner app. **Phase 8** adds Payouts to the Restaurant Partner app and "Your money" (cash in hand, deposits, payouts) to the Delivery Partner app. **Phase 7** adds online payment to the customer app (in-app browser payment page, "Pay now", refunds). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.
 
@@ -112,6 +112,7 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 | `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues |
 | `checkout.js` | Saved address, **Pay online** or cash on delivery (methods from the quote, D-83), notes, contactless, the server bill; one idempotency key per attempt (a retry never creates a second order); online orders open the payment page in the in-app browser (`expo-web-browser`) and the server verifies the payment (D-84) |
 | `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; from rider acceptance the partner's first name, vehicle, an arrival estimate, last location time with "See on map", and the **delivery code** to share at the door (Phase 6; calls only via Jamzo support); cancel until pickup — after acceptance the app first explains there is no refund and, for cash on delivery, how many such cancellations are left before cash on delivery is switched off (OD-38); refreshed by realtime notices and polling |
+| `support/new.js`, `support/[id].js`, `support/index.js` | Phase 9: "Get help" from an order (what went wrong + message), the conversation with Jamzo support (no internal notes), all conversations from Account → Help |
 | `account.js`, `sign-in.js`, `addresses.js` | Guest or signed-in account, phone OTP sign-in when needed, saved addresses, favourites, notifications, legal pages, build info |
 | `page/[slug].js` | Published CMS pages (legal drafts show "Not published yet", Q-12) |
 
@@ -131,6 +132,7 @@ development database (restaurant marked open so the tests do not depend on the t
 | Screen (`apps/restaurant/src/app/`) | What it does |
 |---|---|
 | `orders.js` | New / In the kitchen / Past. New orders on top with items, choices, notes, food value and time left to accept; accept with a preparation time or reject with a reason; start preparing, ready, +5 minutes. Tells the API the order was seen. |
+| `sales.js` | Phase 9, owners and managers: orders, sales at their own prices, average order, commission, discounts, net, top items, busiest hours (today / week / month) |
 | `payouts.js` | Phase 8, owners and managers: what Jamzo owes, what waits for the next settlement (from the restaurant's own prices), past settlements with payout references |
 | `order/[id].js` | Full order; owners and managers also see the money and can cancel an accepted order (D-67). Phase 6: the delivery partner's first name and whether they are at the counter (also on the kitchen list); never their phone. |
 

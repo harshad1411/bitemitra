@@ -7,6 +7,7 @@ import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
 import { Button, Card, EmptyState, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { money, time } from '../lib/format';
 import { Wallet } from '../components/wallet';
+import { Stats } from '../components/stats';
 
 export default function Earnings() {
   const { api } = useJamzo();
@@ -31,6 +32,7 @@ export default function Earnings() {
           onPress={() => setRange('WEEK')}
         />
       </View>
+      <Stats range={range} />
       {q.isPending ? (
         <LoadingState label="Loading earnings" />
       ) : q.isError ? (

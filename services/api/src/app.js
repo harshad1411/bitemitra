@@ -34,6 +34,9 @@ import riderAdminRoutes from './modules/riders/admin-routes.js';
 import dispatchAdminRoutes from './modules/dispatch/admin-routes.js';
 import paymentRoutes from './modules/payments/routes.js';
 import ledgerRoutes from './modules/ledgers/routes.js';
+import supportRoutes from './modules/support/routes.js';
+import savedViewRoutes from './modules/saved-views/routes.js';
+import analyticsRoutes from './modules/analytics/routes.js';
 import { createDispatch } from './modules/dispatch/service.js';
 import { createTrips } from './modules/dispatch/trips.js';
 import { createDistanceProvider } from './modules/delivery/distance.js';
@@ -240,6 +243,9 @@ export async function buildApp(deps) {
   await app.register(dispatchAdminRoutes);
   await app.register(paymentRoutes);
   await app.register(ledgerRoutes);
+  await app.register(supportRoutes);
+  await app.register(savedViewRoutes);
+  await app.register(analyticsRoutes);
 
   return app;
 }

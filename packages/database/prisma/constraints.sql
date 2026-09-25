@@ -308,3 +308,14 @@ CREATE TRIGGER rider_ledger_entries_append_only BEFORE UPDATE OR DELETE ON rider
 CREATE TRIGGER platform_ledger_entries_append_only BEFORE UPDATE OR DELETE ON platform_ledger_entries
   FOR EACH ROW EXECUTE FUNCTION jamzo_ledger_entry_guard();
 
+-- ── Phase 9: support (D-93) ───────────────────────────────────────────────────
+-- A resolved or closed ticket says how it was resolved and when.
+ALTER TABLE support_tickets ADD CONSTRAINT support_tickets_resolution_recorded CHECK (
+  status NOT IN ('RESOLVED', 'CLOSED') OR (resolution IS NOT NULL AND "resolvedAt" IS NOT NULL)
+);
+-- One open ticket per order and issue: a repeated "Get help" returns the same ticket.
+CREATE UNIQUE INDEX support_tickets_one_open_per_order_issue
+  ON support_tickets ("orderId", "issueType")
+  WHERE "orderId" IS NOT NULL AND status NOT IN ('RESOLVED', 'CLOSED');
+ALTER TABLE support_ticket_messages ADD CONSTRAINT support_ticket_messages_body_present CHECK (length(trim(body)) > 0);
+

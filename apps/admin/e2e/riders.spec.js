@@ -60,7 +60,7 @@ test('order detail: the delivery card lists the manual request', async ({ page }
   const { ready } = orders();
   await signIn(page);
   await nav(page, 'Orders');
-  await page.getByPlaceholder('Order number, restaurant or customer name').fill(ready);
+  await page.getByPlaceholder('Order number, restaurant, customer or partner name, or phone').fill(ready);
   await page.getByRole('row', { name: new RegExp(ready) }).click();
   await expect(page.getByRole('heading', { name: `Order ${ready}` })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Demo Delivery Partner (manual)' })).toBeVisible();

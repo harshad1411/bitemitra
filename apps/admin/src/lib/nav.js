@@ -36,7 +36,7 @@ export const NAV = [
       { href: '/', label: 'Home', icon: Home, permission: 'dashboard.view' },
       { href: '/orders', label: 'Orders', icon: ShoppingBag, permission: 'orders.view' },
       { href: '/dispatch', label: 'Dispatch', icon: Truck, permission: 'orders.view' },
-      { label: 'Support', icon: LifeBuoy, phase: 9 },
+      { href: '/support', label: 'Support', icon: LifeBuoy, permission: 'support.manage' },
     ],
   },
   {
@@ -69,7 +69,7 @@ export const NAV = [
       { href: '/notifications', label: 'Notifications', icon: Bell, permission: 'notifications.manage' },
       { href: '/media', label: 'Media', icon: Image, permission: 'media.view' },
       { href: '/settings', label: 'Configuration', icon: Settings, permission: 'config.view' },
-      { label: 'Analytics', icon: ChartColumn, phase: 9 },
+      { href: '/analytics', label: 'Analytics', icon: ChartColumn, permission: 'analytics.view' },
     ],
   },
   {

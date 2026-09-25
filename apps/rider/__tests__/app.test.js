@@ -94,6 +94,7 @@ function riderApi(start) {
     }
     if (path === '/v1/rider/earnings') return { body: F.earningsToday };
     if (path === '/v1/rider/wallet') return { body: s.wallet ?? F.wallet };
+    if (path === '/v1/rider/analytics') return { body: F.stats };
     if (path === '/v1/rider/cod-deposits') {
       s.posts.push({ path, body });
       s.wallet = F.walletAfterDeposit;
@@ -231,6 +232,13 @@ describe('delivery partner app', () => {
     await fireEvent.press(await screen.findByLabelText('Earnings'));
     expect(await screen.findByText(`₹${(F.earningsToday.totalPaise / 100).toFixed(2)}`)).toBeTruthy();
     expect(screen.getByText(/1 deliveries · tips ₹20.00/)).toBeTruthy();
+    // Own numbers (captured from the real API).
+    const st = F.stats;
+    await fireEvent.press(screen.getByLabelText('This week'));
+    expect(
+      await screen.findByText(new RegExp(`^${st.trips} trips · ${(st.distanceM / 1000).toFixed(1)} km`)),
+    ).toBeTruthy();
+    expect(screen.getByText(/accepted 100% of requests/)).toBeTruthy();
   });
 
   it('money: cash in hand and what is owed; reporting a UPI deposit (checked by Jamzo before it counts)', async () => {

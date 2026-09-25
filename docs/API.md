@@ -93,15 +93,17 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (232 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
 | `GET` | `/health` | none | — | — |  |
 | `GET` | `/ready` | none | — | — |  |
+| `GET` | `/v1/admin/analytics` | admin token | ADMIN | `analytics.view` |  |
 | `GET` | `/v1/admin/app-versions` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/app-versions/:appId/:platform` | admin token | ADMIN | `config.manage` |  |
 | `GET` | `/v1/admin/audit-logs` | admin token | ADMIN | `audit.view` |  |
+| `GET` | `/v1/admin/audit-logs/export.csv` | admin token | ADMIN | `audit.view` |  |
 | `POST` | `/v1/admin/auth/login` | none | ADMIN | — | auth limit/min |
 | `PATCH` | `/v1/admin/branches/:id` | admin token | ADMIN | `restaurants.manage` |  |
 | `PUT` | `/v1/admin/branches/:id/delivery-area` | admin token | ADMIN | `restaurants.manage` |  |
@@ -170,6 +172,8 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `POST` | `/v1/admin/orders/:id/notes` | admin token | ADMIN | `orders.edit` |  |
 | `POST` | `/v1/admin/orders/:id/refunds` | admin token | ADMIN | `refunds.create` |  |
 | `POST` | `/v1/admin/orders/:id/unassign` | admin token | ADMIN | `orders.assign_rider` |  |
+| `POST` | `/v1/admin/orders/bulk/attention` | admin token | ADMIN | `orders.edit` |  |
+| `GET` | `/v1/admin/orders/export.csv` | admin token | ADMIN | `orders.view` |  |
 | `GET` | `/v1/admin/payments` | admin token | ADMIN | `payments.view` |  |
 | `GET` | `/v1/admin/payments/:id` | admin token | ADMIN | `payments.view` |  |
 | `POST` | `/v1/admin/payments/:id/reconcile` | admin token | ADMIN | `payments.reconcile` |  |
@@ -226,6 +230,9 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `DELETE` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |
 | `GET` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.view` |  |
 | `PATCH` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |
+| `GET` | `/v1/admin/saved-views` | admin token | ADMIN | `orders.view` |  |
+| `POST` | `/v1/admin/saved-views` | admin token | ADMIN | `orders.view` |  |
+| `DELETE` | `/v1/admin/saved-views/:id` | admin token | ADMIN | `orders.view` |  |
 | `DELETE` | `/v1/admin/settings` | admin token | ADMIN | `config.manage` |  |
 | `GET` | `/v1/admin/settings` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/settings` | admin token | ADMIN | `config.manage` |  |
@@ -238,6 +245,10 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `POST` | `/v1/admin/settlements/:kind/:id/paid` | admin token | ADMIN | `settlements.manage` |  |
 | `GET` | `/v1/admin/settlements/:kind/:id/statement.csv` | admin token | ADMIN | `settlements.view` |  |
 | `POST` | `/v1/admin/settlements/run` | admin token | ADMIN | `settlements.manage` |  |
+| `GET` | `/v1/admin/support/tickets` | admin token | ADMIN | `support.manage` |  |
+| `GET` | `/v1/admin/support/tickets/:id` | admin token | ADMIN | `support.manage` |  |
+| `PATCH` | `/v1/admin/support/tickets/:id` | admin token | ADMIN | `support.manage` |  |
+| `POST` | `/v1/admin/support/tickets/:id/messages` | admin token | ADMIN | `support.manage` |  |
 | `GET` | `/v1/admin/users` | admin token | ADMIN | `admins.view` |  |
 | `POST` | `/v1/admin/users` | admin token | ADMIN | `admins.manage` |  |
 | `GET` | `/v1/admin/users/:id` | admin token | ADMIN | `admins.view` |  |
@@ -267,6 +278,10 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `GET` | `/v1/customer/restaurants` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants/:id` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/search` | optional | CUSTOMER | — |  |
+| `GET` | `/v1/customer/support/tickets` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/support/tickets` | required | CUSTOMER | — |  |
+| `GET` | `/v1/customer/support/tickets/:id` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/support/tickets/:id/messages` | required | CUSTOMER | — |  |
 | `GET` | `/v1/geo/serviceability` | optional | any | — | 60/min |
 | `GET` | `/v1/me` | required | any | — |  |
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
@@ -276,6 +291,7 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `POST` | `/v1/orders` | required | CUSTOMER | — |  |
 | `GET` | `/v1/pay/:id` | none | any | — |  |
 | `POST` | `/v1/pay/:id/fake` | none | any | — |  |
+| `GET` | `/v1/restaurant/analytics` | required | RESTAURANT | — |  |
 | `PATCH` | `/v1/restaurant/branches/:id/status` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/orders` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/orders/:id` | required | RESTAURANT | — |  |
@@ -290,6 +306,7 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `POST` | `/v1/restaurant/products/:id/availability` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id/menu` | required | RESTAURANT | — |  |
+| `GET` | `/v1/rider/analytics` | required | RIDER | — |  |
 | `POST` | `/v1/rider/application/submit` | required | RIDER | — |  |
 | `POST` | `/v1/rider/cod-deposits` | required | RIDER | — |  |
 | `POST` | `/v1/rider/documents` | required | RIDER | — |  |
@@ -310,6 +327,7 @@ _Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not
 | `PUT` | `/v1/rider/vehicle` | required | RIDER | — |  |
 | `GET` | `/v1/rider/wallet` | required | RIDER | — |  |
 | `GET` | `/v1/rider/work` | required | RIDER | — |  |
+| `GET` | `/v1/support/issue-types` | none | any | — |  |
 | `POST` | `/v1/webhooks/payments/:provider` | none | any | — |  |
 
 <!-- routes:end -->

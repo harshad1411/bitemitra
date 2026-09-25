@@ -3,6 +3,18 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Phase 9 — Admin operations (2026-09-25) — built under OD-42
+
+### Added
+- Customer support: "Get help" on orders and conversations in the customer app; Jamzo Admin Support queue with replies, internal notes, owner, resolve / close / reopen, first-response and resolution times, the order alongside with its Refund dialog; push when support replies (D-93).
+- Orders page: delivery status, refund status, amount, zone and partner filters; search by partner name and (with `customers.pii`) phone; saved views (private or shared); CSV export (masked, audited); bulk "mark handled" for flagged orders; new views "Finding a partner" and "Out for delivery" (D-94).
+- Analytics: admin KPIs (orders, GMV, net for Jamzo, average order, delivered / cancelled, refunds, live restaurants, partners online, delivery and kitchen times) with a breakdown by city, zone, restaurant or payment method (D-95); restaurant Sales and partner stats in the apps (D-96).
+- Audit log CSV export (D-97).
+- Database: support tickets, messages and saved views activated; 2 migrations; 3 new rules.
+
+### Changed
+- Every navigation item in Jamzo Admin is now built; notification preferences wait until promotional messages exist.
+
 ## Phase 8 — Ledgers and settlements (2026-09-25) — built under OD-42
 
 ### Added

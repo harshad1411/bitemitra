@@ -19,10 +19,8 @@ test('signs in and shows an honest dashboard', async ({ page }) => {
   await expect(page.getByText('Waiting for a partner')).toBeVisible();
   await expect(page.getByText('Waiting for restaurant')).toBeVisible();
   await expect(page.getByText('Cities', { exact: true }).first()).toBeVisible();
-  // Future modules are visibly not built yet
-  await expect(
-    page.getByRole('navigation', { name: 'Main' }).getByText('Support').locator('..'),
-  ).toContainText('Phase 9');
+  // Every module in the navigation is built (Phase 9): none is marked with a future phase.
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByText(/^Phase \d+$/)).toHaveCount(0);
   await shot(page, '02-dashboard');
 });
 

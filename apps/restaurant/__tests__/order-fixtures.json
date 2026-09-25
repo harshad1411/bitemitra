@@ -175,5 +175,37 @@
       "netPaise": 14814
     },
     "settlements": []
+  },
+  "sales": {
+    "range": "MONTH",
+    "from": "2026-08-31T18:30:00.000Z",
+    "orders": 9,
+    "delivered": 3,
+    "cancelled": 4,
+    "salesPaise": 54000,
+    "averageOrderValuePaise": 18000,
+    "commissionPaise": 9558,
+    "discountsPaise": 0,
+    "netPaise": 44442,
+    "topItems": [
+      {
+        "name": "Garlic Bread",
+        "quantity": 6
+      }
+    ],
+    "busyHours": [
+      {
+        "hour": 11,
+        "count": 4
+      },
+      {
+        "hour": 19,
+        "count": 2
+      },
+      {
+        "hour": 16,
+        "count": 1
+      }
+    ]
   }
 }
