@@ -44,7 +44,7 @@ export default function DashboardPage() {
       {q.data?.operations?.message ? (
         <Alert className="mb-6">
           <Info />
-          <AlertTitle>{q.data.operations.available ? 'Delivery is not live yet' : 'Orders'}</AlertTitle>
+          <AlertTitle>Orders</AlertTitle>
           <AlertDescription>{q.data.operations.message}</AlertDescription>
         </Alert>
       ) : null}
@@ -68,9 +68,9 @@ export default function DashboardPage() {
               />
               <Stat label="Open orders" value={q.data.operations.openOrders} href="/orders?view=OPEN" />
               <Stat
-                label="Ready for pickup"
-                value={q.data.operations.readyForPickup}
-                href="/orders?view=READY"
+                label="Waiting for a partner"
+                value={q.data.operations.waitingForPartner}
+                href="/dispatch"
               />
               <Stat label="Orders today" value={q.data.operations.ordersToday} href="/orders" />
             </div>

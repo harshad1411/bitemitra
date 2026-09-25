@@ -3,7 +3,25 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
-## Phase 5 — Orders (2026-09-25) — awaiting owner review
+## Phase 6 — Delivery partners and dispatch (2026-09-25) — awaiting owner review
+
+### Added
+- Jamzo Delivery Partner app: apply (details, vehicle, document photos), go online with background location after a disclosure, requests with countdown and vibration, the whole trip (at restaurant, pickup check, arrived, delivery code, cash, optional proof photo), navigation in Google/Apple Maps, report a problem, give an order back, cash in hand, earnings.
+- Dispatch (`@jamzo/delivery-engine` ranking + API service): automatic offers with timeouts, next rider, no-rider escalation and retry; admin assign, reassign and take back (audited). Two riders can never both hold an order (database rule).
+- Rider earnings at delivery from the earning rule (trip, distance, waiting, incentives, tip); a cancelled trip after acceptance pays the trip estimate (OD-39).
+- Cash on delivery: payment row at delivery, per-rider cash balance, limit and switch.
+- Database: rider tables activated (documents, vehicles, availability, shifts, locations, assignments, earnings, payments for COD); 2 migrations; new database rules.
+- Jamzo Admin: Delivery partners (list, document review, approve/suspend, cash settings), Dispatch board, Delivery card with assign/take back on the order.
+- Customer app: delivery partner's name, vehicle, location time and the delivery code. Restaurant Partner app: who collects the order and when they are at the counter.
+- Road distance from Google Maps behind the admin setting Maps provider (off until the key exists; tested against a fake endpoint only).
+
+### Changed
+- Add-on prices get the same markup as items (Q-19); free add-ons stay free.
+- Cancellation: rider compensation is paid only when a rider was engaged; new fee type "full amount" (OD-38).
+- The "ready" status text for customers now says the food is waiting for a delivery partner.
+- Decisions D-76 and D-79 corrected to what was built (delivery code derived, never stored; no customer ETA or maps link yet).
+
+## Phase 5 — Orders (2026-09-25) — accepted
 
 ### Added
 - `@jamzo/order-engine`: the ORDERS.md state machine (kitchen and delivery tracks, derived status, actor rules, cancellation stages and money), tested against a separately written table for every state × event × actor.

@@ -84,7 +84,7 @@ The full later-phase matrix follows the role summaries above and is encoded in `
 |---|---|---|---|
 | Customer | Customer | signed in (profile auto-created) | profile + device registration |
 | Restaurant Partner | Restaurant Owner / Manager / Staff (`restaurant_users.role`) | membership `isActive` **and** restaurant `onboardingStatus` APPROVED or ACTIVE (D-34) | Phase 2: store status (owner/manager), menu view and sold-out toggles (all roles) — RESTAURANTS.md §7 |
-| Delivery Partner | Rider | `riders.onboardingStatus = ACTIVE` | `/v1/me` reports approval; no rider features yet |
+| Delivery Partner | Rider | `riders.onboardingStatus = ACTIVE` | `/v1/rider/*`: before ACTIVE only the application; once ACTIVE online/location, own offers and trips (the order must be assigned to them), own earnings. Re-checked on every request; a suspended rider is refused at once |
 
 Planned restaurant-side permissions: Owner — everything for own restaurant(s) incl. bank details and
 users; Manager — orders, menu, availability, hours, pause/busy, analytics, settlements (view);

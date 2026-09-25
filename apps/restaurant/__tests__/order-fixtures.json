@@ -106,5 +106,57 @@
       "netPayablePaise": 20509,
       "estimate": true
     }
+  },
+  "withRider": {
+    "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+    "orderNumber": "UNJ-260925-00005",
+    "shortNumber": "0005",
+    "status": "RESTAURANT_ACCEPTED",
+    "restaurantStatus": "ACCEPTED",
+    "deliveryStatus": "AT_RESTAURANT",
+    "version": 5,
+    "placedAt": "2026-09-25T10:31:32.343Z",
+    "acceptBy": "2026-09-25T10:34:32.343Z",
+    "acceptedAt": "2026-09-25T10:31:33.315Z",
+    "readyAt": null,
+    "cancelledAt": null,
+    "prepTimeMinutes": 15,
+    "estimatedPickupAt": "2026-09-25T10:46:33.315Z",
+    "customer": {
+      "firstName": "Customer"
+    },
+    "items": [
+      {
+        "name": "Garlic Bread",
+        "variantName": null,
+        "foodType": "VEG",
+        "quantity": 2,
+        "addons": [],
+        "unitPricePaise": 9000,
+        "lineTotalPaise": 18000
+      }
+    ],
+    "itemCount": 2,
+    "foodValuePaise": 18000,
+    "restaurantInstructions": null,
+    "payment": {
+      "method": "COD",
+      "label": "Cash on delivery (collected by the delivery partner)"
+    },
+    "cancellation": null,
+    "finance": {
+      "foodValuePaise": 18000,
+      "restaurantFundedDiscountPaise": 0,
+      "packagingPaise": 0,
+      "commissionPaise": 2700,
+      "commissionTaxPaise": 486,
+      "withholdingPaise": 0,
+      "netPayablePaise": 14814,
+      "estimate": true
+    },
+    "rider": {
+      "firstName": "Demo",
+      "atRestaurant": true
+    }
   }
 }

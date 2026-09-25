@@ -31,3 +31,11 @@ export function itemLine(i) {
   const addons = i.addons.map((a) => `${a.group}: ${a.name}`).join(', ');
   return `${i.quantity} × ${i.name}${i.variantName ? ` (${i.variantName})` : ''}${addons ? ` · ${addons}` : ''}`;
 }
+
+/** Who collects the order (Phase 6): the partner's first name only, never their phone number. */
+export function riderLine(o) {
+  if (!o.rider) return null;
+  return o.rider.atRestaurant
+    ? `Delivery partner ${o.rider.firstName} is at the counter`
+    : `Delivery partner ${o.rider.firstName} is on the way to you`;
+}

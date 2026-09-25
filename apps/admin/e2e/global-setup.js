@@ -175,8 +175,56 @@ async function placeDemoOrders(app, prisma, sms) {
     prepTimeMinutes: 20,
     version: 0,
   });
+  await prepareRiders({ app, call, login, h });
   // Back to the seeded hours: other specs check them, and the order screens do not need the restaurant open.
   await prisma.restaurantBusinessHours.deleteMany({ where: { branchId } });
   await prisma.restaurantBusinessHours.createMany({ data: originalHours });
   return { waiting: waiting.orderNumber, ready: ready.orderNumber, toCancel: toCancel.orderNumber };
 }
+
+/**
+ * Phase 6 data: a bicycle applicant waiting for review (three documents uploaded through the real API), and
+ * the seeded demo partner online ~10 km north of Unjha. That is beyond the automatic dispatch radius
+ * (dispatch.offers.maxPickupDistanceM), so no offer reaches them by itself and the E2E assigns manually.
+ */
+async function prepareRiders({ app, call, login, h }) {
+  const applicant = await login('RIDER', '+919661100901');
+  const me = await call('GET', '/v1/rider/me', 'RIDER', applicant);
+  const unjha = me.cities.find((c) => c.name === 'Unjha');
+  await call('PUT', '/v1/rider/me', 'RIDER', applicant, { name: 'Kiran Desai', cityId: unjha.id });
+  await call('PUT', '/v1/rider/vehicle', 'RIDER', applicant, { type: 'BICYCLE' });
+  for (const kind of ['PAN', 'ID_PROOF', 'PHOTO']) {
+    const boundary = `jamzo${crypto.randomUUID()}`;
+    const field = (name, value) =>
+      `--${boundary}\r\ncontent-disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+    const payload = Buffer.concat([
+      Buffer.from(
+        field('kind', kind) +
+          (kind === 'PAN' ? field('number', 'ABCDE1234F') : '') +
+          `--${boundary}\r\ncontent-disposition: form-data; name="file"; filename="${kind}.png"\r\ncontent-type: image/png\r\n\r\n`,
+      ),
+      TINY_PNG,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/rider/documents',
+      headers: h('RIDER', applicant, { 'content-type': `multipart/form-data; boundary=${boundary}` }),
+      payload,
+    });
+    if (res.statusCode !== 201) throw new Error(`rider document ${kind}: ${res.statusCode} ${res.body}`);
+  }
+  await call('POST', '/v1/rider/application/submit', 'RIDER', applicant);
+
+  const partner = await login('RIDER', '+919000000002');
+  await call('POST', '/v1/rider/status', 'RIDER', partner, { online: true });
+  await call('POST', '/v1/rider/locations', 'RIDER', partner, {
+    points: [{ lat: 23.9, lng: 72.39, accuracyM: 10, recordedAt: new Date().toISOString() }],
+  });
+}
+
+// 1×1 transparent PNG (E2E document uploads).
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR4nGOM1mpjYGBgYgADAAyDAQ/ufyXrAAAAAElFTkSuQmCC',
+  'base64',
+);

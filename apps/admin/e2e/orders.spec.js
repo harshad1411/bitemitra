@@ -11,7 +11,7 @@ test('orders: views, search and the full order detail', async ({ page }) => {
   await signIn(page);
   await nav(page, 'Orders');
   await expect(page.getByRole('row', { name: new RegExp(waiting) })).toContainText('Placed');
-  await expect(page.getByRole('row', { name: new RegExp(ready) })).toContainText('Ready for pickup');
+  await expect(page.getByRole('row', { name: new RegExp(ready) })).toContainText('Finding rider'); // ready; dispatch started (Phase 6)
   await page.getByRole('combobox', { name: 'View' }).click();
   await page.getByRole('option', { name: 'Waiting for restaurant' }).click();
   await expect(page.getByRole('row', { name: new RegExp(ready) })).toHaveCount(0);

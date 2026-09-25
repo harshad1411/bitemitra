@@ -39,6 +39,8 @@ export const apiEnvSchema = z
         (v) => Buffer.from(v, 'base64').length === 32,
         'FIELD_ENCRYPTION_KEY must be 32 random bytes, base64-encoded',
       ),
+    // Road distances from Google (D-81); only used when Jamzo Admin sets maps.provider to GOOGLE. Server-side only.
+    GOOGLE_MAPS_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(20).optional()),
     SMS_PROVIDER: z.enum(['console']).default('console'),
     EMAIL_PROVIDER: z.enum(['console']).default('console'),
     COOKIE_SECURE: bool.default(true),

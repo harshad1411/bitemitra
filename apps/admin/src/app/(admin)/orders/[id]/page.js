@@ -30,6 +30,9 @@ import { api } from '@/lib/api';
 import { useApiMutation } from '@/lib/mutation';
 import { formatDateTime, titleCase } from '@/lib/format';
 import { ACTOR_LABEL, ADMIN_CANCEL_REASONS, statusLabel, statusTone } from '@/lib/orders';
+import { DELIVERY_STATUS } from '@/lib/riders';
+import { AssignDialog } from '@/components/dispatch/assign-dialog';
+import { ConfirmDialog } from '@/components/jamzo/confirm-dialog';
 
 const rupees = (p) => (p == null ? '—' : formatPaise(p));
 const neg = (p) => (p ? `−${formatPaise(p)}` : formatPaise(0));
@@ -177,6 +180,14 @@ export default function OrderPage({ params }) {
     refetchInterval: 15_000,
   });
   const [cancelling, setCancelling] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [unassigning, setUnassigning] = useState(false);
+  const unassign = useApiMutation({
+    mutationFn: (reason) => api.post(`/v1/admin/orders/${id}/unassign`, { reason }),
+    invalidate: [['order', id], ['dispatch']],
+    success: 'Partner removed — finding another',
+    onSuccess: () => setUnassigning(false),
+  });
   const [note, setNote] = useState('');
   const [resolveNote, setResolveNote] = useState('');
   const addNote = useApiMutation({
@@ -299,6 +310,48 @@ export default function OrderPage({ params }) {
               <p className="text-muted-foreground">
                 To be collected by the delivery partner ({rupees(o.payment.codAmountPaise)}).
               </p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Delivery</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            <p>
+              <StatusBadge tone={o.deliveryStatus === 'NO_RIDER_FOUND' ? 'critical' : 'info'}>
+                {DELIVERY_STATUS[o.deliveryStatus] ?? o.deliveryStatus}
+              </StatusBadge>
+            </p>
+            {o.assignments?.length ? (
+              <ol className="grid gap-1">
+                {o.assignments.map((a) => (
+                  <li key={a.id} className="flex justify-between gap-2">
+                    <Link className="hover:underline" href={`/riders/${a.riderId}`}>
+                      {a.riderName}
+                      {a.manual ? ' (manual)' : ''}
+                    </Link>
+                    <span className="text-muted-foreground">
+                      {titleCase(a.status)}
+                      {a.rejectReason ? ` · ${titleCase(a.rejectReason)}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-muted-foreground">No delivery partner asked yet.</p>
+            )}
+            {o.permissions.assignRider &&
+            ['SEARCHING', 'ASSIGNED', 'NO_RIDER_FOUND'].includes(o.deliveryStatus) ? (
+              <Button size="sm" className="w-fit" onClick={() => setAssigning(true)}>
+                Assign a partner
+              </Button>
+            ) : null}
+            {o.permissions.assignRider && ['ACCEPTED', 'AT_RESTAURANT'].includes(o.deliveryStatus) ? (
+              <Button size="sm" variant="outline" className="w-fit" onClick={() => setUnassigning(true)}>
+                Take order from partner
+              </Button>
             ) : null}
           </CardContent>
         </Card>
@@ -507,6 +560,17 @@ export default function OrderPage({ params }) {
         </Card>
       </div>
       {cancelling ? <CancelDialog order={o} onClose={() => setCancelling(false)} /> : null}
+      {assigning ? <AssignDialog order={o} onClose={() => setAssigning(false)} /> : null}
+      <ConfirmDialog
+        open={unassigning}
+        onOpenChange={setUnassigning}
+        title="Take this order from the partner?"
+        description="Dispatch looks for another partner straight away. The reason is recorded."
+        confirmLabel="Take order back"
+        requireReason
+        busy={unassign.isPending}
+        onConfirm={(reason) => unassign.mutate(reason)}
+      />
     </>
   );
 }

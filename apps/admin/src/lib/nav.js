@@ -33,7 +33,7 @@ export const NAV = [
     items: [
       { href: '/', label: 'Home', icon: Home, permission: 'dashboard.view' },
       { href: '/orders', label: 'Orders', icon: ShoppingBag, permission: 'orders.view' },
-      { label: 'Dispatch', icon: Truck, phase: 6 },
+      { href: '/dispatch', label: 'Dispatch', icon: Truck, permission: 'orders.view' },
       { label: 'Support', icon: LifeBuoy, phase: 9 },
     ],
   },
@@ -43,7 +43,7 @@ export const NAV = [
       { href: '/restaurants', label: 'Restaurants', icon: Building2, permission: 'restaurants.view' },
       { href: '/products', label: 'Products', icon: UtensilsCrossed, permission: 'restaurants.view' },
       { href: '/categories', label: 'Food categories', icon: Tags, permission: 'restaurants.view' },
-      { label: 'Delivery partners', icon: Bike, phase: 6 },
+      { href: '/riders', label: 'Delivery partners', icon: Bike, permission: 'riders.view' },
       { href: '/customers', label: 'Customers', icon: UserRound, permission: 'customers.view' },
     ],
   },

@@ -52,7 +52,11 @@ const routes = {
 };
 
 const AsyncStorage = require('@react-native-async-storage/async-storage');
-beforeEach(() => AsyncStorage.clear());
+const SecureStore = require('expo-secure-store');
+// Each test starts signed out: a sign-in in an earlier test must not leave a refresh token behind.
+beforeEach(() =>
+  Promise.all([AsyncStorage.clear(), SecureStore.deleteItemAsync('jamzo.customer.refreshToken')]),
+);
 
 async function chooseDemoLocation() {
   await fireEvent.press(await screen.findByLabelText('Choose location'));
@@ -190,6 +194,24 @@ describe('customer app', () => {
     await renderRouter(routes, { initialUrl: '/' });
     expect(await screen.findByText("Can't reach Jamzo")).toBeTruthy();
     await waitFor(() => expect(screen.getByLabelText('Try again')).toBeTruthy());
+  });
+
+  it('follows the delivery: partner name and vehicle and the delivery code; never the partner’s phone number', async () => {
+    const track = fixtures.delivery.tracking;
+    installFakeApi({
+      onRequest: (path) => (path === `/v1/customer/orders/${track.id}` ? { body: track } : null),
+    });
+    await renderRouter(routes, { initialUrl: `/orders/${track.id}` });
+    const name = track.delivery.rider.firstName;
+    expect(await screen.findByText(`${name} · Motorcycle`)).toBeTruthy();
+    expect(
+      screen.getByText(`Share this delivery code with ${name} at the door: ${track.delivery.code}`),
+    ).toBeTruthy();
+    expect(screen.getByText(/^Location updated /)).toBeTruthy();
+    // Calls go through Jamzo support only; no support number is configured in dev, so no call button.
+    expect(track.delivery.contact).toEqual({ via: 'SUPPORT', phone: null });
+    expect(screen.queryByText('Call your delivery partner (via Jamzo support)')).toBeNull();
+    expect(JSON.stringify(track)).not.toContain('+919000000002');
   });
 
   describe('checkout and tracking (Phase 5)', () => {

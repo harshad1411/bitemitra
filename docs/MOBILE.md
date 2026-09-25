@@ -1,7 +1,7 @@
 # Mobile applications
 
 Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); **Phase 5** adds checkout (cash on delivery), order tracking and cancellation to the customer app and the order
-screens with a looping new-order alert to the Restaurant Partner app (§9). Rider features arrive in Phase 6. Nothing in the shells pretends to be a
+screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.
 
@@ -19,7 +19,7 @@ All identifiers come from **`packages/config/src/apps.js`** (D-15) — never typ
 | Universal / App Links | `https://jamzo.in/...` (config ready; needs the `apple-app-site-association` / `assetlinks.json` files on jamzo.in before it works) | — | — |
 | Icon / splash | **placeholder** "J" monogram, plum `#5B2A86` (D-16) | **placeholder**, teal `#0F766E` | **placeholder**, saffron `#F2A516` |
 | Push | own Expo project → own FCM/APNs credentials | own; high-priority order channel (Phase 5) | own; offer channel (Phase 6) |
-| Permissions declared now | notifications | notifications | notifications, **foreground + background location** (declared for Phase 6; not requested yet) |
+| Permissions declared now | notifications | notifications | notifications, **foreground + background location** (requested after an in-app disclosure when going online, Phase 6), camera/photos (documents, proof) |
 | Version | own `package.json` `version` (1.0.0 dev) | own | own |
 | Release tag | `customer@x.y.z` | `restaurant@x.y.z` | `rider@x.y.z` |
 
@@ -69,7 +69,7 @@ Platform differences live in `src/platform/` of the app that needs them (`.ios.j
 each app's `PLATFORM.md` lists every divergence and why. Phase 1 has none beyond Expo config (Info.plist
 strings and Android permissions for the rider app).
 
-## 5. Rider app platform specifics (Phase 6 — declared in config now)
+## 5. Rider app platform specifics (built in Phase 6)
 
 | Topic | Android | iOS |
 |---|---|---|
@@ -85,7 +85,7 @@ acknowledged; iOS Critical Alerts only if Apple grants the entitlement.
 
 ## 7. Verification (B8) — what can and cannot be proven on the current machine
 
-The development Mac currently has **no iOS simulator runtime, no CocoaPods, no Java and no Android SDK**.
+The development Mac has **an iOS 26.3 simulator runtime (installed in Phase 6) but no CocoaPods, no Java and no Android SDK**. Installing CocoaPods with Homebrew stopped because it needs the Xcode 26.6 Command Line Tools (`sudo xcode-select --install`, owner's password). So `expo run:ios` has **not** been run.
 Native Android/iOS builds and on-device runs therefore cannot be executed here without installing
 multi-GB toolchains (not done without owner approval). Phase 1 verification per app:
 
@@ -111,7 +111,7 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 | `customize.js` | Size and add-on choices with required/min/max rules and quantity |
 | `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues |
 | `checkout.js` | Saved address, cash on delivery (online methods shown as coming soon — D-60), notes, contactless, the server bill; one idempotency key per attempt (a retry never creates a second order) |
-| `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; cancel until pickup — after acceptance the app first explains there is no refund and, for cash on delivery, how many such cancellations are left before cash on delivery is switched off (OD-38); refreshed by realtime notices and polling |
+| `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; from rider acceptance the partner's first name, vehicle, last location time and the **delivery code** to share at the door (Phase 6; calls only via Jamzo support); cancel until pickup — after acceptance the app first explains there is no refund and, for cash on delivery, how many such cancellations are left before cash on delivery is switched off (OD-38); refreshed by realtime notices and polling |
 | `account.js`, `sign-in.js`, `addresses.js` | Guest or signed-in account, phone OTP sign-in when needed, saved addresses, favourites, notifications, legal pages, build info |
 | `page/[slug].js` | Published CMS pages (legal drafts show "Not published yet", Q-12) |
 
@@ -131,7 +131,7 @@ development database (restaurant marked open so the tests do not depend on the t
 | Screen (`apps/restaurant/src/app/`) | What it does |
 |---|---|
 | `orders.js` | New / In the kitchen / Past. New orders on top with items, choices, notes, food value and time left to accept; accept with a preparation time or reject with a reason; start preparing, ready, +5 minutes. Tells the API the order was seen. |
-| `order/[id].js` | Full order; owners and managers also see the money and can cancel an accepted order (D-67). |
+| `order/[id].js` | Full order; owners and managers also see the money and can cancel an accepted order (D-67). Phase 6: the delivery partner's first name and whether they are at the counter (also on the kitchen list); never their phone. |
 
 **New-order alert.** While any order waits for acceptance and the app is open, a chime loops and the phone
 vibrates (`expo-audio`, plays with the iPhone silent switch on); it stops when every new order is accepted or
@@ -142,4 +142,23 @@ push need a simulator/device and the Expo projects (Q-17, Q-18).
 
 **Realtime.** Both apps use `useRealtime` from `@jamzo/mobile-foundation` (Socket.IO, D-62) and also poll
 (restaurant 15 s, customer order 20 s).
+
+## 10. Jamzo Delivery Partner app (Phase 6)
+
+| Screen (`apps/rider/src/app/`) | What it does |
+|---|---|
+| `apply.js` | Application: name and city, vehicle, document photos (camera or library; number only where needed, shown back as last 4), submit; shows what is missing and rejection notes |
+| `index.js` | Not yet active → application status. Active → online switch (prominent location disclosure first, then foreground → background permission), the current request with a countdown and vibration (accept / reject with a reason), the current trip: at restaurant → pickup (last 4 digits of the order number) → arrived → delivered (delivery code, cash amount, optional proof photo), navigate (opens Google Maps / Apple Maps), call support, report a problem, give the order back (before pickup), cash in hand and limit |
+| `earnings.js` | Today or this week: trips, trip pay, waiting pay, incentives, tips — never food prices or commission |
+
+**Background location.** `src/lib/location.js` registers the task `jamzo-rider-location`
+(`expo-location` + `expo-task-manager`; Android foreground service with a "You are online" notification;
+iOS `UIBackgroundModes: location`). Points are queued in AsyncStorage and sent in batches of up to 50, so
+a lost connection loses nothing. Going offline stops the task. The app asks for "Always" only after the
+disclosure; the plugin's motion permission is removed.
+
+**Tests.** `apps/rider/__tests__/app.test.js` (4 tests) drives the real screens against a fake API whose
+responses were captured from the real API on the development database. **Not verified on a simulator or
+device**: background location with the screen off, the Android foreground-service notification, request
+vibration/sound with the app in the background and push delivery all need a device build (see §7).
 

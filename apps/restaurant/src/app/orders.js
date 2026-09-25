@@ -19,7 +19,7 @@ import {
 } from '@jamzo/mobile-ui';
 import { formatPaise } from '@jamzo/ui';
 import { useNewOrderAlert } from '../lib/alert';
-import { KITCHEN_LABEL, PREP_CHOICES, REJECT_REASONS, itemLine, timeText } from '../lib/orders';
+import { KITCHEN_LABEL, PREP_CHOICES, REJECT_REASONS, itemLine, timeText, riderLine } from '../lib/orders';
 import { useResource } from '../lib/use-resource';
 
 const VIEWS = [
@@ -94,6 +94,7 @@ function KitchenOrder({ o, onAct, busy, onOpen, timeZone }) {
       {o.estimatedPickupAt ? (
         <Text variant="small">{`Ready by ${timeText(o.estimatedPickupAt, timeZone)}`}</Text>
       ) : null}
+      {o.rider ? <Badge tone={o.rider.atRestaurant ? 'success' : 'info'}>{riderLine(o)}</Badge> : null}
       {o.restaurantStatus === 'ACCEPTED' ? (
         <Button title="Start preparing" busy={busy} onPress={() => onAct(o, 'preparing')} />
       ) : null}

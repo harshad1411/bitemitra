@@ -6,7 +6,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
 import { Badge, Banner, Button, Card, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { formatPaise } from '@jamzo/ui';
-import { CANCEL_REASONS, KITCHEN_LABEL, itemLine, timeText } from '../../lib/orders';
+import { CANCEL_REASONS, KITCHEN_LABEL, itemLine, riderLine, timeText } from '../../lib/orders';
 import { useResource } from '../../lib/use-resource';
 
 const Row = ({ label, value, strong }) => (
@@ -57,6 +57,7 @@ export default function OrderDetail() {
       <Text variant="title">{`Order #${d.shortNumber}`}</Text>
       <Text variant="small">{d.orderNumber}</Text>
       <Badge tone="info">{KITCHEN_LABEL[d.restaurantStatus]}</Badge>
+      {d.rider ? <Banner tone={d.rider.atRestaurant ? 'success' : 'info'}>{riderLine(d)}</Banner> : null}
       {error ? <Banner tone="critical">{error}</Banner> : null}
       <Card>
         <Text variant="heading">{d.customer.firstName}</Text>

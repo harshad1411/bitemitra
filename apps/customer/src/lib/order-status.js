@@ -1,6 +1,19 @@
 // What each order status means to a customer. The API decides the status; this only words it.
 export function statusText(o) {
+  const rider = o.delivery?.rider?.firstName ?? 'Your delivery partner';
   switch (o.status) {
+    case 'RIDER_SEARCHING':
+    case 'RIDER_ASSIGNED':
+      return { title: 'Packed and ready', text: 'Finding a delivery partner near the restaurant.' };
+    case 'RIDER_ACCEPTED':
+      return { title: 'Delivery partner assigned', text: `${rider} is heading to ${o.restaurant.name}.` };
+    case 'RIDER_AT_RESTAURANT':
+      return { title: 'At the restaurant', text: `${rider} is picking up your order.` };
+    case 'PICKED_UP':
+    case 'ON_THE_WAY':
+      return { title: 'On the way', text: `${rider} is on the way to you.` };
+    case 'ARRIVED':
+      return { title: 'Your food is here', text: `${rider} has arrived.` };
     case 'PLACED':
       return { title: 'Order placed', text: `Waiting for ${o.restaurant.name} to accept it.` };
     case 'RESTAURANT_NOTIFIED':
@@ -17,7 +30,7 @@ export function statusText(o) {
     case 'READY_FOR_PICKUP':
       return {
         title: 'Packed and ready',
-        text: 'Your food is ready for pickup by a delivery partner. Live delivery tracking is not available yet.',
+        text: 'Your food is ready and waiting for a delivery partner.',
       };
     case 'DELIVERED':
       return { title: 'Delivered', text: 'Enjoy your meal!' };
@@ -47,6 +60,13 @@ export const TIMELINE_LABEL = {
   RESTAURANT_ACCEPTED: 'Accepted',
   PREPARING: 'Preparing',
   READY_FOR_PICKUP: 'Ready for pickup',
+  RIDER_SEARCHING: 'Finding a delivery partner',
+  RIDER_ASSIGNED: 'Finding a delivery partner',
+  RIDER_ACCEPTED: 'Delivery partner assigned',
+  RIDER_AT_RESTAURANT: 'Partner at the restaurant',
+  PICKED_UP: 'Picked up',
+  ON_THE_WAY: 'On the way',
+  ARRIVED: 'Arrived',
   DELIVERED: 'Delivered',
   CUSTOMER_CANCELLED: 'Cancelled by you',
   RESTAURANT_REJECTED: 'Not accepted by the restaurant',

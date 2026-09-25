@@ -1,7 +1,7 @@
 // Order tracking: the current status, a timeline, the bill and — while the restaurant has not accepted yet —
 // a cancel button. Refreshed by realtime notices and by polling (D-62).
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useJamzo, useRealtime, userMessage } from '@jamzo/mobile-foundation';
@@ -11,6 +11,13 @@ import { money } from '../../lib/format';
 import { CANCEL_REASONS, TIMELINE_LABEL, statusText } from '../../lib/order-status';
 import { useOrder } from '../../lib/queries';
 
+const VEHICLE = {
+  MOTORCYCLE: 'Motorcycle',
+  SCOOTER: 'Scooter',
+  EV_SCOOTER: 'Electric scooter',
+  BICYCLE: 'Bicycle',
+  CAR: 'Car',
+};
 const time = (d) =>
   new Date(d).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
@@ -62,6 +69,26 @@ export default function OrderScreen() {
       </Text>
       <Text variant="muted">{s.text}</Text>
       {error ? <Banner tone="critical">{error}</Banner> : null}
+
+      {o.delivery?.rider ? (
+        <Card>
+          <Text variant="heading">{`${o.delivery.rider.firstName}${o.delivery.rider.vehicle ? ` · ${VEHICLE[o.delivery.rider.vehicle] ?? ''}` : ''}`}</Text>
+          {o.delivery.code ? (
+            <Banner tone="info">{`Share this delivery code with ${o.delivery.rider.firstName} at the door: ${o.delivery.code}`}</Banner>
+          ) : null}
+          {o.delivery.rider.position ? (
+            <Text variant="small">{`Location updated ${time(o.delivery.rider.position.at)}`}</Text>
+          ) : null}
+          {o.delivery.contact?.phone ? (
+            <Button
+              title="Call your delivery partner (via Jamzo support)"
+              variant="secondary"
+              onPress={() => Linking.openURL(`tel:${o.delivery.contact.phone}`)}
+            />
+          ) : null}
+          <Text variant="small">A live map appears here once maps are switched on.</Text>
+        </Card>
+      ) : null}
 
       <Card>
         <Text variant="heading">Progress</Text>

@@ -2038,5 +2038,402 @@
         }
       ]
     }
+  },
+  "delivery": {
+    "tracking": {
+      "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+      "orderNumber": "UNJ-260925-00005",
+      "status": "RESTAURANT_ACCEPTED",
+      "restaurantStatus": "ACCEPTED",
+      "deliveryStatus": "ACCEPTED",
+      "version": 4,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T10:31:32.343Z",
+      "createdAt": "2026-09-25T10:31:32.343Z",
+      "acceptedAt": "2026-09-25T10:31:33.315Z",
+      "readyAt": null,
+      "cancelledAt": null,
+      "prepTimeMinutes": 15,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+      "items": [
+        {
+          "name": "Garlic Bread",
+          "variantName": null,
+          "foodType": "VEG",
+          "quantity": 2,
+          "addons": [],
+          "lineTotalPaise": 19800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 19800
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1440
+          },
+          {
+            "code": "TIP",
+            "label": "Tip for your delivery partner",
+            "amountPaise": 2000
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": -40
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 25700
+      },
+      "totalPayablePaise": 25700,
+      "payment": {
+        "method": "COD",
+        "label": "Cash on delivery",
+        "codAmountPaise": 25700
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": "Ring the bell twice",
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T10:31:32.343Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T10:31:32.344Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "RESTAURANT_ACCEPTED",
+          "at": "2026-09-25T10:31:33.312Z",
+          "actorType": "RESTAURANT_USER"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": true,
+      "cancelTerms": {
+        "stage": "AFTER_ACCEPT",
+        "refundDuePaise": 0,
+        "keptPaise": 0,
+        "noRefundAfterAccept": true,
+        "codCancellation": {
+          "countsTowardsLimit": true,
+          "used": 0,
+          "limit": 2
+        }
+      },
+      "delivery": {
+        "rider": {
+          "firstName": "Demo",
+          "vehicle": "MOTORCYCLE",
+          "position": {
+            "lat": 23.801,
+            "lng": 72.391,
+            "at": "2026-09-25T10:31:31.080Z"
+          }
+        },
+        "code": "9949",
+        "contact": {
+          "via": "SUPPORT",
+          "phone": null
+        }
+      }
+    },
+    "arrived": {
+      "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+      "orderNumber": "UNJ-260925-00005",
+      "status": "ARRIVED",
+      "restaurantStatus": "COMPLETED",
+      "deliveryStatus": "ARRIVED",
+      "version": 9,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T10:31:32.343Z",
+      "createdAt": "2026-09-25T10:31:32.343Z",
+      "acceptedAt": "2026-09-25T10:31:33.315Z",
+      "readyAt": "2026-09-25T10:31:34.144Z",
+      "cancelledAt": null,
+      "prepTimeMinutes": 15,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+      "items": [
+        {
+          "name": "Garlic Bread",
+          "variantName": null,
+          "foodType": "VEG",
+          "quantity": 2,
+          "addons": [],
+          "lineTotalPaise": 19800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 19800
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1440
+          },
+          {
+            "code": "TIP",
+            "label": "Tip for your delivery partner",
+            "amountPaise": 2000
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": -40
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 25700
+      },
+      "totalPayablePaise": 25700,
+      "payment": {
+        "method": "COD",
+        "label": "Cash on delivery",
+        "codAmountPaise": 25700
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": "Ring the bell twice",
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T10:31:32.343Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T10:31:32.344Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "RESTAURANT_ACCEPTED",
+          "at": "2026-09-25T10:31:33.312Z",
+          "actorType": "RESTAURANT_USER"
+        },
+        {
+          "status": "RIDER_AT_RESTAURANT",
+          "at": "2026-09-25T10:31:34.142Z",
+          "actorType": "RESTAURANT_USER"
+        },
+        {
+          "status": "PICKED_UP",
+          "at": "2026-09-25T10:31:34.175Z",
+          "actorType": "RIDER"
+        },
+        {
+          "status": "ON_THE_WAY",
+          "at": "2026-09-25T10:31:34.175Z",
+          "actorType": "SYSTEM"
+        },
+        {
+          "status": "ARRIVED",
+          "at": "2026-09-25T10:31:34.193Z",
+          "actorType": "RIDER"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": false,
+      "cancelTerms": null,
+      "delivery": {
+        "rider": {
+          "firstName": "Demo",
+          "vehicle": "MOTORCYCLE",
+          "position": {
+            "lat": 23.801,
+            "lng": 72.391,
+            "at": "2026-09-25T10:31:31.080Z"
+          }
+        },
+        "code": "9949",
+        "contact": {
+          "via": "SUPPORT",
+          "phone": null
+        }
+      }
+    },
+    "delivered": {
+      "id": "01a0d81e-cd7b-7030-94cd-92f2d00c1ef9",
+      "orderNumber": "UNJ-260925-00005",
+      "status": "DELIVERED",
+      "restaurantStatus": "COMPLETED",
+      "deliveryStatus": "DELIVERED",
+      "version": 10,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T10:31:32.343Z",
+      "createdAt": "2026-09-25T10:31:32.343Z",
+      "acceptedAt": "2026-09-25T10:31:33.315Z",
+      "readyAt": "2026-09-25T10:31:34.144Z",
+      "cancelledAt": null,
+      "prepTimeMinutes": 15,
+      "estimatedReadyAt": "2026-09-25T10:46:33.315Z",
+      "items": [
+        {
+          "name": "Garlic Bread",
+          "variantName": null,
+          "foodType": "VEG",
+          "quantity": 2,
+          "addons": [],
+          "lineTotalPaise": 19800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 19800
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1440
+          },
+          {
+            "code": "TIP",
+            "label": "Tip for your delivery partner",
+            "amountPaise": 2000
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": -40
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 25700
+      },
+      "totalPayablePaise": 25700,
+      "payment": {
+        "method": "COD",
+        "label": "Cash on delivery",
+        "codAmountPaise": 25700
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": "Ring the bell twice",
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T10:31:32.343Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T10:31:32.344Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "RESTAURANT_ACCEPTED",
+          "at": "2026-09-25T10:31:33.312Z",
+          "actorType": "RESTAURANT_USER"
+        },
+        {
+          "status": "RIDER_AT_RESTAURANT",
+          "at": "2026-09-25T10:31:34.142Z",
+          "actorType": "RESTAURANT_USER"
+        },
+        {
+          "status": "PICKED_UP",
+          "at": "2026-09-25T10:31:34.175Z",
+          "actorType": "RIDER"
+        },
+        {
+          "status": "ON_THE_WAY",
+          "at": "2026-09-25T10:31:34.175Z",
+          "actorType": "SYSTEM"
+        },
+        {
+          "status": "ARRIVED",
+          "at": "2026-09-25T10:31:34.193Z",
+          "actorType": "RIDER"
+        },
+        {
+          "status": "DELIVERED",
+          "at": "2026-09-25T10:31:34.221Z",
+          "actorType": "RIDER"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": false,
+      "cancelTerms": null,
+      "delivery": {
+        "rider": null,
+        "code": null,
+        "contact": null
+      }
+    }
   }
 }

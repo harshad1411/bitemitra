@@ -16,13 +16,13 @@ test('rejects a wrong password with a clear message', async ({ page }) => {
 test('signs in and shows an honest dashboard', async ({ page }) => {
   await signIn(page);
   await expect(page.getByRole('heading', { name: /Welcome/ })).toBeVisible();
-  await expect(page.getByText('Delivery is not live yet')).toBeVisible();
+  await expect(page.getByText('Waiting for a partner')).toBeVisible();
   await expect(page.getByText('Waiting for restaurant')).toBeVisible();
   await expect(page.getByText('Cities', { exact: true }).first()).toBeVisible();
   // Future modules are visibly not built yet
   await expect(
-    page.getByRole('navigation', { name: 'Main' }).getByText('Dispatch').locator('..'),
-  ).toContainText('Phase 6');
+    page.getByRole('navigation', { name: 'Main' }).getByText('Payments').locator('..'),
+  ).toContainText('Phase 7');
   await shot(page, '02-dashboard');
 });
 

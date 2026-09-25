@@ -1,6 +1,6 @@
 # Configuration, feature flags, remote config & app versions
 
-Status: **Phase 2 enables RESTAURANT and BRANCH overrides** (edited on the restaurant's Settings tab, D-40) and adds three `restaurants.*` keys. **Phase 1 implements** the settings registry, hierarchical resolution, settings API + history, feature flags, app version policies and remote config (`packages/config`, API `configuration` module, Admin → Settings). Covers MASTER_SPEC §2, §51, §63, §64, §65, §72, §73.
+Status: **Phase 6 adds** `riders.requiredDocuments`, `maps.provider` (Google road distance, D-81) and dispatch location/distance limits. **Phase 2 enables RESTAURANT and BRANCH overrides** (edited on the restaurant's Settings tab, D-40) and adds three `restaurants.*` keys. **Phase 1 implements** the settings registry, hierarchical resolution, settings API + history, feature flags, app version policies and remote config (`packages/config`, API `configuration` module, Admin → Settings). Covers MASTER_SPEC §2, §51, §63, §64, §65, §72, §73.
 
 ## 1. Three kinds of configuration
 
@@ -55,7 +55,7 @@ Every key below exists in `packages/config/src/settings-registry.js` with a zod 
 | Restaurants | `restaurants.operations` | Pause and busy mode | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 2 | — | `{"maxPauseMinutes": 120, "busyExtraPrepMinutes": 10}` |
 | Restaurants | `restaurants.packaging` | Default packaging charge | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 4 | **placeholder** | `{"perItemPaise": 0}` |
 | Delivery | `delivery.distance` | Distance rules | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 3 | — | `{"maxDistanceM": 7000, "fallback": "HAVERSINE_FACTOR", "roadFactorBps": 13000}` |
-| Delivery | `dispatch.offers` | Dispatch offers | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"startAt": "ON_ACCEPT", "leadMinutes": 10, "offerTimeoutSec": 30, "maxOffers": 5, "noRiderEscalationSec": 600, "maxActiveOrders": 1}` |
+| Delivery | `dispatch.offers` | Dispatch offers | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"startAt": "ON_ACCEPT", "leadMinutes": 10, "offerTimeoutSec": 30, "maxOffers": 5, "noRiderEscalationSec": 600, "maxActiveOrders": 1, "maxLocationAgeSec": 120, "maxPickupDistanceM": 7000, "retrySec": 60}` |
 | Delivery | `delivery.eta` | Delivery time estimate | GLOBAL, COUNTRY, STATE, CITY, ZONE | 3 | — | `{"avgSpeedKmph": 18, "bufferMinutes": 5, "rangeMinutes": 10}` |
 | Payments | `payments.methods` | Payment methods | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 7 | — | `{"enabled": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"], "expirySec": 900}` |
 | COD | `cod` | Cash on delivery | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 6 | reason required, **placeholder** | `{"enabled": true, "maxOrderValuePaise": 100000, "riderLimitPaise": 500000, "maxRefusedOrders": 2, "netAgainstEarnings": true}` |
@@ -68,6 +68,8 @@ Every key below exists in `packages/config/src/settings-registry.js` with a zod 
 | Settlements | `settlements.restaurants` | Restaurant settlements | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 8 | reason required, **placeholder** | `{"schedule": "WEEKLY", "weeklyRunDay": "MONDAY", "minPayoutPaise": 10000, "reservePercentBps": 0}` |
 | Settlements | `settlements.riders` | Delivery partner payouts | GLOBAL, COUNTRY, STATE, CITY, ZONE | 8 | reason required, **placeholder** | `{"schedule": "WEEKLY", "minPayoutPaise": 10000}` |
 | Delivery | `riders.location` | Delivery partner location updates | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | — | `{"tripIntervalSec": 10, "idleIntervalSec": 30}` |
+| Delivery | `riders.requiredDocuments` | Delivery partner documents | GLOBAL, COUNTRY, STATE, CITY, ZONE | 6 | reason required, **legal review** | `{"motorised": ["DRIVING_LICENCE", "VEHICLE_RC", "PAN", "ID_PROOF", "PHOTO"], "bicycle": ["PAN", "ID_PROOF", "PHOTO"]}` |
+| Delivery | `maps.provider` | Maps provider | GLOBAL | 6 | reason required | `{"provider": "NONE"}` |
 | Customer | `customer.guestBrowsing` | Guest browsing | GLOBAL, COUNTRY, STATE, CITY, ZONE | 3 | — | `true` |
 
 ## 4. Feature flags (§51)

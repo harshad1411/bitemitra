@@ -94,7 +94,13 @@ export async function buildApp(deps) {
     sms: deps.sms,
     email: deps.email,
     fieldCipher: createFieldCipher(env.FIELD_ENCRYPTION_KEY),
-    distance: deps.distance ?? createDistanceProvider(),
+    distance:
+      deps.distance ??
+      createDistanceProvider({
+        apiKey: env.GOOGLE_MAPS_API_KEY ?? null,
+        getProvider: async () => (await config.resolve('maps.provider')).value.provider,
+        log: app.log,
+      }),
     mediaBase: mediaBase(env),
     dispatch: createDispatch({ prisma, clock, config, log: app.log }),
     trips: createTrips({ prisma, clock, otpSecret: env.FIELD_ENCRYPTION_KEY }),

@@ -55,7 +55,7 @@ export default async function dashboardRoutes(app) {
           'ADMIN_CANCELLED',
           'PAYMENT_FAILED',
         ];
-        const [today, open, waiting, attention, ready] = await Promise.all([
+        const [today, open, waiting, attention, waitingForPartner] = await Promise.all([
           p.order.count({ where: { ...scope, placedAt: { gte: since } } }),
           p.order.count({
             where: { ...scope, placedAt: { not: null }, status: { notIn: /** @type {any} */ (TERMINAL) } },
@@ -64,7 +64,13 @@ export default async function dashboardRoutes(app) {
             where: { ...scope, restaurantStatus: 'NEW', status: { in: ['PLACED', 'RESTAURANT_NOTIFIED'] } },
           }),
           p.order.count({ where: { ...scope, needsAttention: true } }),
-          p.order.count({ where: { ...scope, status: 'READY_FOR_PICKUP' } }),
+          p.order.count({
+            where: {
+              ...scope,
+              status: { notIn: /** @type {any} */ (TERMINAL) },
+              deliveryStatus: { in: ['SEARCHING', 'ASSIGNED', 'NO_RIDER_FOUND'] },
+            },
+          }),
         ]);
         operations = {
           available: true,
@@ -72,9 +78,8 @@ export default async function dashboardRoutes(app) {
           openOrders: open,
           waitingForRestaurant: waiting,
           needsAttention: attention,
-          readyForPickup: ready,
-          message:
-            'Delivery partners and dispatch arrive in Phase 6: ready orders wait for pickup until then.',
+          waitingForPartner,
+          message: null,
         };
       }
       return {

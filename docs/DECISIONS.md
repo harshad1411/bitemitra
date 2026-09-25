@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 6 in progress).
+Last updated: 2026-09-25 (Phase 6 complete, awaiting owner review).
 
 ---
 
@@ -568,8 +568,9 @@ strategy is an interface; the first algorithm is not baked in (§22).
 
 ### D-76. Pickup and delivery
 Rider flow: accept → at restaurant → pickup (the rider types the **last 4 digits of the order number**,
-and the kitchen must have marked the order ready) → on the way → arrived → delivered. Delivery OTP (flag `delivery_otp`, **on** in the seed): a 4-digit code shown to the customer, hashed on the order, entered by the
-rider. Proof photo (flag `proof_of_delivery`, off by default). Navigation opens Google Maps / Apple Maps on
+and the kitchen must have marked the order ready) → on the way → arrived → delivered. Delivery OTP (flag `delivery_otp`, **on** in the seed): a 4-digit code shown to the customer and entered by the
+rider. *As built:* the code is derived from the order id with a server secret (HMAC), so it is never stored;
+5 wrong attempts flag the order for operations. Proof photo (flag `proof_of_delivery`, off by default). Navigation opens Google Maps / Apple Maps on
 the phone with the destination; no in-app map for the rider in Phase 6. Rider problems (accident, food
 damaged, cannot reach customer) are reported from the trip screen and flag the order for operations.
 
@@ -598,6 +599,10 @@ to about 100 m, the delivery status and an ETA. Never the rider's phone number: 
 `CallBridge` interface; until a masked-calling provider is chosen, both apps show Jamzo support's number
 (D-80). In-app live maps for customers need the maps key (Google Maps on Android; Q-14): Phase 6 shows
 distance and ETA text and an "open in maps" link; the map view is switched on when the key exists.
+*As built in Phase 6:* first name, vehicle, the rounded position with the time it was taken, and the
+delivery code. **Not built yet:** a customer ETA and the customer "open in maps" link. Both need road ETAs
+from the maps provider (D-81, Q-14) and follow when the key exists. The rider app does open Google Maps /
+Apple Maps for navigation.
 
 ### D-80. Contact between customer and rider
 `CallBridge` interface with a `support-routed` implementation (shows support.contact) until a masked-number

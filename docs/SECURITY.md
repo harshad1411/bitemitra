@@ -1,6 +1,6 @@
 # Security & privacy
 
-Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. **Phase 2 adds** application-layer encryption of bank account numbers with four-eyes verification (D-35), private KYC documents (D-36) and restaurant-partner authorisation re-checked on every request (D-42). **Phase 5 adds** order authorisation (customers see only their orders, restaurants only their own and never customer contact details or platform margins — D-67), realtime sockets authenticated with the same token and session checks as HTTP and joined only to rooms the user may see (D-62), and double-order protection (idempotency key + unique `(customerId, idempotencyKey)`). Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
+Status: **Phase 1 implements** authentication (phone/email OTP, admin password), sessions, RBAC, validation, log redaction, rate limiting and secure headers. **Phase 2 adds** application-layer encryption of bank account numbers with four-eyes verification (D-35), private KYC documents (D-36) and restaurant-partner authorisation re-checked on every request (D-42). **Phase 5 adds** order authorisation (customers see only their orders, restaurants only their own and never customer contact details or platform margins — D-67), realtime sockets authenticated with the same token and session checks as HTTP and joined only to rooms the user may see (D-62), and double-order protection (idempotency key + unique `(customerId, idempotencyKey)`). **Phase 6 adds** rider approval separate from sign-in (OD-13), rider document protection, single-winner assignment (database rule), the delivery code and rider/customer privacy (table below). Payment security: Phase 7. Hardening/pen-test: Phase 10. Decisions: OD-13, OD-24, D-20..D-25.
 
 Covers MASTER_SPEC §48, §49, §50, §52.
 
@@ -59,7 +59,11 @@ See [RBAC.md](RBAC.md). Object-level checks on every resource (IDOR protection),
 | KYC document files | private storage keys (`private/…`), never served by the public media route, downloaded only by admins with `restaurants.view`, every view audit-logged (D-36). Document *numbers* (FSSAI, PAN, GSTIN) are stored in clear text — they are public-registry identifiers, not secrets |
 | OTPs, refresh tokens, passwords | hashes only |
 | Customer phone/address | masked for riders/restaurants (first name + masked number; call bridge); full values only to roles with `customers.pii`. Admin customer screens are masked by default; revealing a customer's phone/addresses is a separate request, audit-logged (D-57) |
-| Rider live location | visible to the customer only during an active delivery |
+| Rider live location | visible to the customer only during an active delivery, rounded to about 100 m (D-79); breadcrumbs kept for admins/support |
+| Rider documents | private storage, viewed only by admins with `riders.view`, every view audit-logged; document numbers encrypted with the field cipher, only the last 4 shown; Aadhaar numbers not collected (D-73) |
+| Rider ↔ customer | the rider sees the customer's first name and delivery address, never the phone; the customer sees the rider's first name and vehicle, never the phone; calls via support until masked calling (Q-21) |
+| Delivery code | derived from the order id with a server secret (HMAC), never stored; 5 wrong tries flag the order for operations (D-76) |
+| Maps key | `GOOGLE_MAPS_API_KEY` only in the server environment; never in an app or the admin site (D-81) |
 
 ## 5. Logging (§50)
 

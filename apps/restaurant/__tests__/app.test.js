@@ -338,6 +338,14 @@ describe('restaurant partner app', () => {
       await waitFor(() => expect(global.__player.play).toHaveBeenCalled());
     });
 
+    it('shows who collects the order: the partner’s first name at the counter, never their phone', async () => {
+      const k = kitchen({ newOrders: [], active: [ORDERS.withRider] });
+      await openOrders(k);
+      await fireEvent.press(await screen.findByLabelText('In the kitchen'));
+      expect(await screen.findByText('Delivery partner Demo is at the counter')).toBeTruthy();
+      expect(JSON.stringify(ORDERS.withRider.rider)).toBe('{"firstName":"Demo","atRestaurant":true}');
+    });
+
     it('someone else acted first: the conflict is explained and the list refreshed', async () => {
       const k = kitchen({
         accept: () => ({
