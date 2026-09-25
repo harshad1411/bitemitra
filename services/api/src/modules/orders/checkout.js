@@ -37,14 +37,13 @@ export async function placeOrder(app, request, body, customer) {
   const q = c.q;
   const total = q.totals.totalPayablePaise;
 
-  // ── Payment method (D-60) ──
-  if (total > 0 && body.paymentMethod !== 'COD')
-    throw new AppError(
-      'PAYMENT_METHOD_UNAVAILABLE',
-      'Online payment is not available yet. Please choose cash on delivery.',
-      { details: { available: ['COD'] } },
-    );
-  if (total > 0) {
+  // ── Payment method (D-60, D-83): online methods from payments.methods; cash on delivery by its own rules ──
+  const methods = (await config.resolve('payments.methods', c.ctx)).value;
+  if (total > 0 && !methods.enabled.includes(body.paymentMethod))
+    throw new AppError('PAYMENT_METHOD_UNAVAILABLE', 'This payment method is not available here right now.', {
+      details: { available: methods.enabled },
+    });
+  if (total > 0 && body.paymentMethod === 'COD') {
     const [flags, cod] = await Promise.all([
       config.flagMap({
         userId: request.auth.userId,
@@ -228,6 +227,34 @@ export async function placeOrder(app, request, body, customer) {
             createdAt: now,
           },
         });
+      if (order.status === 'PAYMENT_PENDING') {
+        // The payment to collect (D-83): expiry and reconcile jobs are scheduled with the order.
+        const expiresAt = new Date(now.getTime() + methods.expirySec * 1000);
+        const payment = await tx.payment.create({
+          data: {
+            orderId: order.id,
+            method: body.paymentMethod,
+            provider: app.services.payments.provider.name,
+            status: 'INITIATED',
+            amountPaise: total,
+            expiresAt,
+            createdAt: now,
+          },
+        });
+        /** @type {[string, Date][]} */
+        const jobs = [
+          ['payment.reconcile', new Date(now.getTime() + 2 * 60_000)],
+          ['payment.expire', expiresAt],
+        ];
+        for (const [eventType, at] of jobs)
+          await enqueueEvent(tx, {
+            aggregateType: 'PAYMENT',
+            aggregateId: payment.id,
+            eventType,
+            payload: { paymentId: payment.id },
+            availableAt: at,
+          });
+      }
       await tx.orderStatusHistory.createMany({
         data: init.history.map((h, i) => ({
           orderId: order.id,
@@ -267,6 +294,13 @@ export async function placeOrder(app, request, body, customer) {
         });
       return order.id;
     });
+    // Online: create the gateway order now so the app can pay at once (D-83). If the gateway is down the
+    // order stays waiting and the app retries with POST /v1/customer/orders/:id/payment.
+    const waiting = await prisma.payment.findFirst({ where: { orderId, status: 'INITIATED' } });
+    if (waiting)
+      await app.services.payments.open(waiting.id).catch((err) => {
+        request.log.warn({ err: String(err?.message ?? err), orderId }, 'gateway order not created yet');
+      });
     return { orderId, created: true };
   } catch (err) {
     // Two taps raced past the first check: the unique (customerId, idempotencyKey) decides.

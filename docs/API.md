@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -161,7 +161,11 @@ _Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not
 | `POST` | `/v1/admin/orders/:id/attention` | admin token | ADMIN | `orders.edit` |  |
 | `POST` | `/v1/admin/orders/:id/cancel` | admin token | ADMIN | `orders.cancel` |  |
 | `POST` | `/v1/admin/orders/:id/notes` | admin token | ADMIN | `orders.edit` |  |
+| `POST` | `/v1/admin/orders/:id/refunds` | admin token | ADMIN | `refunds.create` |  |
 | `POST` | `/v1/admin/orders/:id/unassign` | admin token | ADMIN | `orders.assign_rider` |  |
+| `GET` | `/v1/admin/payments` | admin token | ADMIN | `payments.view` |  |
+| `GET` | `/v1/admin/payments/:id` | admin token | ADMIN | `payments.view` |  |
+| `POST` | `/v1/admin/payments/:id/reconcile` | admin token | ADMIN | `payments.reconcile` |  |
 | `GET` | `/v1/admin/permissions` | admin token | ADMIN | `roles.view` |  |
 | `GET` | `/v1/admin/pricing/effective` | admin token | ADMIN | `pricing.view` |  |
 | `POST` | `/v1/admin/pricing/preview` | admin token | ADMIN | `pricing.view` |  |
@@ -180,6 +184,11 @@ _Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not
 | `GET` | `/v1/admin/promotions` | admin token | ADMIN | `promotions.manage` |  |
 | `POST` | `/v1/admin/promotions` | admin token | ADMIN | `promotions.manage` |  |
 | `PATCH` | `/v1/admin/promotions/:id` | admin token | ADMIN | `promotions.manage` |  |
+| `GET` | `/v1/admin/refunds` | admin token | ADMIN | `payments.view` |  |
+| `POST` | `/v1/admin/refunds/:id/approve` | admin token | ADMIN | `refunds.approve` |  |
+| `POST` | `/v1/admin/refunds/:id/paid` | admin token | ADMIN | `refunds.create` |  |
+| `POST` | `/v1/admin/refunds/:id/reject` | admin token | ADMIN | `refunds.approve` |  |
+| `POST` | `/v1/admin/refunds/:id/retry` | admin token | ADMIN | `refunds.approve` |  |
 | `POST` | `/v1/admin/restaurant-bank-accounts/:id/verify` | admin token | ADMIN | `restaurants.approve` |  |
 | `GET` | `/v1/admin/restaurant-documents/:id/file` | admin token | ADMIN | `restaurants.view` |  |
 | `POST` | `/v1/admin/restaurant-documents/:id/review` | admin token | ADMIN | `restaurants.approve` |  |
@@ -237,6 +246,8 @@ _Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not
 | `GET` | `/v1/customer/orders` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/orders/:id` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/orders/:id/cancel` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/orders/:id/payment` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/orders/:id/payment/verify` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants/:id` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/search` | optional | CUSTOMER | — |  |
@@ -247,6 +258,8 @@ _Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not
 | `GET` | `/v1/me/notifications` | required | any | — |  |
 | `GET` | `/v1/media/files/*` | none | browser (no headers) | — |  |
 | `POST` | `/v1/orders` | required | CUSTOMER | — |  |
+| `GET` | `/v1/pay/:id` | none | any | — |  |
+| `POST` | `/v1/pay/:id/fake` | none | any | — |  |
 | `PATCH` | `/v1/restaurant/branches/:id/status` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/orders` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/orders/:id` | required | RESTAURANT | — |  |
@@ -278,6 +291,7 @@ _Generated from the route definitions by `pnpm docs:api` (181 endpoints). Do not
 | `POST` | `/v1/rider/trips/:id/unassign` | required | RIDER | — |  |
 | `PUT` | `/v1/rider/vehicle` | required | RIDER | — |  |
 | `GET` | `/v1/rider/work` | required | RIDER | — |  |
+| `POST` | `/v1/webhooks/payments/:provider` | none | any | — |  |
 
 <!-- routes:end -->
 

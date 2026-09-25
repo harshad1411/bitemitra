@@ -13,6 +13,46 @@ const base = {
   MEDIA_LOCAL_DIR: z.string().default('../../var/media'),
 };
 
+/** Online payment settings, shared by the API and the worker (D-82). */
+const paymentEnv = {
+  // Online payments (D-82). `fake` is for development and tests only.
+  PAYMENT_PROVIDER: z.enum(['fake', 'razorpay']).default('fake'),
+  RAZORPAY_KEY_ID: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
+  RAZORPAY_KEY_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
+  RAZORPAY_WEBHOOK_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
+};
+
+/**
+ * @param {any} env
+ * @param {import('zod').RefinementCtx} ctx
+ */
+function checkPaymentEnv(env, ctx) {
+  if (env.PAYMENT_PROVIDER === 'razorpay') {
+    for (const k of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'])
+      if (!env[k]) ctx.addIssue({ code: 'custom', path: [k], message: `${k} is required for Razorpay` });
+    // Live keys only in production; production never runs on test keys (PAYMENTS.md §2).
+    const liveKey = env.RAZORPAY_KEY_ID?.startsWith('rzp_live_');
+    if (env.RAZORPAY_KEY_ID && env.APP_ENV === 'production' && !liveKey)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RAZORPAY_KEY_ID'],
+        message: 'production needs a live Razorpay key',
+      });
+    if (liveKey && env.APP_ENV !== 'production')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RAZORPAY_KEY_ID'],
+        message: 'live Razorpay keys are only allowed in production',
+      });
+  }
+  if ((env.APP_ENV === 'staging' || env.APP_ENV === 'production') && env.PAYMENT_PROVIDER === 'fake')
+    ctx.addIssue({
+      code: 'custom',
+      path: ['PAYMENT_PROVIDER'],
+      message: 'the fake payment provider is not allowed in staging/production',
+    });
+}
+
 export const apiEnvSchema = z
   .object({
     ...base,
@@ -41,6 +81,7 @@ export const apiEnvSchema = z
       ),
     // Road distances from Google (D-81); only used when Jamzo Admin sets maps.provider to GOOGLE. Server-side only.
     GOOGLE_MAPS_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(20).optional()),
+    ...paymentEnv,
     SMS_PROVIDER: z.enum(['console']).default('console'),
     EMAIL_PROVIDER: z.enum(['console']).default('console'),
     COOKIE_SECURE: bool.default(true),
@@ -57,6 +98,7 @@ export const apiEnvSchema = z
   })
   .superRefine((env, ctx) => {
     const live = env.APP_ENV === 'staging' || env.APP_ENV === 'production';
+    checkPaymentEnv(env, ctx);
     if (!live) return;
     // Development-only providers must never run where real users exist (DECISIONS D-21, D-23).
     if (env.SMS_PROVIDER === 'console')
@@ -95,8 +137,10 @@ export const workerEnvSchema = z
     // Push delivery for order notifications (D-69). `expo` is not verified against Expo's service yet (Q-18).
     PUSH_PROVIDER: z.enum(['console', 'expo']).default('console'),
     EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+    ...paymentEnv,
   })
   .superRefine((env, ctx) => {
+    checkPaymentEnv(env, ctx);
     if ((env.APP_ENV === 'staging' || env.APP_ENV === 'production') && env.PUSH_PROVIDER === 'console')
       ctx.addIssue({
         code: 'custom',

@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 test.describe.configure({ mode: 'serial' });
 
 test('rejects a wrong password with a clear message', async ({ page }) => {
-  await signIn(page, { email: 'e2e-super@jamzo.test', password: 'wrong-password' });
+  await signIn(page, { email: 'e2e-super@jamzo.test', password: 'wrong-password' }, { expectSuccess: false });
   await expect(page.getByRole('alert').filter({ hasText: 'Email or password is incorrect.' })).toBeVisible();
   await shot(page, '01-login-error');
 });
@@ -21,8 +21,8 @@ test('signs in and shows an honest dashboard', async ({ page }) => {
   await expect(page.getByText('Cities', { exact: true }).first()).toBeVisible();
   // Future modules are visibly not built yet
   await expect(
-    page.getByRole('navigation', { name: 'Main' }).getByText('Payments').locator('..'),
-  ).toContainText('Phase 7');
+    page.getByRole('navigation', { name: 'Main' }).getByText('Settlements').locator('..'),
+  ).toContainText('Phase 8');
   await shot(page, '02-dashboard');
 });
 

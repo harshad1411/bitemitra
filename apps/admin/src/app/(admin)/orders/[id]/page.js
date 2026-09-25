@@ -33,6 +33,25 @@ import { ACTOR_LABEL, ADMIN_CANCEL_REASONS, statusLabel, statusTone } from '@/li
 import { DELIVERY_STATUS } from '@/lib/riders';
 import { AssignDialog } from '@/components/dispatch/assign-dialog';
 import { ConfirmDialog } from '@/components/jamzo/confirm-dialog';
+import { RefundDialog } from '@/components/payments/refund-dialog';
+import { METHOD, PAYMENT_STATUS, REFUND_STATUS, REFUND_TYPE } from '@/lib/payments';
+
+/** What each "needs attention" reason means and what to do (the API sets the reason). */
+const ATTENTION = {
+  RESTAURANT_NOT_RESPONDING:
+    'The restaurant has not responded. Call them, or cancel the order. If nobody acts, the order is rejected automatically after the grace period.',
+  NO_RIDER_FOUND: 'No delivery partner accepted. Assign one below; dispatch keeps retrying every minute.',
+  DELIVERY_CODE_ATTEMPTS:
+    'The delivery partner entered a wrong delivery code 5 times. Call the customer before anything else.',
+  PAYMENT_AMOUNT_MISMATCH:
+    'The payment gateway reports a different amount than the order total. Check the payment; never confirm the order by hand.',
+  LATE_PAYMENT_REFUNDED:
+    'Money arrived after the order had ended. A full refund was created automatically; check it completes.',
+  REFUND_FAILED:
+    'A refund failed at the payment gateway after several tries. Retry it from Refunds or contact the gateway.',
+  DEFAULT:
+    'The delivery partner reported a problem or something needs a person. Check the order and its history.',
+};
 
 const rupees = (p) => (p == null ? '—' : formatPaise(p));
 const neg = (p) => (p ? `−${formatPaise(p)}` : formatPaise(0));
@@ -180,6 +199,7 @@ export default function OrderPage({ params }) {
     refetchInterval: 15_000,
   });
   const [cancelling, setCancelling] = useState(false);
+  const [refunding, setRefunding] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [unassigning, setUnassigning] = useState(false);
   const unassign = useApiMutation({
@@ -227,10 +247,7 @@ export default function OrderPage({ params }) {
           <AlertTriangle />
           <AlertTitle>Needs attention: {titleCase(o.attentionReason ?? '')}</AlertTitle>
           <AlertDescription>
-            <p>
-              The restaurant has not responded. Call them, or cancel the order. If nobody acts, the order is
-              rejected automatically after the grace period.
-            </p>
+            <p>{ATTENTION[o.attentionReason] ?? ATTENTION.DEFAULT}</p>
             {o.permissions.edit ? (
               <div className="mt-2 flex flex-wrap items-end gap-2">
                 <Textarea
@@ -351,6 +368,48 @@ export default function OrderPage({ params }) {
             {o.permissions.assignRider && ['ACCEPTED', 'AT_RESTAURANT'].includes(o.deliveryStatus) ? (
               <Button size="sm" variant="outline" className="w-fit" onClick={() => setUnassigning(true)}>
                 Take order from partner
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Payments & refunds</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            {o.payments.length ? (
+              o.payments.map((p) => (
+                <div key={p.id} className="flex justify-between gap-2">
+                  <Link className="hover:underline" href={`/payments/${p.id}`}>
+                    {METHOD[p.method] ?? p.method} · {formatPaise(p.amountPaise)}
+                  </Link>
+                  <StatusBadge tone={PAYMENT_STATUS[p.status]?.[1] ?? 'neutral'}>
+                    {PAYMENT_STATUS[p.status]?.[0] ?? p.status}
+                  </StatusBadge>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">
+                {o.payment?.method === 'COD'
+                  ? 'Cash is recorded when the partner collects it.'
+                  : 'No payment yet.'}
+              </p>
+            )}
+            {o.refunds.map((r) => (
+              <div key={r.id} className="flex justify-between gap-2">
+                <span>
+                  Refund: {REFUND_TYPE[r.type]} · {formatPaise(r.amountPaise)}
+                </span>
+                <StatusBadge tone={REFUND_STATUS[r.status]?.[1] ?? 'neutral'}>
+                  {REFUND_STATUS[r.status]?.[0] ?? r.status}
+                </StatusBadge>
+              </div>
+            ))}
+            <p className="text-muted-foreground">Can still be refunded: {formatPaise(o.refundablePaise)}</p>
+            {o.permissions.refund && o.refundablePaise > 0 ? (
+              <Button size="sm" variant="outline" className="w-fit" onClick={() => setRefunding(true)}>
+                Refund
               </Button>
             ) : null}
           </CardContent>
@@ -561,6 +620,7 @@ export default function OrderPage({ params }) {
       </div>
       {cancelling ? <CancelDialog order={o} onClose={() => setCancelling(false)} /> : null}
       {assigning ? <AssignDialog order={o} onClose={() => setAssigning(false)} /> : null}
+      {refunding ? <RefundDialog order={o} onClose={() => setRefunding(false)} /> : null}
       <ConfirmDialog
         open={unassigning}
         onOpenChange={setUnassigning}

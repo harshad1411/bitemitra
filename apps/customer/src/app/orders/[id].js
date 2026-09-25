@@ -1,5 +1,5 @@
-// Order tracking: the current status, a timeline, the bill and — while the restaurant has not accepted yet —
-// a cancel button. Refreshed by realtime notices and by polling (D-62).
+// Order tracking: the current status, "Pay now" while an online payment is open (D-84), refunds, a timeline,
+// the bill and — while allowed — a cancel button. Refreshed by realtime notices and by polling (D-62).
 import { useState } from 'react';
 import { Linking, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,7 +8,8 @@ import { useJamzo, useRealtime, userMessage } from '@jamzo/mobile-foundation';
 import { Banner, Button, Card, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { VegMark } from '../../components/bits';
 import { arrivalLabel, mapPinUrl, money } from '../../lib/format';
-import { CANCEL_REASONS, TIMELINE_LABEL, statusText } from '../../lib/order-status';
+import { CANCEL_REASONS, REFUND_TEXT, TIMELINE_LABEL, statusText } from '../../lib/order-status';
+import { payOnline } from '../../lib/pay';
 import { useOrder } from '../../lib/queries';
 
 const VEHICLE = {
@@ -25,7 +26,7 @@ export default function OrderScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const qc = useQueryClient();
-  const { api } = useJamzo();
+  const { api, env } = useJamzo();
   const q = useOrder(id);
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -61,6 +62,19 @@ export default function OrderScreen() {
       setBusy(false);
     }
   };
+  const payNow = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const v = await payOnline({ api, apiUrl: env.apiUrl, orderId: id, payment: o.onlinePayment });
+      if (v.orderStatus === 'PAYMENT_PENDING' && v.payment?.lastError) setError(v.payment.lastError);
+    } catch (err) {
+      setError(userMessage(err));
+    } finally {
+      setBusy(false);
+      q.refetch();
+    }
+  };
   return (
     <Screen>
       <Text variant="small">{o.orderNumber}</Text>
@@ -69,6 +83,30 @@ export default function OrderScreen() {
       </Text>
       <Text variant="muted">{s.text}</Text>
       {error ? <Banner tone="critical">{error}</Banner> : null}
+
+      {o.status === 'PAYMENT_PENDING' ? (
+        <Card>
+          <Text variant="heading">{`Pay ${money(o.totalPayablePaise)}`}</Text>
+          {o.onlinePayment?.lastError && !error ? (
+            <Banner tone="warning">{`Last try: ${o.onlinePayment.lastError}. You can try again.`}</Banner>
+          ) : null}
+          {o.onlinePayment?.expiresAt ? (
+            <Text variant="small">{`Complete the payment by ${time(o.onlinePayment.expiresAt)}.`}</Text>
+          ) : null}
+          <Button title="Pay now" busy={busy} disabled={busy} onPress={payNow} />
+        </Card>
+      ) : null}
+
+      {o.refunds?.length ? (
+        <Card>
+          <Text variant="heading">Refunds</Text>
+          {o.refunds.map((r) => (
+            <Text key={r.id}>{`${money(r.amountPaise)} — ${REFUND_TEXT[r.status] ?? r.status}${
+              r.status === 'SUCCEEDED' && r.toGateway ? ' (banks usually take 5–7 working days)' : ''
+            }`}</Text>
+          ))}
+        </Card>
+      ) : null}
 
       {o.delivery?.rider ? (
         <Card>

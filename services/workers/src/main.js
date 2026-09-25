@@ -9,6 +9,8 @@ import { createMediaUploadedHandler } from './handlers/media.js';
 import { createOrderJobs } from '@jamzo/api/order-jobs';
 import { createNotificationDispatcher, mergeHandlers } from '@jamzo/api/notification-dispatch';
 import { createDispatch } from '@jamzo/api/dispatch';
+import { createPayments } from '@jamzo/api/payments';
+import { createPaymentProvider } from '@jamzo/api/payment-providers';
 import { createPushProvider } from '@jamzo/notifications';
 
 const env = loadEnv(workerEnvSchema);
@@ -31,6 +33,7 @@ const relay = createOutboxRelay({
     }),
     createOrderJobs({ prisma, log }),
     createDispatch({ prisma, log }).handlers,
+    createPayments({ prisma, log, provider: createPaymentProvider(env) }).handlers,
   ),
 });
 

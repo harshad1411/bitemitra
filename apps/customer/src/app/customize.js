@@ -1,47 +1,15 @@
 // Choose size and options for an item. The price shown here is for guidance; the cart bill comes from the
 // server quote (D-46), which also re-checks every choice.
 import { useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Banner, Button, Card, LoadingState, Screen, Text, useTheme } from '@jamzo/mobile-ui';
+import { Banner, Button, Card, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { VegMark } from '../components/bits';
+import { Option } from '../components/option';
 import { money } from '../lib/format';
 import { useLocation } from '../lib/location';
 import { useRestaurant } from '../lib/queries';
 import { useAddToCart } from '../lib/add-to-cart';
-
-function Option({ label, detail, selected, onPress, disabled, multi }) {
-  const t = useTheme();
-  return (
-    <Pressable
-      accessibilityRole={multi ? 'checkbox' : 'radio'}
-      accessibilityState={{ checked: selected, disabled }}
-      accessibilityLabel={label}
-      disabled={disabled}
-      onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: t.spacing[2],
-        minHeight: t.minTouchTarget,
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <View
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: multi ? 4 : 10,
-          borderWidth: 2,
-          borderColor: t.colors.primary,
-          backgroundColor: selected ? t.colors.primary : 'transparent',
-        }}
-      />
-      <Text style={{ flex: 1 }}>{label}</Text>
-      {detail ? <Text variant="small">{detail}</Text> : null}
-    </Pressable>
-  );
-}
 
 export default function Customize() {
   const router = useRouter();

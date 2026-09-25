@@ -238,9 +238,25 @@ describe('checkout (D-60, D-63, D-64)', () => {
       code: 'PRICE_CHANGED',
       details: { previousTotalPaise: 30_000, quote: { bill: { totalPayablePaise: 34_100 } } },
     });
-    const upi = await checkout(c, { paymentMethod: 'UPI' });
-    expect(upi.statusCode).toBe(422);
-    expect(upi.json().error.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
+    // A method switched off in payments.methods is refused (D-83).
+    const put = await asAdmin('PUT', '/v1/admin/settings', {
+      key: 'payments.methods',
+      scope: 'GLOBAL',
+      value: { enabled: ['COD', 'UPI'], expirySec: 900 },
+      reason: 'cards off for this test',
+    });
+    expect(put.statusCode, put.body).toBe(200);
+    const card = await checkout(c, { paymentMethod: 'CARD' });
+    expect(card.statusCode).toBe(422);
+    expect(card.json().error).toMatchObject({
+      code: 'PAYMENT_METHOD_UNAVAILABLE',
+      details: { available: ['COD', 'UPI'] },
+    });
+    await asAdmin('DELETE', '/v1/admin/settings', {
+      key: 'payments.methods',
+      scope: 'GLOBAL',
+      reason: 'test reset',
+    });
     const cust = await ctx.prisma.customer.findUniqueOrThrow({ where: { userId: c.me.user.id } });
     expect(await ctx.prisma.order.count({ where: { customerId: cust.id } })).toBe(0);
   });

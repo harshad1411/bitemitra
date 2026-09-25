@@ -1016,6 +1016,45 @@ export const onboardingStatus = {
   rider: z.enum(values(RIDER_ONBOARDING_STATUSES)),
 };
 
+// ── Phase 7: payments and refunds (D-83..D-87) ───────────────────────────────
+
+export const PAYMENT_STATUSES = ['INITIATED', 'PENDING', 'SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED'];
+export const REFUND_STATUSES = [
+  'PENDING_APPROVAL',
+  'REQUESTED',
+  'PROCESSING',
+  'SUCCEEDED',
+  'FAILED',
+  'REJECTED',
+];
+export const REFUND_TYPES = ['FULL', 'PARTIAL', 'ITEM', 'DELIVERY', 'PLATFORM_FEE', 'MANUAL'];
+
+export const paymentListQuery = pageQuery.extend({
+  status: z.enum(PAYMENT_STATUSES).optional(),
+  provider: z.string().trim().max(20).optional(),
+});
+export const refundListQuery = pageQuery.extend({ status: z.enum(REFUND_STATUSES).optional() });
+
+/** An admin refund (D-86). `amountPaise` for PARTIAL and MANUAL; `itemIds` for ITEM. */
+export const adminRefundBody = z
+  .object({
+    type: z.enum(REFUND_TYPES),
+    amountPaise: pricePaise.min(1).optional(),
+    itemIds: z.array(uuid).min(1).max(100).optional(),
+    reason: z.string().trim().min(3).max(300),
+    bearer: z.enum(['RESTAURANT', 'PLATFORM']).default('PLATFORM'),
+    idempotencyKey: z.string().trim().min(8).max(100),
+  })
+  .superRefine((b, ctx) => {
+    if ((b.type === 'PARTIAL' || b.type === 'MANUAL') && !b.amountPaise)
+      ctx.addIssue({ code: 'custom', path: ['amountPaise'], message: 'Enter the amount to refund' });
+    if (b.type === 'ITEM' && !b.itemIds?.length)
+      ctx.addIssue({ code: 'custom', path: ['itemIds'], message: 'Choose the items to refund' });
+  });
+export const refundRejectBody = z.object({ reason: z.string().trim().min(3).max(300) });
+/** A cash-on-delivery refund paid back outside the gateway: the UPI / bank transfer reference. */
+export const refundPaidBody = z.object({ reference: z.string().trim().min(4).max(100) });
+
 /**
  * Converts a ZodError into `{ field: [messages] }` for the standard error body (API.md §3).
  * @param {import('zod').ZodError} error

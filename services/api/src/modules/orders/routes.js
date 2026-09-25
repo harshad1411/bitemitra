@@ -21,6 +21,13 @@ import { canCancel, cancel } from '@jamzo/order-engine';
 import { arrivalEstimate } from '@jamzo/delivery-engine';
 import { deliveryCode } from '../dispatch/otp.js';
 import { deliveryDistance } from '../delivery/distance.js';
+import { paidOnline, refundable, refundRejected } from '../payments/refunds.js';
+import {
+  adminPaymentView,
+  adminRefundView,
+  customerPaymentView,
+  customerRefundView,
+} from '../payments/views.js';
 import { firstName } from '../riders/service.js';
 import { restaurantRoleCan } from '@jamzo/auth';
 import { CLIENT_HEADERS } from '@jamzo/shared-types';
@@ -97,7 +104,7 @@ export default async function orderRoutes(app) {
           reasonCode: 'PREVIEW',
           now,
           rule: { id: rule.id, params: rule.params },
-          amounts: cancellationAmounts(o, o.pricingSnapshot),
+          amounts: cancellationAmounts(o, o.pricingSnapshot, await paidOnline(prisma, o.id)),
         });
         const counts = o.paymentMethod === 'COD' && COD_STRIKE_STAGES.includes(preview.stage);
         const limit = counts
@@ -117,7 +124,23 @@ export default async function orderRoutes(app) {
     } catch {
       allowed = false; // no rule configured → the customer cannot cancel in the app
     }
-    return { ...customerOrderView(o, { canCancel: allowed }), cancelTerms, delivery: await deliveryInfo(o) };
+    const [payment, refunds] = await Promise.all([
+      prisma.payment.findFirst({
+        where: { orderId: o.id, provider: { not: 'cod' } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.refund.findMany({
+        where: { orderId: o.id, status: { not: 'REJECTED' } },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+    return {
+      ...customerOrderView(o, { canCancel: allowed }),
+      cancelTerms,
+      delivery: await deliveryInfo(o),
+      onlinePayment: customerPaymentView(payment, app.services.payments),
+      refunds: refunds.map(customerRefundView),
+    };
   }
 
   /**
@@ -387,7 +410,12 @@ export default async function orderRoutes(app) {
                       ? { needsAttention: false, attentionReason: null }
                       : {},
                   after:
-                    event === 'REJECT' ? (tx2) => releaseCouponUsage(tx2, id, app.clock.now()) : undefined,
+                    event === 'REJECT'
+                      ? async (tx2) => {
+                          await releaseCouponUsage(tx2, id, app.clock.now());
+                          await refundRejected(tx2, id, app.clock.now());
+                        }
+                      : undefined,
                 },
         });
         return restaurantDetail(membership, id);
@@ -531,11 +559,16 @@ export default async function orderRoutes(app) {
       } catch {
         cancelPreview = { ruleId: null, possible: false };
       }
-      const assignments = await prisma.orderAssignment.findMany({
-        where: { orderId: id },
-        orderBy: { offeredAt: 'asc' },
-        include: { rider: { include: { user: true } } },
-      });
+      const [assignments, payments, refunds, left] = await Promise.all([
+        prisma.orderAssignment.findMany({
+          where: { orderId: id },
+          orderBy: { offeredAt: 'asc' },
+          include: { rider: { include: { user: true } } },
+        }),
+        prisma.payment.findMany({ where: { orderId: id }, orderBy: { createdAt: 'asc' } }),
+        prisma.refund.findMany({ where: { orderId: id }, orderBy: { createdAt: 'asc' } }),
+        refundable(prisma, id),
+      ]);
       return {
         ...adminOrderView(o, { maskPii: !canInCity(request, 'customers.pii', o.cityId) }),
         assignments: assignments.map((a) => ({
@@ -550,7 +583,11 @@ export default async function orderRoutes(app) {
           rejectReason: a.rejectReason,
         })),
         cancelPreview,
+        payments: payments.map((p) => adminPaymentView(p)),
+        refunds: refunds.map(adminRefundView),
+        refundablePaise: left.refundablePaise,
         permissions: {
+          refund: canInCity(request, 'refunds.create', o.cityId),
           cancel: canInCity(request, 'orders.cancel', o.cityId),
           edit: canInCity(request, 'orders.edit', o.cityId),
           assignRider: canInCity(request, 'orders.assign_rider', o.cityId),

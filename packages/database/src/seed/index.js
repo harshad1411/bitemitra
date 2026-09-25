@@ -38,7 +38,7 @@ export const NOTIFICATION_TEMPLATES =
       event: 'order.rejected',
       appId: 'CUSTOMER',
       title: 'Order not accepted',
-      body: 'Sorry — {{restaurantName}} could not take order {{orderNumber}}. You will not be charged.',
+      body: 'Sorry — {{restaurantName}} could not take order {{orderNumber}}. If you paid online, the full amount is refunded automatically.',
     },
     {
       event: 'order.cancelled',
@@ -57,6 +57,18 @@ export const NOTIFICATION_TEMPLATES =
       appId: 'RESTAURANT',
       title: 'Order #{{shortNumber}} cancelled',
       body: 'Stop preparing order {{orderNumber}}.',
+    },
+    {
+      event: 'order.payment_failed',
+      appId: 'CUSTOMER',
+      title: 'Payment not completed',
+      body: 'Order {{orderNumber}} was not placed because the payment did not go through. If money was deducted, it is refunded automatically.',
+    },
+    {
+      event: 'order.refunded',
+      appId: 'CUSTOMER',
+      title: 'Refund processed',
+      body: '{{amount}} for order {{orderNumber}} is on its way back to you. Banks usually take 5–7 working days.',
     },
     {
       event: 'order.rider_accepted',

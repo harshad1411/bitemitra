@@ -1,7 +1,7 @@
 # Mobile applications
 
 Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); **Phase 5** adds checkout (cash on delivery), order tracking and cancellation to the customer app and the order
-screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
+screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 7** adds online payment to the customer app (in-app browser payment page, "Pay now", refunds). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.
 
@@ -110,7 +110,7 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 | `restaurant/[id].js` | Menu with Jamzo prices, offers, open/closed and "doesn't deliver here" states, favourite toggle |
 | `customize.js` | Size and add-on choices with required/min/max rules and quantity |
 | `cart.js` | Lines and quantities, coupon, tip presets, the **server** bill (D-46, D-58), issues |
-| `checkout.js` | Saved address, cash on delivery (online methods shown as coming soon — D-60), notes, contactless, the server bill; one idempotency key per attempt (a retry never creates a second order) |
+| `checkout.js` | Saved address, **Pay online** or cash on delivery (methods from the quote, D-83), notes, contactless, the server bill; one idempotency key per attempt (a retry never creates a second order); online orders open the payment page in the in-app browser (`expo-web-browser`) and the server verifies the payment (D-84) |
 | `orders/index.js`, `orders/[id].js` | Order list and tracking: status, timeline, items, bill; from rider acceptance the partner's first name, vehicle, an arrival estimate, last location time with "See on map", and the **delivery code** to share at the door (Phase 6; calls only via Jamzo support); cancel until pickup — after acceptance the app first explains there is no refund and, for cash on delivery, how many such cancellations are left before cash on delivery is switched off (OD-38); refreshed by realtime notices and polling |
 | `account.js`, `sign-in.js`, `addresses.js` | Guest or signed-in account, phone OTP sign-in when needed, saved addresses, favourites, notifications, legal pages, build info |
 | `page/[slug].js` | Published CMS pages (legal drafts show "Not published yet", Q-12) |

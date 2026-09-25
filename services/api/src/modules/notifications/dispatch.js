@@ -17,6 +17,8 @@ export const NOTIFYING_EVENTS = [
   'order.picked_up',
   'order.arriving',
   'order.delivered',
+  'order.payment_failed',
+  'order.refunded',
 ];
 /** Every order event the worker must accept (the outbox parks unknown events). */
 export const ORDER_EVENTS = [
@@ -24,7 +26,6 @@ export const ORDER_EVENTS = [
   'order.created',
   'order.restaurant_notified',
   'order.prep_time_changed',
-  'order.payment_failed',
   'order.dispatch_started',
   'order.rider_declined',
   'order.rider_unassigned',
@@ -90,6 +91,7 @@ export function createNotificationDispatcher({ prisma, push, clock = { now: () =
       prepTimeMinutes: order.prepTimeMinutes,
       total: `₹${(order.totalPayablePaise / 100).toFixed(2)}`,
       riderName: (rider?.user?.name ?? '').trim().split(/\s+/)[0] || 'Your delivery partner',
+      amount: event.payload.amountPaise != null ? `₹${(event.payload.amountPaise / 100).toFixed(2)}` : '',
     };
     for (const t of templates) {
       const users = await recipients(t.appId, order, event);

@@ -32,15 +32,18 @@ import notificationRoutes from './modules/notifications/routes.js';
 import riderAppRoutes from './modules/riders/app-routes.js';
 import riderAdminRoutes from './modules/riders/admin-routes.js';
 import dispatchAdminRoutes from './modules/dispatch/admin-routes.js';
+import paymentRoutes from './modules/payments/routes.js';
 import { createDispatch } from './modules/dispatch/service.js';
 import { createTrips } from './modules/dispatch/trips.js';
 import { createDistanceProvider } from './modules/delivery/distance.js';
+import { createPayments } from './modules/payments/service.js';
+import { createPaymentProvider } from './modules/payments/providers/index.js';
 import { mediaBase } from './modules/media/urls.js';
 import { createFieldCipher } from '@jamzo/auth';
 
 const MOBILE = new Set(['CUSTOMER', 'RESTAURANT', 'RIDER']);
 /** Routes that browsers load directly (no custom headers possible). */
-const HEADERLESS_PREFIXES = ['/v1/media/files/'];
+const HEADERLESS_PREFIXES = ['/v1/media/files/', '/v1/pay/', '/v1/webhooks/'];
 /** Routes a blocked (maintenance / outdated) app may still call. */
 const GATE_EXEMPT = new Set(['/v1/app-config']);
 
@@ -55,6 +58,7 @@ const GATE_EXEMPT = new Set(['/v1/app-config']);
  *   logger?: boolean | object,
  *   onRoute?: (route: any) => void,
  *   distance?: import('./modules/delivery/distance.js').DistanceProvider,
+ *   paymentProvider?: import('./modules/payments/providers/razorpay.js').PaymentProvider,
  * }} deps
  */
 export async function buildApp(deps) {
@@ -105,6 +109,13 @@ export async function buildApp(deps) {
     dispatch: createDispatch({ prisma, clock, config, log: app.log }),
     trips: createTrips({ prisma, clock, otpSecret: env.FIELD_ENCRYPTION_KEY }),
     otpSecret: env.FIELD_ENCRYPTION_KEY,
+    payments: createPayments({
+      prisma,
+      clock,
+      log: app.log,
+      provider: deps.paymentProvider ?? createPaymentProvider(env),
+      linkSecret: env.FIELD_ENCRYPTION_KEY,
+    }),
   });
   app.decorateRequest('client', null);
 
@@ -226,6 +237,7 @@ export async function buildApp(deps) {
   await app.register(riderAppRoutes);
   await app.register(riderAdminRoutes);
   await app.register(dispatchAdminRoutes);
+  await app.register(paymentRoutes);
 
   return app;
 }

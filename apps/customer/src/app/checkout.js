@@ -1,6 +1,7 @@
-// Checkout (D-60, D-64): a saved address, cash on delivery, notes, and the server's bill. The server re-prices
-// and re-checks everything when the order is placed; one idempotency key per attempt makes a double tap or a
-// retry after a network error return the same order.
+// Checkout (D-60, D-64, D-83): a saved address, cash on delivery or online payment, notes, and the server's
+// bill. The server re-prices and re-checks everything when the order is placed; one idempotency key per
+// attempt makes a double tap or a retry after a network error return the same order. Online orders then open
+// the payment page; the server confirms the payment with the gateway (D-84).
 import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,13 +22,15 @@ import { useCart } from '../lib/cart';
 import { money } from '../lib/format';
 import { useLocation } from '../lib/location';
 import { useAddresses, useQuote } from '../lib/queries';
+import { payOnline } from '../lib/pay';
+import { Option } from '../components/option';
 
-const ONLINE = ['UPI', 'Card', 'Net banking'];
+const ONLINE_LABEL = { UPI: 'UPI', CARD: 'cards', NETBANKING: 'netbanking', WALLET: 'wallets' };
 
 export default function Checkout() {
   const router = useRouter();
   const qc = useQueryClient();
-  const { api, session } = useJamzo();
+  const { api, session, env } = useJamzo();
   const cart = useCart();
   const { place, choose } = useLocation();
   const signedIn = session.status === 'signedIn';
@@ -37,6 +40,7 @@ export default function Checkout() {
   const [restaurantInstructions, setRestaurantNote] = useState('');
   const [contactless, setContactless] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [choice, setChoice] = useState(null); // 'COD' | 'ONLINE'; null until the customer or the default decides
   const [problem, setProblem] = useState(null); // { message, issues? }
   const attempt = useRef(null); // idempotency key of the current attempt (reused on retry)
 
@@ -61,6 +65,9 @@ export default function Checkout() {
   const address = place?.addressId ? saved.find((a) => a.id === place.addressId) : null;
   const data = q.data;
   const total = data?.bill?.totalPayablePaise;
+  const methods = data?.paymentMethods ?? ['COD'];
+  const online = methods.filter((m) => m !== 'COD');
+  const pay = choice ?? (methods.includes('COD') ? 'COD' : 'ONLINE');
 
   const placeOrder = async () => {
     setBusy(true);
@@ -81,7 +88,8 @@ export default function Checkout() {
           })),
           couponCode: cart.couponCode ?? undefined,
           tipPaise: cart.tipPaise ?? 0,
-          paymentMethod: 'COD',
+          // The customer picks UPI, card… in the gateway; the method actually used is recorded when paid.
+          paymentMethod: pay === 'COD' ? 'COD' : online[0],
           expectedTotalPaise: total,
           deliveryInstructions: deliveryInstructions.trim() || null,
           restaurantInstructions: restaurantInstructions.trim() || null,
@@ -90,6 +98,15 @@ export default function Checkout() {
         { idempotencyKey: attempt.current },
       );
       cart.clear();
+      if (res.order.status === 'PAYMENT_PENDING') {
+        // If the page is closed or the gateway is slow, the order screen offers "Pay now" again.
+        await payOnline({
+          api,
+          apiUrl: env.apiUrl,
+          orderId: res.order.id,
+          payment: res.order.onlinePayment,
+        }).catch(() => null);
+      }
       await qc.invalidateQueries({ queryKey: ['orders'] });
       router.replace(`/orders/${res.order.id}`);
     } catch (err) {
@@ -140,11 +157,28 @@ export default function Checkout() {
 
       <Card>
         <Text variant="heading">Payment</Text>
-        <Text>● Cash on delivery</Text>
-        <Text variant="small">Pay the delivery partner when your food arrives.</Text>
-        {ONLINE.map((m) => (
-          <Text key={m} variant="small">{`○ ${m} — coming soon`}</Text>
-        ))}
+        {methods.includes('COD') ? (
+          <Option
+            label="Cash on delivery"
+            detail="Pay the delivery partner"
+            selected={pay === 'COD'}
+            onPress={() => setChoice('COD')}
+          />
+        ) : null}
+        {online.length ? (
+          <Option
+            label="Pay online"
+            detail={online.map((m) => ONLINE_LABEL[m]).join(', ')}
+            selected={pay === 'ONLINE'}
+            onPress={() => setChoice('ONLINE')}
+          />
+        ) : null}
+        {pay === 'ONLINE' ? (
+          <Text variant="small">
+            A secure payment page opens after you place the order. The restaurant gets your order once the
+            payment is confirmed.
+          </Text>
+        ) : null}
       </Card>
 
       <Card>
@@ -186,7 +220,7 @@ export default function Checkout() {
               </View>
             ))}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontWeight: '700' }}>To pay (cash)</Text>
+              <Text style={{ fontWeight: '700' }}>{pay === 'COD' ? 'To pay (cash)' : 'To pay (online)'}</Text>
               <Text style={{ fontWeight: '700' }}>{money(total)}</Text>
             </View>
           </>
@@ -207,12 +241,20 @@ export default function Checkout() {
         </Banner>
       ) : null}
       <Button
-        title={total != null ? `Place order · ${money(total)}` : 'Place order'}
+        title={
+          total != null
+            ? `${pay === 'COD' ? 'Place order' : 'Place order and pay'} · ${money(total)}`
+            : 'Place order'
+        }
         busy={busy}
         disabled={!address || !data?.canCheckout || busy}
         onPress={placeOrder}
       />
-      <Text variant="small">By placing the order you agree to pay the total in cash on delivery.</Text>
+      <Text variant="small">
+        {pay === 'COD'
+          ? 'By placing the order you agree to pay the total in cash on delivery.'
+          : 'By placing the order you agree to pay the total online now.'}
+      </Text>
     </Screen>
   );
 }

@@ -221,10 +221,18 @@ enum PaymentStatus {
 }
 
 enum RefundStatus {
+  PENDING_APPROVAL
   REQUESTED
   PROCESSING
   SUCCEEDED
   FAILED
+  REJECTED
+}
+
+/// Who pays for a refund (D-86); ledger postings follow in Phase 8.
+enum RefundBearer {
+  RESTAURANT
+  PLATFORM
 }
 
 enum RefundType {
@@ -1833,6 +1841,11 @@ model Payment {
   gatewayTaxPaise   Int?
   providerOrderId   String?
   providerPaymentId String?
+  /// When an unpaid online payment expires (D-83); set at checkout.
+  expiresAt         DateTime?     @db.Timestamptz(3)
+  succeededAt       DateTime?     @db.Timestamptz(3)
+  failedAt          DateTime?     @db.Timestamptz(3)
+  failureReason     String?
   /// COD reconciliation (spec §23)
   codCollectedById  String?       @db.Uuid
   codCollectedAt    DateTime?     @db.Timestamptz(3)
@@ -1900,14 +1913,25 @@ model Refund {
   idempotencyKey   String       @unique
   actorType        ActorType
   actorId          String?      @db.Uuid
+  bearer           RefundBearer @default(PLATFORM)
+  /// Maker-checker above refunds.approval (D-86): a different admin approves or rejects.
+  approvedById     String?      @db.Uuid
+  approvedAt       DateTime?    @db.Timestamptz(3)
+  rejectionReason  String?
   providerRefundId String?
+  /// Cash-on-delivery refunds are paid back outside the gateway (UPI/bank reference).
+  manualReference  String?
+  attempts         Int          @default(0)
+  failureReason    String?
   processedAt      DateTime?    @db.Timestamptz(3)
   createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
 
   order   Order    @relation(fields: [orderId], references: [id])
   payment Payment? @relation(fields: [paymentId], references: [id])
 
   @@index([orderId])
+  @@index([status, createdAt])
   @@map("refunds")
 }
 

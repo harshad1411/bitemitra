@@ -1,8 +1,9 @@
 # Payments & COD
 
-Status: **Design (updated for OD-11, OD-12).** Nothing in this document is implemented in Phase 1.
-Online payments: Phase 7 (**Razorpay is the first adapter**); COD capture: Phase 6; COD reconciliation and
-ledgers: Phase 8. Payout rails: Q-5b.
+Status: **Online payments and refunds built in Phase 7** (D-82 … D-87; §8 below is what was built). COD
+capture: Phase 6. COD reconciliation and ledgers: Phase 8. Payout rails: Q-5b. **Razorpay is the first
+adapter**; it is tested against a fake Razorpay endpoint only and **not verified with Razorpay** until the
+owner creates test keys.
 
 Covers MASTER_SPEC §23, §24, §36, §48, §56, §68, §69, §82.
 
@@ -132,10 +133,41 @@ Rules:
 Estimated in the pricing snapshot (`gatewayFeeEstimatePaise`, configured per method) and replaced by
 the actual fee/tax from reconciliation; both are visible in admin order detail (§30, §82).
 
+## 8. As built in Phase 7
+
+Where this differs from §1–§6, this section and DECISIONS D-82 … D-87 win.
+
+- **Code:** `services/api/src/modules/payments/` — `providers/` (fake, Razorpay), `service.js` (open, confirm,
+  expire, reconcile, webhook, refund processing; the worker jobs `payment.reconcile`, `payment.expire`,
+  `refund.process`, `refund.check`), `refunds.js` (refund records, used by cancellations and rejections),
+  `page.js` (the payment page), `routes.js`.
+- **Checkout:** `paymentMethod` is COD or an online method switched on in `payments.methods`. Online →
+  order `PAYMENT_PENDING`, payment `INITIATED`, then `PENDING` with the gateway order. The quote lists
+  `paymentMethods`.
+- **Paying:** the app opens `GET /v1/pay/:paymentId?t=…&returnTo=jamzo://payment` (a signed link valid
+  30 minutes; only the app's own schemes may be returned to), then calls
+  `POST /v1/customer/orders/:id/payment/verify`. `POST /v1/customer/orders/:id/payment` re-opens a
+  payment (a new link, or the gateway order if it was never created).
+- **One confirmation path:** a declined try keeps the order open, with the gateway's message shown to the
+  customer. Money that arrives late is refunded automatically. A wrong amount flags the order and never
+  confirms. Two confirmations at once place the order once (unique "one success per order").
+- **Refunds:** from cancellations (`refundDuePaise`), restaurant rejections (full), late payments (full)
+  and admins. The approval limit is `refunds.approval`, with a different approver. Gateway failures retry at
+  1 / 5 / 15 min, then the refund is FAILED and flagged, and an admin can **Retry**. Cash-on-delivery
+  refunds are completed with the payout reference.
+- **Customer app:** Pay online / Cash on delivery at checkout; "Pay now" and the last declined reason on
+  the order; refunds listed in plain words.
+- **Jamzo Admin:** Payments (list, detail with tries, gateway messages, "Check with gateway"), Refunds
+  (approve / reject / retry / mark paid), and Payments & refunds with a Refund dialog on the order.
+- **Not built yet:** ledger postings for refunds and gateway fees (Phase 8); nightly settlement-report
+  reconciliation (Phase 8 with settlements); wallets and saved cards.
+
 ## 7. Tests (Phase 7)
 
 Signature valid/invalid · duplicate webhook · out-of-order events (failed after captured) · webhook
 before client verify and vice versa · delayed webhook + reconciliation repair · amount mismatch · late
 success auto-refund · expiry · partial refunds summing to capture · refund double-submit · refund
 failure retry · COD eligibility matrix · COD limit at dispatch · collection mismatch · deposit
-allocation FIFO · netting at settlement.
+allocation FIFO · netting at settlement. Phase 7 test files: `services/api/test/payments.test.js` (17),
+`services/api/test/razorpay.test.js` (5), `apps/customer/__tests__/app.test.js` (online payment),
+`apps/admin/e2e/payments.spec.js`, and the database rules in `pnpm verify:schema`.

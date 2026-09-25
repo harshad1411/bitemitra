@@ -10,7 +10,9 @@
     "./media-storage": "./src/modules/media/storage.js",
     "./order-jobs": "./src/modules/orders/jobs.js",
     "./notification-dispatch": "./src/modules/notifications/dispatch.js",
-    "./dispatch": "./src/modules/dispatch/service.js"
+    "./dispatch": "./src/modules/dispatch/service.js",
+    "./payments": "./src/modules/payments/service.js",
+    "./payment-providers": "./src/modules/payments/providers/index.js"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --watch src/server.js",

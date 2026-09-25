@@ -163,9 +163,10 @@ export async function priceCart(app, request, body, { audience, db }) {
     restaurantId: restaurant.id,
     branchId: branch.id,
   };
-  const [packagingDefault, limits] = await Promise.all([
+  const [packagingDefault, limits, methods] = await Promise.all([
     config.resolve('restaurants.packaging', ctx),
     config.resolve('orders.limits', ctx),
+    config.resolve('payments.methods', ctx),
   ]);
   const valid = [];
   for (const l of body.lines) {
@@ -410,6 +411,8 @@ export async function priceCart(app, request, body, { audience, db }) {
       freeAboveSubtotalPaise: q.delivery.freeAboveSubtotalPaise,
     },
     tips: { enabled: settings.tips.enabled && settings.flags.tips, presetsPaise: settings.tipPresetsPaise },
+    // Methods switched on here (D-83); cash on delivery is re-checked at checkout with its own limits.
+    paymentMethods: methods.value.enabled,
     taxNote: 'Tax amounts are provisional pending confirmation of GST treatment.',
     limitsCheckedAtCheckout: true, // D-52
     issues: [

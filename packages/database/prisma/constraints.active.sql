@@ -45,6 +45,8 @@ ALTER TABLE orders ADD CONSTRAINT orders_cod_within_total CHECK ("codAmountPaise
 ALTER TABLE payments ADD CONSTRAINT payments_amounts_valid
   CHECK ("amountPaise" >= 0 AND "capturedPaise" >= 0 AND "refundedPaise" >= 0 AND "refundedPaise" <= "capturedPaise");
 
+ALTER TABLE refunds ADD CONSTRAINT refunds_amount_pos CHECK ("amountPaise" > 0);
+
 ALTER TABLE coupons ADD CONSTRAINT coupons_value_present CHECK (
   ("discountType" = 'PERCENTAGE' AND "valueBps" BETWEEN 1 AND 10000) OR
   ("discountType" = 'FIXED' AND "valuePaise" > 0) OR
@@ -314,3 +316,18 @@ ALTER TABLE order_assignments ADD CONSTRAINT order_assignments_offer_valid CHECK
 ALTER TABLE payments ADD CONSTRAINT payments_cod_collection CHECK (
   provider <> 'cod' OR status <> 'SUCCEEDED' OR ("codCollectedById" IS NOT NULL AND "codCollectedAt" IS NOT NULL)
 );
+
+ALTER TABLE payments ADD CONSTRAINT payments_outcome_recorded CHECK (
+  (status <> 'SUCCEEDED' OR provider = 'cod' OR "succeededAt" IS NOT NULL) AND
+  (status NOT IN ('FAILED', 'EXPIRED') OR "failedAt" IS NOT NULL)
+);
+
+ALTER TABLE refunds ADD CONSTRAINT refunds_manual_reference CHECK (
+  "paymentId" IS NOT NULL OR status <> 'SUCCEEDED' OR "manualReference" IS NOT NULL
+);
+
+ALTER TABLE refunds ADD CONSTRAINT refunds_review_recorded CHECK (
+  (status <> 'REJECTED' OR ("rejectionReason" IS NOT NULL AND "approvedById" IS NOT NULL))
+);
+
+ALTER TABLE refunds ADD CONSTRAINT refunds_attempts_nonneg CHECK (attempts >= 0);

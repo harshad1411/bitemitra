@@ -1,7 +1,22 @@
 // What each order status means to a customer. The API decides the status; this only words it.
 export function statusText(o) {
   const rider = o.delivery?.rider?.firstName ?? 'Your delivery partner';
+  // Cash orders are never charged when they end early; online payments come back in full (D-86).
+  const money =
+    o.payment?.method === 'COD'
+      ? 'You have not been charged.'
+      : 'Your payment is refunded in full automatically.';
   switch (o.status) {
+    case 'PAYMENT_PENDING':
+      return {
+        title: 'Waiting for payment',
+        text: 'Complete the payment to send your order to the restaurant.',
+      };
+    case 'PAYMENT_FAILED':
+      return {
+        title: 'Payment not completed',
+        text: 'This order was not placed. If money was deducted, it is refunded automatically.',
+      };
     case 'RIDER_SEARCHING':
     case 'RIDER_ASSIGNED':
       return { title: 'Packed and ready', text: 'Finding a delivery partner near the restaurant.' };
@@ -39,12 +54,12 @@ export function statusText(o) {
     case 'RESTAURANT_REJECTED':
       return {
         title: 'Not accepted',
-        text: `${o.restaurant.name} could not take this order. You have not been charged.`,
+        text: `${o.restaurant.name} could not take this order. ${money}`,
       };
     case 'RESTAURANT_CANCELLED':
       return {
         title: 'Cancelled by the restaurant',
-        text: 'Sorry — the restaurant had to cancel. You have not been charged.',
+        text: `Sorry — the restaurant had to cancel. ${money}`,
       };
     case 'ADMIN_CANCELLED':
       return { title: 'Cancelled', text: 'Jamzo support cancelled this order.' };
@@ -53,8 +68,19 @@ export function statusText(o) {
   }
 }
 
+/** A refund in words (D-86). */
+export const REFUND_TEXT = {
+  PENDING_APPROVAL: 'being checked',
+  REQUESTED: 'on its way',
+  PROCESSING: 'on its way',
+  SUCCEEDED: 'refunded',
+  FAILED: 'delayed — Jamzo support is on it',
+};
+
 export const TIMELINE_LABEL = {
   CREATED: 'Order created',
+  PAYMENT_PENDING: 'Waiting for payment',
+  PAYMENT_FAILED: 'Payment not completed',
   PLACED: 'Order placed',
   RESTAURANT_NOTIFIED: 'Seen by the restaurant',
   RESTAURANT_ACCEPTED: 'Accepted',

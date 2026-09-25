@@ -31,8 +31,8 @@ Decisions: OD-13, OD-24, CH-9. Source of truth in code: `packages/auth/src/permi
 | `media.view` / `media.manage` | media library | P1 |
 | `audit.view` | audit log | P1 |
 | `orders.view`, `orders.edit`, `orders.cancel`, `orders.assign_rider` | orders | 5–6 |
-| `payments.view`, `payments.reconcile` | payments, COD deposits | 7–8 |
-| `refunds.create`, `refunds.approve` | refunds (maker-checker) | 7 |
+| `payments.view`, `payments.reconcile` | payments (list, detail, "Check with gateway"), COD deposits (Phase 8) | 7–8 |
+| `refunds.create`, `refunds.approve` | refunds: create, record a cash payout; approve / reject / retry — never your own refund above the limit (maker-checker) | 7 |
 | `settlements.view`, `settlements.manage`, `ledgers.adjust` | finance | 8 |
 | `restaurants.view`, `restaurants.manage`, `restaurants.approve`, `products.manage` | restaurants & menu (approval steps and bank verification need `restaurants.approve`) | P2 |
 | `riders.view`, `riders.manage`, `riders.approve` | delivery partners | 6 |

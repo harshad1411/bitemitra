@@ -42,6 +42,13 @@ Apple Developer Program (organisation) · Google Play Console · Expo/EAS accoun
 + APNs key · payment gateway (test + live) · SMS/OTP provider (DLT registration for India) · maps
 provider · cloud hosting · domain + DNS · error monitoring. See [DECISIONS.md](DECISIONS.md).
 
+**Razorpay (Phase 7, D-82).** The owner creates the Razorpay account (KYC) and gives test keys first:
+`PAYMENT_PROVIDER=razorpay`, `RAZORPAY_KEY_ID` (`rzp_test_…`), `RAZORPAY_KEY_SECRET`, and a webhook in the
+Razorpay dashboard pointing to `https://api.jamzo.in/v1/webhooks/payments/razorpay` for the events
+`payment.captured`, `payment.failed`, `payment.authorized`, `refund.processed` and `refund.failed`. Its
+secret goes in `RAZORPAY_WEBHOOK_SECRET`. All three go in the server environment only (the apps never see the
+secret). The API refuses to start with live keys outside production and with test keys in production.
+
 ## 5. Backups & recovery (Phase 10)
 
 PITR on Postgres (target RPO ≤ 5 min, RTO ≤ 1 h), quarterly restore drills, bucket versioning for media,

@@ -1464,7 +1464,8 @@
       },
       "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
       "limitsCheckedAtCheckout": true,
-      "issues": []
+      "issues": [],
+      "paymentMethods": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"]
     },
     "WELCOME50": {
       "deliverable": true,
@@ -1567,7 +1568,8 @@
       },
       "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
       "limitsCheckedAtCheckout": true,
-      "issues": []
+      "issues": [],
+      "paymentMethods": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"]
     },
     "NOPE": {
       "deliverable": true,
@@ -1664,7 +1666,8 @@
       },
       "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
       "limitsCheckedAtCheckout": true,
-      "issues": []
+      "issues": [],
+      "paymentMethods": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"]
     }
   },
   "orders": {
@@ -2448,6 +2451,641 @@
         "code": null,
         "contact": null
       }
+    }
+  },
+  "payment": {
+    "quote": {
+      "deliverable": true,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point",
+        "isOpen": true
+      },
+      "delivery": {
+        "distanceM": 793,
+        "distanceSource": "FALLBACK",
+        "eta": {
+          "minMinutes": 28,
+          "maxMinutes": 38,
+          "estimate": true
+        },
+        "freeReason": null,
+        "freeAboveSubtotalPaise": 49900
+      },
+      "canCheckout": true,
+      "checkoutNote": null,
+      "lines": [
+        {
+          "key": "K",
+          "productId": "01a0d617-995d-7fc0-9146-086234ab7269",
+          "variantId": "01a0d617-995d-7fc0-9146-088b64467654",
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": [
+            {
+              "addonId": "01a0d617-995d-7fc0-9146-08d14304ac99",
+              "name": "Cheese burst",
+              "unitPricePaise": 6600
+            }
+          ],
+          "unitPricePaise": 30800,
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "totalPayablePaise": 32100,
+        "markupDisclosure": "NONE",
+        "notes": []
+      },
+      "coupon": null,
+      "offers": [
+        {
+          "name": "Pizza Point: 10% off",
+          "amountPaise": 3080
+        }
+      ],
+      "tips": {
+        "enabled": true,
+        "presetsPaise": [1000, 2000, 3000]
+      },
+      "paymentMethods": ["UPI", "CARD", "NETBANKING", "WALLET", "COD"],
+      "taxNote": "Tax amounts are provisional pending confirmation of GST treatment.",
+      "limitsCheckedAtCheckout": true,
+      "issues": []
+    },
+    "placed": {
+      "order": {
+        "id": "01a0d8ed-51d6-7240-9dc2-b63bd879fb98",
+        "orderNumber": "UNJ-260925-00008",
+        "status": "PAYMENT_PENDING",
+        "restaurantStatus": "NEW",
+        "deliveryStatus": "NOT_STARTED",
+        "version": 0,
+        "restaurant": {
+          "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+          "name": "Pizza Point"
+        },
+        "placedAt": null,
+        "createdAt": "2026-09-25T14:17:05.959Z",
+        "acceptedAt": null,
+        "readyAt": null,
+        "cancelledAt": null,
+        "prepTimeMinutes": null,
+        "estimatedReadyAt": null,
+        "items": [
+          {
+            "name": "Margherita",
+            "variantName": "Medium 10\"",
+            "foodType": "VEG",
+            "quantity": 1,
+            "addons": ["Cheese burst"],
+            "lineTotalPaise": 30800
+          }
+        ],
+        "bill": {
+          "lines": [
+            {
+              "code": "ITEMS",
+              "label": "Item total",
+              "amountPaise": 30800
+            },
+            {
+              "code": "OFFER",
+              "label": "Offer: Pizza Point: 10% off",
+              "amountPaise": -3080
+            },
+            {
+              "code": "DELIVERY_FEE",
+              "label": "Delivery fee",
+              "amountPaise": 2000
+            },
+            {
+              "code": "PLATFORM_FEE",
+              "label": "Platform fee",
+              "amountPaise": 500
+            },
+            {
+              "code": "TAXES",
+              "label": "Taxes",
+              "amountPaise": 1836
+            },
+            {
+              "code": "ROUNDING",
+              "label": "Rounding",
+              "amountPaise": 44
+            }
+          ],
+          "notes": [],
+          "markupDisclosure": "NONE",
+          "totalPayablePaise": 32100
+        },
+        "totalPayablePaise": 32100,
+        "payment": {
+          "method": "UPI",
+          "label": "UPI",
+          "codAmountPaise": 0
+        },
+        "address": {
+          "label": "Home",
+          "line1": "12 Station Road",
+          "landmark": null,
+          "cityName": "Unjha"
+        },
+        "deliveryInstructions": null,
+        "restaurantInstructions": null,
+        "contactless": false,
+        "timeline": [
+          {
+            "status": "CREATED",
+            "at": "2026-09-25T14:17:05.959Z",
+            "actorType": "CUSTOMER"
+          },
+          {
+            "status": "PAYMENT_PENDING",
+            "at": "2026-09-25T14:17:05.960Z",
+            "actorType": "CUSTOMER"
+          }
+        ],
+        "cancellation": null,
+        "canCancel": true,
+        "cancelTerms": {
+          "stage": "BEFORE_ACCEPT",
+          "refundDuePaise": 0,
+          "keptPaise": 0,
+          "noRefundAfterAccept": false,
+          "codCancellation": null
+        },
+        "delivery": {
+          "rider": null,
+          "eta": null,
+          "code": null,
+          "contact": null
+        },
+        "onlinePayment": {
+          "id": "01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+          "status": "PENDING",
+          "method": "UPI",
+          "amountPaise": 32100,
+          "expiresAt": "2026-09-25T14:32:05.959Z",
+          "lastError": null,
+          "canPay": true,
+          "ready": true,
+          "pay": {
+            "path": "/v1/pay/01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+            "token": "1790347627.klVV5AB6I3XuAwhkf8gozoam2qAc6h_SGLilbE5g6P4"
+          }
+        },
+        "refunds": []
+      },
+      "created": true
+    },
+    "verifyFailed": {
+      "outcome": "ATTEMPT_FAILED",
+      "orderStatus": "PAYMENT_PENDING",
+      "payment": {
+        "id": "01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+        "status": "PENDING",
+        "method": "UPI",
+        "amountPaise": 32100,
+        "expiresAt": "2026-09-25T14:32:05.959Z",
+        "lastError": "Payment declined by the bank (test)",
+        "canPay": true,
+        "ready": true,
+        "pay": {
+          "path": "/v1/pay/01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+          "token": "1790347627.klVV5AB6I3XuAwhkf8gozoam2qAc6h_SGLilbE5g6P4"
+        }
+      }
+    },
+    "pendingView": {
+      "id": "01a0d8ed-51d6-7240-9dc2-b63bd879fb98",
+      "orderNumber": "UNJ-260925-00008",
+      "status": "PAYMENT_PENDING",
+      "restaurantStatus": "NEW",
+      "deliveryStatus": "NOT_STARTED",
+      "version": 0,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": null,
+      "createdAt": "2026-09-25T14:17:05.959Z",
+      "acceptedAt": null,
+      "readyAt": null,
+      "cancelledAt": null,
+      "prepTimeMinutes": null,
+      "estimatedReadyAt": null,
+      "items": [
+        {
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": ["Cheese burst"],
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 32100
+      },
+      "totalPayablePaise": 32100,
+      "payment": {
+        "method": "UPI",
+        "label": "UPI",
+        "codAmountPaise": 0
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": null,
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T14:17:05.959Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PAYMENT_PENDING",
+          "at": "2026-09-25T14:17:05.960Z",
+          "actorType": "CUSTOMER"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": true,
+      "cancelTerms": {
+        "stage": "BEFORE_ACCEPT",
+        "refundDuePaise": 0,
+        "keptPaise": 0,
+        "noRefundAfterAccept": false,
+        "codCancellation": null
+      },
+      "delivery": {
+        "rider": null,
+        "eta": null,
+        "code": null,
+        "contact": null
+      },
+      "onlinePayment": {
+        "id": "01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+        "status": "PENDING",
+        "method": "UPI",
+        "amountPaise": 32100,
+        "expiresAt": "2026-09-25T14:32:05.959Z",
+        "lastError": "Payment declined by the bank (test)",
+        "canPay": true,
+        "ready": true,
+        "pay": {
+          "path": "/v1/pay/01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+          "token": "1790347627.klVV5AB6I3XuAwhkf8gozoam2qAc6h_SGLilbE5g6P4"
+        }
+      },
+      "refunds": []
+    },
+    "verifyPaid": {
+      "outcome": "ALREADY",
+      "orderStatus": "PLACED",
+      "payment": {
+        "id": "01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+        "status": "SUCCEEDED",
+        "method": "UPI",
+        "amountPaise": 32100,
+        "expiresAt": "2026-09-25T14:32:05.959Z",
+        "lastError": null,
+        "canPay": false,
+        "ready": true,
+        "pay": null
+      }
+    },
+    "paidView": {
+      "id": "01a0d8ed-51d6-7240-9dc2-b63bd879fb98",
+      "orderNumber": "UNJ-260925-00008",
+      "status": "PLACED",
+      "restaurantStatus": "NEW",
+      "deliveryStatus": "NOT_STARTED",
+      "version": 1,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T14:17:07.798Z",
+      "createdAt": "2026-09-25T14:17:05.959Z",
+      "acceptedAt": null,
+      "readyAt": null,
+      "cancelledAt": null,
+      "prepTimeMinutes": null,
+      "estimatedReadyAt": null,
+      "items": [
+        {
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": ["Cheese burst"],
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 32100
+      },
+      "totalPayablePaise": 32100,
+      "payment": {
+        "method": "UPI",
+        "label": "UPI",
+        "codAmountPaise": 0
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": null,
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T14:17:05.959Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PAYMENT_PENDING",
+          "at": "2026-09-25T14:17:05.960Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T14:17:07.798Z",
+          "actorType": "SYSTEM"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": true,
+      "cancelTerms": {
+        "stage": "BEFORE_ACCEPT",
+        "refundDuePaise": 32100,
+        "keptPaise": 0,
+        "noRefundAfterAccept": false,
+        "codCancellation": null
+      },
+      "delivery": {
+        "rider": null,
+        "eta": null,
+        "code": null,
+        "contact": null
+      },
+      "onlinePayment": {
+        "id": "01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+        "status": "SUCCEEDED",
+        "method": "UPI",
+        "amountPaise": 32100,
+        "expiresAt": "2026-09-25T14:32:05.959Z",
+        "lastError": null,
+        "canPay": false,
+        "ready": true,
+        "pay": null
+      },
+      "refunds": []
+    },
+    "rejectedView": {
+      "id": "01a0d8ed-51d6-7240-9dc2-b63bd879fb98",
+      "orderNumber": "UNJ-260925-00008",
+      "status": "RESTAURANT_REJECTED",
+      "restaurantStatus": "REJECTED",
+      "deliveryStatus": "CANCELLED",
+      "version": 2,
+      "restaurant": {
+        "id": "01a0d617-9958-7bd3-a9ba-aebb7967a30c",
+        "name": "Pizza Point"
+      },
+      "placedAt": "2026-09-25T14:17:07.798Z",
+      "createdAt": "2026-09-25T14:17:05.959Z",
+      "acceptedAt": null,
+      "readyAt": null,
+      "cancelledAt": "2026-09-25T14:17:08.555Z",
+      "prepTimeMinutes": null,
+      "estimatedReadyAt": null,
+      "items": [
+        {
+          "name": "Margherita",
+          "variantName": "Medium 10\"",
+          "foodType": "VEG",
+          "quantity": 1,
+          "addons": ["Cheese burst"],
+          "lineTotalPaise": 30800
+        }
+      ],
+      "bill": {
+        "lines": [
+          {
+            "code": "ITEMS",
+            "label": "Item total",
+            "amountPaise": 30800
+          },
+          {
+            "code": "OFFER",
+            "label": "Offer: Pizza Point: 10% off",
+            "amountPaise": -3080
+          },
+          {
+            "code": "DELIVERY_FEE",
+            "label": "Delivery fee",
+            "amountPaise": 2000
+          },
+          {
+            "code": "PLATFORM_FEE",
+            "label": "Platform fee",
+            "amountPaise": 500
+          },
+          {
+            "code": "TAXES",
+            "label": "Taxes",
+            "amountPaise": 1836
+          },
+          {
+            "code": "ROUNDING",
+            "label": "Rounding",
+            "amountPaise": 44
+          }
+        ],
+        "notes": [],
+        "markupDisclosure": "NONE",
+        "totalPayablePaise": 32100
+      },
+      "totalPayablePaise": 32100,
+      "payment": {
+        "method": "UPI",
+        "label": "UPI",
+        "codAmountPaise": 0
+      },
+      "address": {
+        "label": "Home",
+        "line1": "12 Station Road",
+        "landmark": null,
+        "cityName": "Unjha"
+      },
+      "deliveryInstructions": null,
+      "restaurantInstructions": null,
+      "contactless": false,
+      "timeline": [
+        {
+          "status": "CREATED",
+          "at": "2026-09-25T14:17:05.959Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PAYMENT_PENDING",
+          "at": "2026-09-25T14:17:05.960Z",
+          "actorType": "CUSTOMER"
+        },
+        {
+          "status": "PLACED",
+          "at": "2026-09-25T14:17:07.798Z",
+          "actorType": "SYSTEM"
+        },
+        {
+          "status": "RESTAURANT_REJECTED",
+          "at": "2026-09-25T14:17:08.551Z",
+          "actorType": "RESTAURANT_USER"
+        }
+      ],
+      "cancellation": null,
+      "canCancel": false,
+      "cancelTerms": null,
+      "delivery": {
+        "rider": null,
+        "eta": null,
+        "code": null,
+        "contact": null
+      },
+      "onlinePayment": {
+        "id": "01a0d8ed-525a-7891-bf6a-4bb28c24a1a2",
+        "status": "SUCCEEDED",
+        "method": "UPI",
+        "amountPaise": 32100,
+        "expiresAt": "2026-09-25T14:32:05.959Z",
+        "lastError": null,
+        "canPay": false,
+        "ready": true,
+        "pay": null
+      },
+      "refunds": [
+        {
+          "id": "01a0d8ed-58e9-7b61-a873-ad4cf2287126",
+          "amountPaise": 32100,
+          "status": "SUCCEEDED",
+          "toGateway": true,
+          "createdAt": "2026-09-25T14:17:08.573Z",
+          "processedAt": "2026-09-25T14:17:08.702Z"
+        }
+      ]
     }
   }
 }

@@ -265,3 +265,19 @@ ALTER TABLE payments ADD CONSTRAINT payments_cod_collection CHECK (
   provider <> 'cod' OR status <> 'SUCCEEDED' OR ("codCollectedById" IS NOT NULL AND "codCollectedAt" IS NOT NULL)
 );
 
+-- ── Phase 7: online payments and refunds (D-83..D-86) ────────────────────────
+-- A successful payment records when; a failed or expired one records when and why.
+ALTER TABLE payments ADD CONSTRAINT payments_outcome_recorded CHECK (
+  (status <> 'SUCCEEDED' OR provider = 'cod' OR "succeededAt" IS NOT NULL) AND
+  (status NOT IN ('FAILED', 'EXPIRED') OR "failedAt" IS NOT NULL)
+);
+-- A refund without a gateway payment (cash on delivery) is only complete with a payout reference.
+ALTER TABLE refunds ADD CONSTRAINT refunds_manual_reference CHECK (
+  "paymentId" IS NOT NULL OR status <> 'SUCCEEDED' OR "manualReference" IS NOT NULL
+);
+-- Approved refunds name the approver; rejected ones say why.
+ALTER TABLE refunds ADD CONSTRAINT refunds_review_recorded CHECK (
+  (status <> 'REJECTED' OR ("rejectionReason" IS NOT NULL AND "approvedById" IS NOT NULL))
+);
+ALTER TABLE refunds ADD CONSTRAINT refunds_attempts_nonneg CHECK (attempts >= 0);
+

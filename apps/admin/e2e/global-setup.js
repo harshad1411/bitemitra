@@ -74,6 +74,8 @@ export default async function globalSetup() {
       createNotificationDispatcher({ prisma, push: createConsolePushProvider() }),
       createOrderJobs({ prisma }),
       createDispatch({ prisma }).handlers,
+      // Same fake gateway instance as the API, so refunds created in the admin are processed (Phase 7).
+      app.services.payments.handlers,
     ),
   });
   process.env.E2E_ORDERS = JSON.stringify(await placeDemoOrders(app, prisma, sms));
@@ -138,7 +140,7 @@ async function placeDemoOrders(app, prisma, sms) {
   const bread = await prisma.product.findFirstOrThrow({
     where: { restaurantId: pizza.id, name: 'Garlic Bread' },
   });
-  const place = async (quantity, note) => {
+  const place = async (quantity, note, paymentMethod = 'COD') => {
     const body = {
       restaurantId: pizza.id,
       addressId: address.id,
@@ -152,7 +154,7 @@ async function placeDemoOrders(app, prisma, sms) {
       customer,
       {
         ...body,
-        paymentMethod: 'COD',
+        paymentMethod,
         expectedTotalPaise: q.bill.totalPayablePaise,
         restaurantInstructions: note,
       },
@@ -161,6 +163,17 @@ async function placeDemoOrders(app, prisma, sms) {
     return order;
   };
   const waiting = await place(2, 'Extra oregano');
+  // Phase 7: an online (UPI) order paid through the fake gateway's signed webhook.
+  const online = await place(1, null, 'UPI');
+  const payment = await prisma.payment.findFirstOrThrow({ where: { orderId: online.id } });
+  const hook = app.services.payments.provider.simulate(payment.providerOrderId, { outcome: 'success' });
+  const paid = await app.inject({
+    method: 'POST',
+    url: '/v1/webhooks/payments/fake',
+    headers: { 'content-type': 'application/json', ...hook.headers },
+    payload: hook.rawBody,
+  });
+  if (paid.statusCode !== 200) throw new Error(`fake payment webhook: ${paid.statusCode} ${paid.body}`);
   const ready = await place(3, null);
   const toCancel = await place(4, null);
   const owner = await login('RESTAURANT', pizza.phone);
@@ -179,7 +192,12 @@ async function placeDemoOrders(app, prisma, sms) {
   // Back to the seeded hours: other specs check them, and the order screens do not need the restaurant open.
   await prisma.restaurantBusinessHours.deleteMany({ where: { branchId } });
   await prisma.restaurantBusinessHours.createMany({ data: originalHours });
-  return { waiting: waiting.orderNumber, ready: ready.orderNumber, toCancel: toCancel.orderNumber };
+  return {
+    waiting: waiting.orderNumber,
+    ready: ready.orderNumber,
+    toCancel: toCancel.orderNumber,
+    online: online.orderNumber,
+  };
 }
 
 /**

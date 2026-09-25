@@ -50,8 +50,8 @@ export const NAV = [
   {
     section: 'Money',
     items: [
-      { label: 'Payments', icon: CreditCard, phase: 7 },
-      { label: 'Refunds', icon: Receipt, phase: 7 },
+      { href: '/payments', label: 'Payments', icon: CreditCard, permission: 'payments.view' },
+      { href: '/refunds', label: 'Refunds', icon: Receipt, permission: 'payments.view' },
       { label: 'Settlements', icon: Wallet, phase: 8 },
       { href: '/pricing', label: 'Pricing', icon: Calculator, permission: 'pricing.view' },
       { href: '/offers', label: 'Offers & coupons', icon: Megaphone, permission: 'promotions.manage' },

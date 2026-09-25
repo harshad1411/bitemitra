@@ -203,11 +203,11 @@ async function checkGuarantees(db) {
     UNIQUE,
   );
   await db.exec(
-    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "capturedPaise", "updatedAt") values ('${ids.payment}', '${ids.order}', 'UPI', 'razorpay', 'SUCCEEDED', 47900, 47900, now())`,
+    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "capturedPaise", "updatedAt", "succeededAt") values ('${ids.payment}', '${ids.order}', 'UPI', 'razorpay', 'SUCCEEDED', 47900, 47900, now(), now())`,
   );
   await rejects(
     'second successful payment for one order',
-    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "updatedAt") values ('${id()}', '${ids.order}', 'UPI', 'razorpay', 'SUCCEEDED', 47900, now())`,
+    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "updatedAt", "succeededAt") values ('${id()}', '${ids.order}', 'UPI', 'razorpay', 'SUCCEEDED', 47900, now(), now())`,
     UNIQUE,
   );
   await rejects(
@@ -216,11 +216,32 @@ async function checkGuarantees(db) {
     CHECK,
   );
   await db.exec(
-    `insert into refunds (id, "orderId", type, "amountPaise", reason, "idempotencyKey", "actorType") values ('${id()}', '${ids.order}', 'PARTIAL', 5000, 'missing item', 'refund:${ids.order}:1', 'ADMIN')`,
+    `insert into refunds (id, "orderId", type, "amountPaise", reason, "idempotencyKey", "actorType", "updatedAt") values ('${id()}', '${ids.order}', 'PARTIAL', 5000, 'missing item', 'refund:${ids.order}:1', 'ADMIN', now())`,
+  );
+  // Phase 7 (D-83..D-86)
+  await rejects(
+    'successful online payment without a success time',
+    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "capturedPaise", "updatedAt") values ('${id()}', '${ids.order}', 'CARD', 'razorpay', 'SUCCEEDED', 100, 100, now())`,
+    CHECK,
+  );
+  await rejects(
+    'failed payment without a failure time',
+    `insert into payments (id, "orderId", method, provider, status, "amountPaise", "updatedAt") values ('${id()}', '${ids.order}', 'CARD', 'razorpay', 'FAILED', 100, now())`,
+    CHECK,
+  );
+  await rejects(
+    'cash-on-delivery refund marked paid without a payout reference',
+    `insert into refunds (id, "orderId", type, status, "amountPaise", reason, "idempotencyKey", "actorType", "updatedAt") values ('${id()}', '${ids.order}', 'MANUAL', 'SUCCEEDED', 5000, 'cold food', 'refund:${ids.order}:2', 'ADMIN', now())`,
+    CHECK,
+  );
+  await rejects(
+    'refund rejected without a reason',
+    `insert into refunds (id, "orderId", type, status, "amountPaise", reason, "idempotencyKey", "actorType", "approvedById", "updatedAt") values ('${id()}', '${ids.order}', 'MANUAL', 'REJECTED', 5000, 'cold food', 'refund:${ids.order}:3', 'ADMIN', '${ids.u2}', now())`,
+    CHECK,
   );
   await rejects(
     'duplicate refund request',
-    `insert into refunds (id, "orderId", type, "amountPaise", reason, "idempotencyKey", "actorType") values ('${id()}', '${ids.order}', 'PARTIAL', 5000, 'missing item', 'refund:${ids.order}:1', 'ADMIN')`,
+    `insert into refunds (id, "orderId", type, "amountPaise", reason, "idempotencyKey", "actorType", "updatedAt") values ('${id()}', '${ids.order}', 'PARTIAL', 5000, 'missing item', 'refund:${ids.order}:1', 'ADMIN', now())`,
     UNIQUE,
   );
   const ledger = id();

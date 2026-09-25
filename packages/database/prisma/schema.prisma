@@ -202,6 +202,30 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum RefundStatus {
+  PENDING_APPROVAL
+  REQUESTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REJECTED
+}
+
+/// Who pays for a refund (D-86); ledger postings follow in Phase 8.
+enum RefundBearer {
+  RESTAURANT
+  PLATFORM
+}
+
+enum RefundType {
+  FULL
+  PARTIAL
+  ITEM
+  DELIVERY
+  PLATFORM_FEE
+  MANUAL
+}
+
 enum AssignmentStatus {
   OFFERED
   ACCEPTED
@@ -1437,6 +1461,7 @@ model Order {
   notes           OrderNote[]
   assignments     OrderAssignment[]
   payments        Payment[]
+  refunds         Refund[]
   couponUsage     CouponUsage?
   riderEarning    RiderEarning?
   cancellation    OrderCancellation?
@@ -1648,6 +1673,11 @@ model Payment {
   gatewayTaxPaise   Int?
   providerOrderId   String?
   providerPaymentId String?
+  /// When an unpaid online payment expires (D-83); set at checkout.
+  expiresAt         DateTime?     @db.Timestamptz(3)
+  succeededAt       DateTime?     @db.Timestamptz(3)
+  failedAt          DateTime?     @db.Timestamptz(3)
+  failureReason     String?
   /// COD reconciliation (spec §23)
   codCollectedById  String?       @db.Uuid
   codCollectedAt    DateTime?     @db.Timestamptz(3)
@@ -1657,11 +1687,84 @@ model Payment {
   updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
 
   order    Order            @relation(fields: [orderId], references: [id])
+  attempts PaymentAttempt[]
+  events   PaymentEvent[]
+  refunds  Refund[]
 
   @@unique([provider, providerOrderId])
   @@index([orderId])
   @@index([status, createdAt])
   @@map("payments")
+}
+
+model PaymentAttempt {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  paymentId         String        @db.Uuid
+  status            PaymentStatus
+  providerPaymentId String?
+  errorCode         String?
+  errorMessage      String?
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@map("payment_attempts")
+}
+
+/// Raw provider webhook/callback events. `(provider, providerEventId)` unique →
+/// duplicate deliveries are no-ops (spec §24, §69).
+model PaymentEvent {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  provider        String
+  providerEventId String
+  paymentId       String?   @db.Uuid
+  eventType       String
+  payload         Json
+  signatureValid  Boolean
+  processedAt     DateTime? @db.Timestamptz(3)
+  processingError String?
+  receivedAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@unique([provider, providerEventId])
+  @@map("payment_events")
+}
+
+model Refund {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  orderId          String       @db.Uuid
+  paymentId        String?      @db.Uuid // null for COD refunds paid by other means
+  type             RefundType
+  status           RefundStatus @default(REQUESTED)
+  amountPaise      Int
+  reason           String
+  breakdown        Json? // which components (items/delivery/platform fee) are refunded
+  /// Prevents accidental duplicate refunds: the same request can't be created twice.
+  idempotencyKey   String       @unique
+  actorType        ActorType
+  actorId          String?      @db.Uuid
+  bearer           RefundBearer @default(PLATFORM)
+  /// Maker-checker above refunds.approval (D-86): a different admin approves or rejects.
+  approvedById     String?      @db.Uuid
+  approvedAt       DateTime?    @db.Timestamptz(3)
+  rejectionReason  String?
+  providerRefundId String?
+  /// Cash-on-delivery refunds are paid back outside the gateway (UPI/bank reference).
+  manualReference  String?
+  attempts         Int          @default(0)
+  failureReason    String?
+  processedAt      DateTime?    @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+
+  order   Order    @relation(fields: [orderId], references: [id])
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([orderId])
+  @@index([status, createdAt])
+  @@map("refunds")
 }
 
 model NotificationTemplate {

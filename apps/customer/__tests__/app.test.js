@@ -267,7 +267,9 @@ describe('customer app', () => {
       await renderRouter(routes, { initialUrl: '/checkout' });
       expect(await screen.findByText('Sign in to place your order')).toBeTruthy();
       await signInFromCheckout();
-      expect(screen.getByText('○ UPI — coming soon')).toBeTruthy();
+      // Both ways to pay are offered (payments.methods); cash is the default choice.
+      expect(screen.getByRole('radio', { name: 'Cash on delivery', checked: true })).toBeTruthy();
+      expect(screen.getByRole('radio', { name: 'Pay online', checked: false })).toBeTruthy();
       await fireEvent.changeText(
         screen.getByLabelText('Note for the restaurant (optional)'),
         'Less spicy please',
@@ -314,6 +316,77 @@ describe('customer app', () => {
       await fireEvent.press(await screen.findByLabelText('Cancel order'));
       await fireEvent.press(screen.getByLabelText('I changed my mind'));
       expect(await screen.findByText('You cancelled this order.')).toBeTruthy();
+    });
+
+    it('pays online: the payment page opens in the in-app browser, then the server verifies (never the app)', async () => {
+      const pay = fixtures.payment;
+      await withCart();
+      let sent = null;
+      const calls = installFakeApi({
+        withAddress: true,
+        onRequest: (path, body) => {
+          if (path === '/v1/orders') return ((sent = body), { status: 201, body: pay.placed });
+          if (path === `/v1/customer/orders/${pay.placed.order.id}/payment/verify`)
+            return { body: pay.verifyPaid };
+          if (path === `/v1/customer/orders/${pay.placed.order.id}`) return { body: pay.paidView };
+          return null;
+        },
+      });
+      await renderRouter(routes, { initialUrl: '/checkout' });
+      await signInFromCheckout();
+      await fireEvent.press(screen.getByRole('radio', { name: 'Pay online' }));
+      expect(
+        screen.getByText(
+          'A secure payment page opens after you place the order. The restaurant gets your order once the payment is confirmed.',
+        ),
+      ).toBeTruthy();
+      await fireEvent.press(await screen.findByLabelText('Place order and pay · ₹321.00'));
+      expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();
+      expect(sent).toMatchObject({ paymentMethod: 'UPI', expectedTotalPaise: 32_100 });
+      const { openAuthSessionAsync } = require('expo-web-browser');
+      const [url, returnTo] = openAuthSessionAsync.mock.calls.at(-1);
+      const { path, token } = pay.placed.order.onlinePayment.pay;
+      expect(url).toContain(
+        `${path}?t=${encodeURIComponent(token)}&returnTo=${encodeURIComponent(returnTo)}`,
+      );
+      expect(calls.map((c) => c.path)).toContain(`/v1/customer/orders/${pay.placed.order.id}/payment/verify`);
+    });
+
+    it('a declined try: the order waits with "Pay now" and the bank\'s message; paying again places it', async () => {
+      const pay = fixtures.payment;
+      let current = pay.pendingView;
+      installFakeApi({
+        withAddress: true,
+        onRequest: (path) => {
+          if (path === `/v1/customer/orders/${pay.placed.order.id}/payment/verify`)
+            return ((current = pay.paidView), { body: pay.verifyPaid });
+          if (path === `/v1/customer/orders/${pay.placed.order.id}`) return { body: current };
+          return null;
+        },
+      });
+      await renderRouter(routes, { initialUrl: `/orders/${pay.placed.order.id}` });
+      expect(await screen.findByRole('header', { name: 'Waiting for payment' })).toBeTruthy();
+      expect(
+        screen.getByText('Last try: Payment declined by the bank (test). You can try again.'),
+      ).toBeTruthy();
+      await fireEvent.press(screen.getByLabelText('Pay now'));
+      expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();
+    });
+
+    it('a paid order the restaurant could not take: refunded in full, and the customer is told so', async () => {
+      const pay = fixtures.payment;
+      installFakeApi({
+        onRequest: (path) =>
+          path === `/v1/customer/orders/${pay.placed.order.id}` ? { body: pay.rejectedView } : null,
+      });
+      await renderRouter(routes, { initialUrl: `/orders/${pay.placed.order.id}` });
+      expect(await screen.findByRole('header', { name: 'Not accepted' })).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Pizza Point could not take this order. Your payment is refunded in full automatically.',
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText('₹321.00 — refunded (banks usually take 5–7 working days)')).toBeTruthy();
     });
 
     it('prices changed: shows the new total and starts a new attempt; a network error retries with the same key', async () => {

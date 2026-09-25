@@ -2,8 +2,8 @@
 
 Food-delivery platform launching in **Unjha, Gujarat**, built for many cities (jamzo.in).
 
-> **Status: Phase 6 (delivery partners and dispatch) complete — awaiting owner review.** Phases 1–5 were
-> accepted. Online payments and settlements arrive in Phases 7–8. Decisions and open
+> **Status: Phases 7–10 in progress (OD-42: built back to back).** Phase 7 (online payments) is complete;
+> Phases 1–6 were accepted. Settlements, admin operations and production hardening follow. Decisions and open
 > questions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Products

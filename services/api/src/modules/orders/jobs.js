@@ -5,6 +5,7 @@
 import { enqueueEvent } from '../../core/outbox.js';
 import { createConfigService } from '../configuration/service.js';
 import { applyResult, eventOn, publishOrder, releaseCouponUsage } from './service.js';
+import { refundRejected } from '../payments/refunds.js';
 
 const WAITING = ['PLACED', 'RESTAURANT_NOTIFIED'];
 
@@ -30,6 +31,7 @@ export function createOrderJobs({ prisma, clock = { now: () => new Date() }, log
           extra: { needsAttention: false, attentionReason: null },
         });
         await releaseCouponUsage(tx, order.id, now);
+        await refundRejected(tx, order.id, now);
       };
       if (stage === 'ESCALATED')
         return reject('NO_RESPONSE: the restaurant did not respond after escalation');

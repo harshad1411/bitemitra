@@ -1,6 +1,6 @@
 # Database
 
-Status: **Phases 3 + 4.** 58 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
+Status: **Phase 7.** 81 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
 
 | File | Purpose |
 |---|---|
@@ -36,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active now (migrated): Phase 1–6 tables. **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1–7 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -121,14 +121,21 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | rider_shifts | One row per online period; one open shift per rider |
 | order_assignments | Offers and accepted trips; the database allows one accepted assignment per order (D-75) |
 | rider_earnings | Final pay per delivered order, or the cancelled-trip pay, with the full breakdown (D-78) |
-| payments | Cash-on-delivery collection now (who, when, how much — D-77); online payments in Phase 7 (CH-22) |
+| payments | Cash-on-delivery collection (who, when, how much — D-77) and online payments (Phase 7: expiry, success/failure times, gateway fee — D-83, D-85) |
 
-### 3.2 LATER PHASE (19 tables)
+### 3.1e CORE — Phase 7, online payments and refunds (3 tables)
+
+| Table | Why |
+|---|---|
+| payment_attempts | Each try at the gateway (declined cards, UPI failures) with the gateway's message (D-85) |
+| payment_events | Every webhook stored before it is processed; `(provider, providerEventId)` unique, so a repeated delivery is a no-op (D-85) |
+| refunds | Refunds with type, bearer, maker-checker approval, gateway id or cash payout reference, retries (D-86); one per idempotency key |
+
+### 3.2 LATER PHASE (16 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
 | 6+ — Ratings | reviews | Ratings of delivered orders (CH-20); built with the ratings flag |
-| 7 — Payments | payment_attempts, payment_events, refunds | Provider-agnostic payments (Razorpay first), idempotent webhooks, refunds |
 | 8 — Financials | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, rider_payouts, rider_cod_deposits, platform_ledger_entries, invoices, invoice_sequences | Append-only ledgers, COD reconciliation, settlements, statements, invoices |
 | 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views, notification_preferences | Support with full order context, saved table views |
 

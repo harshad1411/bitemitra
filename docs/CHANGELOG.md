@@ -3,7 +3,22 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
-## Phase 6 — Delivery partners and dispatch (2026-09-25) — awaiting owner review
+## Phase 7 — Online payments and refunds (2026-09-25) — built under OD-42
+
+### Added
+- Payment gateway interface with a **Razorpay** adapter (tested against a fake Razorpay API; not verified with Razorpay until test keys exist) and a fake gateway for development and tests (D-82).
+- Online checkout: Pay online (UPI, cards, netbanking, wallets as switched on in `payments.methods`) or cash on delivery; payment expiry and reconciliation jobs (D-83).
+- A secure payment page opened in the app's in-app browser; the server confirms every payment with the gateway (signed webhooks, verify, reconcile) — never the app (D-84, D-85).
+- Automatic refunds for cancellations (by the cancellation rule), restaurant rejections and late payments; admin refunds (everything left, an amount, chosen items, delivery fee, platform fee, manual) with a second approver above the limit; gateway retries; cash-on-delivery refunds recorded with the payout reference (D-86).
+- Jamzo Admin: Payments, Refunds, and Payments & refunds with a Refund dialog on the order (D-87). "Needs attention" now explains each reason.
+- Customer app: Pay online at checkout, "Pay now" with the bank's message after a declined try, refunds on the order. Notifications for "payment not completed" and "refund processed".
+- Database: payment tries, gateway messages and refunds tables; 2 migrations; 4 new database rules.
+
+### Changed
+- A paid order the restaurant rejects is refunded in full, and the customer texts no longer say "you have not been charged" when they paid online.
+- The E2E sign-in waits for the session (removes a race seen under load); the order engine's exhaustive test has a 30 s limit.
+
+## Phase 6 — Delivery partners and dispatch (2026-09-25) — accepted (OD-42)
 
 ### Added
 - Jamzo Delivery Partner app: apply (details, vehicle, document photos), go online with background location after a disclosure, requests with countdown and vibration, the whole trip (at restaurant, pickup check, arrived, delivery code, cash, optional proof photo), navigation in Google/Apple Maps, report a problem, give an order back, cash in hand, earnings.

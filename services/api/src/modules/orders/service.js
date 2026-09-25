@@ -6,6 +6,7 @@ import { AppError, conflict } from '../../core/errors.js';
 import { enqueueEvent } from '../../core/outbox.js';
 import { RULE_SOURCES } from '../pricing/service.js';
 import { releaseRiderOnCancel } from '../dispatch/trips.js';
+import { paidOnline, requestRefund } from '../payments/refunds.js';
 
 export const REALTIME_CHANNEL = 'jamzo_realtime';
 
@@ -186,8 +187,9 @@ export async function cancellationRuleFor(db, order, now) {
 }
 
 /**
- * Cancels an order inside `tx`: engine outcome, `order_cancellations` row, coupon usage released.
- * Refunds (Phase 7) and ledger postings (Phase 8) are not made here (D-66).
+ * Cancels an order inside `tx`: engine outcome, `order_cancellations` row, coupon usage released, and the
+ * refund the outcome owes the customer for an online payment (D-86; executed by the worker). A payment that
+ * was still waiting is closed. Ledger postings are Phase 8.
  * @param {any} tx
  * @param {any} order
  * @param {{ by: 'CUSTOMER'|'RESTAURANT'|'ADMIN', actorId: string|null, reasonCode: string, reasonText?: string,
@@ -207,6 +209,7 @@ export async function cancelDecision(
   });
   const rule = await cancellationRuleFor(tx, full, now);
   const snap = full.pricingSnapshot;
+  const paid = await paidOnline(tx, order.id);
   const result = cancel(order, {
     by,
     actorId,
@@ -216,7 +219,7 @@ export async function cancelDecision(
     override,
     now,
     rule: { id: rule.id, params: rule.params },
-    amounts: cancellationAmounts(order, snap),
+    amounts: cancellationAmounts(order, snap, paid),
   });
   return {
     result,
@@ -226,13 +229,38 @@ export async function cancelDecision(
       await releaseRiderOnCancel(tx2, order, result.outcome, now);
       if (by === 'CUSTOMER' && order.paymentMethod === 'COD' && result.stage !== 'BEFORE_ACCEPT' && codLimit)
         await applyCodStrike(tx2, order.customerId, codLimit, now);
+      // A payment still waiting is closed; money captured later is refunded automatically (D-85).
+      await tx2.payment.updateMany({
+        where: { orderId: order.id, provider: { not: 'cod' }, status: { in: ['INITIATED', 'PENDING'] } },
+        data: { status: 'CANCELLED', failureReason: 'Order cancelled before payment' },
+      });
+      if (result.outcome.refundDuePaise > 0)
+        await requestRefund(tx2, {
+          orderId: order.id,
+          type: result.outcome.refundDuePaise >= paid ? 'FULL' : 'PARTIAL',
+          amountPaise: result.outcome.refundDuePaise,
+          reason: `Order cancelled (${result.outcome.reasonCode})`,
+          idempotencyKey: `cancel:${order.id}`,
+          actor: { type: 'SYSTEM', id: null },
+          // The restaurant pays for its own cancellations; otherwise Jamzo does (OD-38).
+          bearer: by === 'RESTAURANT' ? 'RESTAURANT' : 'PLATFORM',
+          breakdown: {
+            source: 'CANCELLATION',
+            stage: result.stage,
+            customerFeePaise: result.outcome.customerFeePaise,
+          },
+          now,
+        });
     },
   };
 }
 
-/** What has been paid and what the restaurant's food is worth, for the cancellation engine. */
-export const cancellationAmounts = (order, snap) => ({
-  paidPaise: 0, // Phase 5 takes cash on delivery only: nothing has been paid before delivery (D-60)
+/**
+ * What has been paid and what the restaurant's food is worth, for the cancellation engine. `paidPaise` is
+ * online money Jamzo holds (`paidOnline`); cash on delivery is never paid before delivery.
+ */
+export const cancellationAmounts = (order, snap, paidPaise = 0) => ({
+  paidPaise,
   foodValuePaise: snap ? snap.restaurantBaseSubtotalPaise - snap.restaurantFundedDiscountPaise : 0,
   tripEstimatePaise: snap?.riderEarningEstimatePaise ?? 0,
 });
@@ -278,4 +306,42 @@ export async function releaseCouponUsage(tx, orderId, now) {
   if (!usage || usage.reversedAt) return;
   await tx.couponUsage.update({ where: { id: usage.id }, data: { reversedAt: now } });
   await tx.coupon.update({ where: { id: usage.couponId }, data: { usedCount: { decrement: 1 } } });
+}
+
+/**
+ * After an order becomes PLACED (cash checkout, or a confirmed online payment — D-85): accept at once when the
+ * restaurant accepts automatically, otherwise start the acceptance timer (D-68). Mirrors checkout.
+ * @param {any} tx
+ * @param {any} order the PLACED order (current version)
+ * @param {{ config: any, now: Date }} deps
+ */
+export async function afterPlaced(tx, order, { config, now }) {
+  const ctx = await config.contextFor('BRANCH', order.branchId);
+  const settings = await tx.restaurantSettings.findUnique({ where: { restaurantId: order.restaurantId } });
+  if (settings?.autoAccept) {
+    const [branch, ops] = await Promise.all([
+      tx.restaurantBranch.findUnique({ where: { id: order.branchId } }),
+      config.resolve('restaurants.operations', ctx),
+    ]);
+    return applyResult(
+      tx,
+      order,
+      eventOn(order, 'ACCEPT', {
+        actor: { type: 'SYSTEM', id: null },
+        now,
+        prepTimeMinutes: branch.prepTimeMinutes + (branch.busyMode ? ops.value.busyExtraPrepMinutes : 0),
+        reason: 'AUTO_ACCEPT',
+      }),
+      { now },
+    );
+  }
+  const acceptance = await config.resolve('orders.restaurantAcceptance', ctx);
+  await enqueueEvent(tx, {
+    aggregateType: 'ORDER',
+    aggregateId: order.id,
+    eventType: 'order.acceptance_timeout',
+    payload: { orderId: order.id, stage: 'TIMEOUT' },
+    availableAt: new Date(now.getTime() + acceptance.value.timeoutSec * 1000),
+  });
+  return order;
 }

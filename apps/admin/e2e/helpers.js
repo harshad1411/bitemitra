@@ -1,11 +1,13 @@
 import { expect } from '@playwright/test';
 import { E2E_ADMIN } from './global-setup.js';
 
-export async function signIn(page, creds = E2E_ADMIN) {
+export async function signIn(page, creds = E2E_ADMIN, { expectSuccess = true } = {}) {
   await page.goto('/login');
   await page.getByLabel('Email').fill(creds.email);
   await page.getByLabel('Password').fill(creds.password);
   await page.getByRole('button', { name: 'Sign in' }).click();
+  // Wait until the session exists: a test that navigates straight away must not race the sign-in.
+  if (expectSuccess) await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 }
 
 export const shot = (page, name) =>

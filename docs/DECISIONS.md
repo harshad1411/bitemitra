@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 6 complete, awaiting owner review).
+Last updated: 2026-09-25 (Phase 7 complete; Phase 8 next, OD-42).
 
 ---
 
@@ -58,6 +58,7 @@ Last updated: 2026-09-25 (Phase 6 complete, awaiting owner review).
 | OD-39 | **Owner answers of 2026-09-25** (questions listed after Phase 5): CH-5 **approved**; CH-9 **approved**; D-30 **acknowledged**; add-on prices get the markup's rounding (Q-19 → D-59 changed); a rider who has to give up a trip because of a cancellation gets the trip pay estimate, paid by Jamzo (Phase 6); the owner creates the Expo account and projects (Q-18); installing the iOS/Android build tools on the development Mac is **approved** (Q-17); SMS/OTP provider **MSG91**, Google/Apple sign-in later (Q-6); commission basis **after restaurant-funded discounts** (Q-7, as built); restaurants may edit their menus (CH-12, approval mode being confirmed); payouts automatic on request with admin approval, manual also possible (Q-5b, Phase 8); legal details to follow (Q-12). Being clarified with the owner: admin login method (CH-8/Q-15), maps provider (Q-14), brand assets upload (Q-13), tax treatment (Q-3), markup model (Q-4), hosting (Q-11). |
 | OD-40 | **Hosting** (owner, 2026-09-25, Q-11): a **single provider — DigitalOcean, Bangalore region**. **Nothing is hosted during development** ($0). Launch plan **"Option 2" (≈ $35/month before GST, prices checked 2026-09-25):** one 2 GiB Droplet running the API, worker and admin (automatic security updates, restarts, alerts), **managed PostgreSQL 1 GiB** (daily backups, point-in-time restore, separate from the server) and Spaces for files. Domain stays at GoDaddy (DNS records point to DigitalOcean). Upgrade to a standby database and a second server (~$114/month) only when downtime would really hurt — no code changes. **Speed is a launch condition (D-72):** if the pre-launch load test misses the targets, the owner is shown the upgrade price before launch. **Re-check prices and show the owner the final cost on launch day.** Considered and not chosen: Supabase (cannot run the API/worker), Hostinger VPS (cheaper, but no managed database — database on the server with weekly backups), HostGator India/BigRock (website-oriented, more expensive). → D-71, D-72. |
 | OD-41 | **Start Phase 6 — Riders** (owner, 2026-09-25: "next phase start"). Taken as acceptance of Phase 5. Phase 6 = §78: rider app, location, assignment, pickup, delivery, COD; tested. Maps: Google Maps behind a provider switch in Jamzo Admin (owner's suggestion accepted in principle; key from the owner). Open for later phases: CH-8/Q-15 (admin login), CH-12 approval mode, Q-13 asset upload, Q-3/Q-4 tax and markup confirmations, commission GST payer, rider payout style. |
+| OD-42 | **Complete the remaining phases** (owner, 2026-09-25: "Complete remaininng phase"). Taken as acceptance of Phase 6 and as permission to build Phases 7–10 one after another **without stopping for review between them**. Each phase is still documented first, fully tested, committed and pushed separately, with its report. Payment gateway: **Razorpay** (already OD-11), built and tested in test mode and against a fake gateway only. No real money moves, and nothing is published to the stores. Things only the owner can do (keys, accounts, CA/legal answers, Xcode update) stay listed as open. |
 
 
 ## 2. Engineering decisions
@@ -616,6 +617,78 @@ provider (Exotel, Knowlarity…) is chosen (new question Q-21). Real numbers are
 setting `maps.provider` (NONE | GOOGLE) in Jamzo Admin; the API key stays in the server environment
 (`GOOGLE_MAPS_API_KEY`). Tested against a fake endpoint only — **not verified with Google** until the key
 exists. With NONE or a failure, the existing labelled fallback applies (D-48).
+
+## 2e. Engineering decisions — Phase 7 (online payments)
+
+### D-82. Payment providers
+`PaymentProvider` interface (PAYMENTS.md §2) with two adapters selected by `PAYMENT_PROVIDER`:
+**`fake`** (development and tests: it signs its webhooks with a test secret and can succeed, fail, delay
+or duplicate) and **`razorpay`** (Orders API, fetch an order's payments, capture, refunds, webhook
+signature = HMAC-SHA256 of the raw body with the webhook secret). Environment guards: `fake` is refused in
+staging/production; Razorpay live keys (`rzp_live_`) are only allowed in production, and production
+refuses test keys. The Razorpay adapter is tested against a fake Razorpay HTTP endpoint. It is **not verified
+with Razorpay** until the owner creates test keys.
+
+### D-83. Online checkout
+The customer chooses **Pay online** (UPI, card, netbanking or wallet, from `payments.methods`) or cash
+on delivery. In the order transaction: order `PAYMENT_PENDING` and a `payments` row `INITIATED` for the
+exact total, plus outbox jobs `payment.reconcile` (after 2 min, repeating) and `payment.expire` (after
+`payments.methods.expirySec`). Right after the commit the API creates the gateway order (→ `PENDING`) so
+the app can pay at once. If that call fails, the order stays waiting and the app retries it with
+`POST /v1/customer/orders/:id/payment`. The coupon is held while payment is pending and released if
+payment fails or expires.
+
+### D-84. How the customer pays
+The app opens a small **payment page served by the API** (`GET /v1/pay/:paymentId?t=…`, a short-lived
+signed link) in the in-app browser (`expo-web-browser`). The page runs Razorpay Checkout, then returns to
+the app via `jamzo://payment`. No native payment SDK is needed, and no card data touches Jamzo (§48).
+With the fake provider (development only) the page shows "Pay (test)" / "Fail (test)", which send a
+signed webhook through the real webhook endpoint. Back in the app, `POST …/payment/verify` makes the
+**server** ask the gateway. The app never marks anything paid (§24).
+
+### D-85. Confirming a payment
+Webhook (`POST /v1/webhooks/payments/:provider`, raw body, stored in `payment_events` before processing;
+duplicates are no-ops), app verify, reconcile job and expiry job all call one idempotent
+`confirmPayment`. Rules:
+- **Success** needs captured amount = payment amount, in INR. An authorised-only payment is captured first.
+- **Amount mismatch:** never confirms; the order is flagged for operations.
+- **Success:** payment `SUCCEEDED` (conditional update), order `PAYMENT_CONFIRMED` → `PLACED`, then the
+  same after-placement steps as cash orders (auto-accept or the acceptance timer).
+- **Failure or expiry:** order `PAYMENT_FAILED`, coupon released.
+- **Late success** (money captured after the order failed or was cancelled): the payment is recorded and
+  an automatic full refund is created (`late:<paymentId>`).
+- The gateway fee and its tax are stored on the payment when the gateway reports them.
+
+### D-86. Refunds
+`refunds` rows come from three places:
+1. **Cancellations** (`refundDuePaise` of the outcome, OD-38): the system actor, key `cancel:<orderId>`.
+2. **Late success**: the system actor, key `late:<paymentId>`.
+3. **Admins** (`refunds.create`), with a reason: types FULL, PARTIAL (an amount), ITEM (chosen lines),
+   DELIVERY, PLATFORM_FEE, MANUAL.
+
+Approval: admin refunds above `refunds.approval.thresholdPaise` wait for **a different admin** with
+`refunds.approve` (maker-checker).
+
+Processing:
+- Statuses: `PENDING_APPROVAL → REQUESTED → PROCESSING → SUCCEEDED | FAILED` (`REJECTED` by the approver).
+- Worker job `refund.process` calls the gateway. Completion comes from the refund webhook or a status check.
+- Failures retry 3 times with back-off, then flag the order.
+- `payments.refundedPaise` never exceeds `capturedPaise` (database rule), and the total of open refunds is
+  checked before a new one.
+- Order `financialStatus`: `REFUND_PENDING` → `PARTIALLY_REFUNDED` | `REFUNDED`.
+
+Cash-on-delivery refunds are paid back outside the gateway and recorded with a manual reference (no
+payment). Who bears a refund (restaurant or Jamzo) is recorded on the refund (`bearer`); ledger postings
+are Phase 8.
+
+### D-87. Admin payments and refunds
+Jamzo Admin gets:
+- a **Payments** list with filters, and a payment detail: attempts, gateway events, fee, refunds, and
+  "Check with gateway" (`payments.reconcile`);
+- a **Refunds** list with approve/reject;
+- a **Refund** dialog on the order.
+
+Every refund action is audit-logged.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

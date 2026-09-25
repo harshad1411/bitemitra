@@ -30,3 +30,11 @@ jest.mock('socket.io-client', () => {
   global.__realtime = { emit: (event, payload) => (listeners.get(event) ?? []).forEach((fn) => fn(payload)) };
   return { io: jest.fn(() => socket) };
 });
+
+// expo-web-browser has no native module under Jest: the payment page "opens" and returns to the app.
+jest.mock('expo-web-browser', () => ({
+  openAuthSessionAsync: jest.fn(async (_url, returnTo) => ({
+    type: 'success',
+    url: `${returnTo}?result=done`,
+  })),
+}));
