@@ -1551,7 +1551,9 @@ model Promotion {
 
 model Order {
   id                     String                @id @default(uuid(7)) @db.Uuid
-  orderNumber            String                @unique // human friendly, e.g. BM-UNJ-240924-00042
+  orderNumber            String                @unique // human friendly, e.g. UNJ-250925-00042 (D-63)
+  /// Source of the order number's sequence part (D-63): read with nextval() before the insert.
+  orderSeq               Int                   @unique @default(autoincrement())
   customerId             String                @db.Uuid
   restaurantId           String                @db.Uuid
   branchId               String                @db.Uuid
@@ -1576,6 +1578,9 @@ model Order {
   contactless            Boolean               @default(false)
   deliveryOtpHash        String?
   prepTimeMinutes        Int?
+  /// Operations must look at this order (e.g. the restaurant did not respond in time — D-68).
+  needsAttention         Boolean               @default(false)
+  attentionReason        String?
   scheduledFor           DateTime?             @db.Timestamptz(3) // future: scheduled delivery
   placedAt               DateTime?             @db.Timestamptz(3)
   acceptedAt             DateTime?             @db.Timestamptz(3)
@@ -1614,6 +1619,7 @@ model Order {
   @@index([status, createdAt])
   @@index([customerId, createdAt])
   @@index([deliveryStatus, createdAt])
+  @@index([needsAttention, createdAt])
   @@map("orders")
 }
 
@@ -1732,6 +1738,8 @@ model OrderPricingSnapshot {
   gatewayFeeEstimatePaise       Int      @default(0)
   platformRevenue               Json // { markup, commission, platformFee, deliveryMargin, smallOrderFee, surcharges, … }
   appliedRuleIds                Json // all rule ids consulted (audit)
+  customerBill                  Json // the bill lines exactly as the customer confirmed them
+  engineOutput                  Json // the full pricing-engine result (audit, D-64)
   createdAt                     DateTime @default(now()) @db.Timestamptz(3)
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)

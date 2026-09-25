@@ -76,7 +76,13 @@ describe('store status', () => {
   it('staff can see the store but not change its status', async () => {
     const staff = await memberSession('STAFF', kitchen.id, '+919811100001');
     const res = await call('GET', `/v1/restaurant/restaurants/${kitchen.id}`, staff);
-    expect(res.json().capabilities).toEqual({ 'store.status': false, 'menu.availability': true });
+    expect(res.json().capabilities).toEqual({
+      'store.status': false,
+      'menu.availability': true,
+      'orders.handle': true,
+      'orders.cancel': false,
+      'orders.finance': false,
+    });
     expect(
       (
         await call('PATCH', `/v1/restaurant/branches/${kitchen.branches[0].id}/status`, staff, {

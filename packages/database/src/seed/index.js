@@ -7,6 +7,59 @@ import { seedCatalog } from './catalog.js';
 import { seedPricing } from './pricing.js';
 
 /** Feature flags (CONFIGURATION.md §4). Values are development defaults. */
+/** Default order notification texts (placeholders `{{…}}` are filled from the order). */
+export const NOTIFICATION_TEMPLATES =
+  /** @type {{ event: string, appId: 'CUSTOMER'|'RESTAURANT', title: string, body: string }[]} */ ([
+    {
+      event: 'order.placed',
+      appId: 'CUSTOMER',
+      title: 'Order placed',
+      body: '{{restaurantName}} has your order {{orderNumber}}. We’ll tell you when they accept it.',
+    },
+    {
+      event: 'order.accepted',
+      appId: 'CUSTOMER',
+      title: 'Order accepted',
+      body: '{{restaurantName}} accepted your order. Ready in about {{prepTimeMinutes}} minutes.',
+    },
+    {
+      event: 'order.preparing',
+      appId: 'CUSTOMER',
+      title: 'Being prepared',
+      body: '{{restaurantName}} is preparing your food.',
+    },
+    {
+      event: 'order.ready',
+      appId: 'CUSTOMER',
+      title: 'Food is ready',
+      body: 'Your order {{orderNumber}} is packed and waiting for pickup.',
+    },
+    {
+      event: 'order.rejected',
+      appId: 'CUSTOMER',
+      title: 'Order not accepted',
+      body: 'Sorry — {{restaurantName}} could not take order {{orderNumber}}. You will not be charged.',
+    },
+    {
+      event: 'order.cancelled',
+      appId: 'CUSTOMER',
+      title: 'Order cancelled',
+      body: 'Order {{orderNumber}} from {{restaurantName}} was cancelled.',
+    },
+    {
+      event: 'order.placed',
+      appId: 'RESTAURANT',
+      title: 'New order #{{shortNumber}}',
+      body: '{{itemCount}} item(s). Open the app to accept it.',
+    },
+    {
+      event: 'order.cancelled',
+      appId: 'RESTAURANT',
+      title: 'Order #{{shortNumber}} cancelled',
+      body: 'Stop preparing order {{orderNumber}}.',
+    },
+  ]);
+
 export const DEFAULT_FLAGS = [
   { key: 'cod', enabled: true, description: 'Cash on delivery' },
   { key: 'tips', enabled: true, description: 'Customer tips for delivery partners' },
@@ -154,6 +207,18 @@ export async function seed(
     }
   }
   log('flags and app version policies');
+
+  // ── Notification templates (D-69): created once, then edited in Jamzo Admin ──
+  for (const t of NOTIFICATION_TEMPLATES) {
+    await prisma.notificationTemplate.upsert({
+      where: {
+        event_channel_appId_locale: { event: t.event, channel: 'PUSH', appId: t.appId, locale: 'en' },
+      },
+      create: { ...t, channel: 'PUSH', locale: 'en' },
+      update: {},
+    });
+  }
+  log(`notification templates: ${NOTIFICATION_TEMPLATES.length}`);
 
   // ── First Super Admin (never overwrites an existing account or password) ──
   if (admin) {

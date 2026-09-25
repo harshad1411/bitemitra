@@ -106,12 +106,83 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum OrderStatus {
+  CREATED
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  PLACED
+  RESTAURANT_NOTIFIED
+  RESTAURANT_ACCEPTED
+  RESTAURANT_REJECTED
+  PREPARING
+  READY_FOR_PICKUP
+  RIDER_SEARCHING
+  RIDER_ASSIGNED
+  RIDER_ACCEPTED
+  RIDER_AT_RESTAURANT
+  PICKED_UP
+  ON_THE_WAY
+  ARRIVED
+  DELIVERED
+  CUSTOMER_CANCELLED
+  RESTAURANT_CANCELLED
+  RIDER_ISSUE
+  ADMIN_CANCELLED
+  PAYMENT_FAILED
+}
+
+/// Kitchen track (runs in parallel with the delivery track; see docs/ORDERS.md).
+enum RestaurantOrderStatus {
+  NEW
+  ACCEPTED
+  REJECTED
+  PREPARING
+  READY_FOR_PICKUP
+  COMPLETED // handed over to the rider (or collected, for pickup orders)
+  CANCELLED
+}
+
+/// Delivery track. Dispatch may start while the kitchen is still preparing.
+enum DeliveryStatus {
+  NOT_STARTED
+  SEARCHING
+  ASSIGNED
+  ACCEPTED
+  AT_RESTAURANT
+  PICKED_UP
+  ON_THE_WAY
+  ARRIVED
+  DELIVERED
+  NO_RIDER_FOUND
+  CANCELLED
+}
+
+enum OrderFinancialStatus {
+  NONE
+  REFUND_PENDING
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+}
+
 enum ActorType {
   CUSTOMER
   RESTAURANT_USER
   RIDER
   ADMIN
   SYSTEM
+}
+
+enum PaymentMethod {
+  COD
+  UPI
+  CARD
+  NETBANKING
+  WALLET
 }
 
 enum FundingSource {
@@ -124,6 +195,15 @@ enum DiscountType {
   FIXED
   PERCENTAGE
   FREE_DELIVERY
+}
+
+enum SettlementStatus {
+  DRAFT
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
 }
 
 enum MediaKind {
@@ -147,6 +227,22 @@ enum HomeSectionType {
   PRODUCT_COLLECTION
   IMAGE_PROMO
   TEXT
+}
+
+enum NotificationChannel {
+  PUSH
+  EMAIL
+  SMS
+  WHATSAPP
+  IN_APP
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  SKIPPED
 }
 
 /// One human identity. Profiles (Customer, Rider, RestaurantUser, AdminUser) hang off it.
@@ -440,7 +536,9 @@ model Customer {
 
   user           User                 @relation(fields: [userId], references: [id])
   addresses      CustomerAddress[]
+  orders         Order[]
   favorites      FavoriteRestaurant[]
+  couponUsages   CouponUsage[]
 
   @@map("customers")
 }
@@ -518,6 +616,7 @@ model Restaurant {
   zones          RestaurantZone[]
   menuCategories MenuCategory[]
   products       Product[]
+  orders         Order[]
   favorites      FavoriteRestaurant[]
 
   @@index([cityId, onboardingStatus])
@@ -978,6 +1077,28 @@ model SurgeRule {
   @@map("surge_rules")
 }
 
+/// Cancellation / refund policy per order stage (spec §35). params:
+/// { stage: BEFORE_ACCEPT|AFTER_ACCEPT|AFTER_PREPARING|AFTER_PICKUP, actor: CUSTOMER|RESTAURANT|RIDER|ADMIN,
+///   customerFee: { type, value }, refundPolicy: FULL|PARTIAL|NONE, restaurantCompensation: {...},
+///   riderCompensation: {...} }
+model CancellationRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("cancellation_rules")
+}
+
 /// Generic hierarchical key/value settings (operational config, not money rules).
 /// e.g. orders.restaurantAcceptanceTimeoutSec, cod.maxOrderValuePaise, app.minVersion.
 model Setting {
@@ -1071,9 +1192,27 @@ model Coupon {
   createdAt          DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
 
+  usages CouponUsage[]
 
   @@index([isActive, startsAt])
   @@map("coupons")
+}
+
+model CouponUsage {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  couponId      String    @db.Uuid
+  customerId    String    @db.Uuid
+  orderId       String    @unique @db.Uuid
+  discountPaise Int
+  reversedAt    DateTime? @db.Timestamptz(3) // order cancelled → usage released
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  coupon   Coupon   @relation(fields: [couponId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  order    Order    @relation(fields: [orderId], references: [id])
+
+  @@index([couponId, customerId])
+  @@map("coupon_usages")
 }
 
 /// Automatic (code-less) promotions, e.g. restaurant "20% off above ₹299".
@@ -1097,6 +1236,267 @@ model Promotion {
 
   @@index([isActive, startsAt])
   @@map("promotions")
+}
+
+model Order {
+  id                     String                @id @default(uuid(7)) @db.Uuid
+  orderNumber            String                @unique // human friendly, e.g. UNJ-250925-00042 (D-63)
+  /// Source of the order number's sequence part (D-63): read with nextval() before the insert.
+  orderSeq               Int                   @unique @default(autoincrement())
+  customerId             String                @db.Uuid
+  restaurantId           String                @db.Uuid
+  branchId               String                @db.Uuid
+  cityId                 String                @db.Uuid
+  zoneId                 String?               @db.Uuid // DELIVERY zone (customer's); restaurant zone is in the snapshot
+  type                   OrderType             @default(DELIVERY)
+  /// Overall lifecycle status (spec §18), DERIVED from the two tracks below by
+  /// @jamzo/order-engine and written in the same transaction.
+  status                 OrderStatus           @default(CREATED)
+  restaurantStatus       RestaurantOrderStatus @default(NEW)
+  restaurantNotifiedAt   DateTime?             @db.Timestamptz(3) // alert acknowledged by a restaurant device (derives RESTAURANT_NOTIFIED)
+  deliveryStatus         DeliveryStatus        @default(NOT_STARTED)
+  financialStatus        OrderFinancialStatus  @default(NONE)
+  paymentMethod          PaymentMethod
+  /// Client-supplied idempotency key: a retried "place order" returns the same order.
+  idempotencyKey         String
+  totalPayablePaise      Int // what the customer pays (copy of snapshot for fast listing)
+  codAmountPaise         Int                   @default(0)
+  itemCount              Int
+  deliveryInstructions   String?
+  restaurantInstructions String?
+  contactless            Boolean               @default(false)
+  deliveryOtpHash        String?
+  prepTimeMinutes        Int?
+  /// Operations must look at this order (e.g. the restaurant did not respond in time — D-68).
+  needsAttention         Boolean               @default(false)
+  attentionReason        String?
+  scheduledFor           DateTime?             @db.Timestamptz(3) // future: scheduled delivery
+  placedAt               DateTime?             @db.Timestamptz(3)
+  acceptedAt             DateTime?             @db.Timestamptz(3)
+  readyAt                DateTime?             @db.Timestamptz(3)
+  pickedUpAt             DateTime?             @db.Timestamptz(3)
+  deliveredAt            DateTime?             @db.Timestamptz(3)
+  cancelledAt            DateTime?             @db.Timestamptz(3)
+  settlementStatus       SettlementStatus?
+  appVersion             String?
+  platform               DevicePlatform?
+  createdAt              DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime              @updatedAt @db.Timestamptz(3)
+  /// Optimistic-concurrency counter for state transitions.
+  version                Int                   @default(0)
+
+  customer        Customer              @relation(fields: [customerId], references: [id])
+  restaurant      Restaurant            @relation(fields: [restaurantId], references: [id])
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+  pricingSnapshot OrderPricingSnapshot?
+  address         OrderAddress?
+  notes           OrderNote[]
+  couponUsage     CouponUsage?
+  cancellation    OrderCancellation?
+
+  @@unique([customerId, idempotencyKey])
+  @@index([restaurantId, status, createdAt])
+  @@index([cityId, zoneId, createdAt])
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([deliveryStatus, createdAt])
+  @@index([needsAttention, createdAt])
+  @@map("orders")
+}
+
+/// Immutable per-line snapshot: product/variant names and every price component.
+model OrderItem {
+  id                        String   @id @default(uuid(7)) @db.Uuid
+  orderId                   String   @db.Uuid
+  productId                 String   @db.Uuid
+  variantId                 String?  @db.Uuid
+  productName               String
+  variantName               String?
+  foodType                  FoodType
+  quantity                  Int
+  restaurantBasePricePaise  Int // unit, incl. variant, excl. add-ons
+  customerDisplayPricePaise Int // unit after markup (+rounding)
+  markupType                String?
+  markupValue               Int? // bps or paise depending on type
+  markupAmountPaise         Int // per unit
+  markupRuleId              String?  @db.Uuid
+  taxMode                   String // INCLUSIVE | EXCLUSIVE | EXEMPT
+  taxRateBps                Int
+  taxAmountPaise            Int // line total
+  commissionBasis           String // PRE_DISCOUNT | POST_RESTAURANT_DISCOUNT | POST_ALL_DISCOUNTS (OD-10)
+  commissionBasePaise       Int
+  commissionRateBps         Int?
+  commissionAmountPaise     Int // line total
+  packagingPaise            Int      @default(0) // line total
+  lineTotalPaise            Int // customer-facing line total incl. add-ons
+  createdAt                 DateTime @default(now()) @db.Timestamptz(3)
+
+  order  Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  addons OrderItemAddon[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderItemAddon {
+  id                        String @id @default(uuid(7)) @db.Uuid
+  orderItemId               String @db.Uuid
+  addonId                   String @db.Uuid
+  groupName                 String
+  name                      String
+  restaurantBasePricePaise  Int
+  customerDisplayPricePaise Int
+  markupAmountPaise         Int
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([orderItemId])
+  @@map("order_item_addons")
+}
+
+/// Append-only log of every state transition (spec §18).
+model OrderStatusHistory {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  orderId    String       @db.Uuid
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  actorType  ActorType
+  actorId    String?      @db.Uuid
+  reason     String?
+  metadata   Json?
+  createdAt  DateTime     @default(now()) @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}
+
+/// Immutable financial snapshot (spec §27, §30, §82). Written once in the order-creation
+/// transaction; never updated. Refunds/adjustments are separate rows elsewhere.
+model OrderPricingSnapshot {
+  orderId                       String   @id @db.Uuid
+  engineVersion                 String // pricing-engine version that produced it
+  currency                      String   @default("INR")
+  restaurantBaseSubtotalPaise   Int
+  customerFoodSubtotalPaise     Int
+  markupTotalPaise              Int
+  packagingPaise                Int
+  taxTotalPaise                 Int
+  taxBreakdown                  Json // [{ code, rateBps, amountPaise, on }]
+  deliveryFeePaise              Int
+  deliveryRule                  Json // exact rule params + id + computed distance
+  distanceM                     Int
+  distanceSource                String // ROUTE | FALLBACK (OD-14)
+  distanceProvider              String?
+  platformFeePaise              Int
+  platformFeeRule               Json?
+  smallOrderFeePaise            Int
+  nightSurchargePaise           Int
+  surgePaise                    Int
+  surgeRules                    Json?
+  otherFees                     Json? // [{ code, label, amountPaise }]
+  discountTotalPaise            Int
+  restaurantFundedDiscountPaise Int
+  platformFundedDiscountPaise   Int
+  couponCode                    String?
+  couponSnapshot                Json? // funding source, share, caps at time of order
+  tipPaise                      Int
+  tipAllocation                 Json? // { riderShareBps, riderPaise } (OD-15)
+  markupDisclosure              String // disclosure mode applied (OD-8, A-18)
+  roundingAdjustmentPaise       Int
+  totalPayablePaise             Int
+  commissionRateBps             Int?
+  commissionAmountPaise         Int
+  commissionTaxPaise            Int
+  commissionRule                Json
+  restaurantWithholdingPaise    Int      @default(0) // TCS/TDS (Q-3)
+  withholdings                  Json?
+  restaurantPayablePaise        Int
+  riderEarningEstimatePaise     Int
+  riderEarningRule              Json?
+  gatewayFeeEstimatePaise       Int      @default(0)
+  platformRevenue               Json // { markup, commission, platformFee, deliveryMargin, smallOrderFee, surcharges, … }
+  appliedRuleIds                Json // all rule ids consulted (audit)
+  customerBill                  Json // the bill lines exactly as the customer confirmed them
+  engineOutput                  Json // the full pricing-engine result (audit, D-64)
+  createdAt                     DateTime @default(now()) @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_pricing_snapshots")
+}
+
+model OrderAddress {
+  orderId      String  @id @db.Uuid
+  label        String?
+  line1        String
+  line2        String?
+  landmark     String?
+  area         String?
+  cityName     String
+  pincode      String?
+  lat          Decimal @db.Decimal(9, 6)
+  lng          Decimal @db.Decimal(9, 6)
+  contactName  String?
+  contactPhone String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_addresses")
+}
+
+model OrderNote {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  orderId    String    @db.Uuid
+  authorType ActorType
+  authorId   String?   @db.Uuid
+  isInternal Boolean   @default(true)
+  body       String
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_notes")
+}
+
+model NotificationTemplate {
+  id        String              @id @default(uuid(7)) @db.Uuid
+  event     String // ORDER_PLACED, RESTAURANT_ACCEPTED …
+  channel   NotificationChannel
+  appId     AppId
+  locale    String              @default("en")
+  title     String?
+  body      String // mustache-style {{orderNumber}} placeholders
+  isActive  Boolean             @default(true)
+  updatedAt DateTime            @updatedAt @db.Timestamptz(3)
+
+  @@unique([event, channel, appId, locale])
+  @@map("notification_templates")
+}
+
+model Notification {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  userId      String?             @db.Uuid
+  appId       AppId
+  channel     NotificationChannel
+  event       String
+  title       String?
+  body        String
+  data        Json?
+  status      NotificationStatus  @default(QUEUED)
+  providerRef String?
+  error       String?
+  dedupeKey   String?             @unique
+  readAt      DateTime?           @db.Timestamptz(3)
+  sentAt      DateTime?           @db.Timestamptz(3)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 model Media {
@@ -1246,4 +1646,28 @@ model IdempotencyRecord {
   @@unique([scope, key])
   @@index([expiresAt])
   @@map("idempotency_records")
+}
+
+/// Outcome of a cancellation (spec §35): who, why, and who absorbs what. Written in the
+/// same transaction as the cancellation transition; admin overrides are audit-logged.
+model OrderCancellation {
+  orderId                     String    @id @db.Uuid
+  stage                       String // BEFORE_ACCEPT | AFTER_ACCEPT | AFTER_PREPARING | AFTER_PICKUP
+  cancelledByType             ActorType
+  cancelledById               String?   @db.Uuid
+  reasonCode                  String
+  reasonText                  String?
+  ruleId                      String?   @db.Uuid // CancellationRule applied
+  ruleSnapshot                Json
+  customerFeePaise            Int       @default(0)
+  refundDuePaise              Int       @default(0)
+  restaurantCompensationPaise Int       @default(0)
+  riderCompensationPaise      Int       @default(0)
+  platformLossPaise           Int       @default(0)
+  isAdminOverride             Boolean   @default(false)
+  createdAt                   DateTime  @default(now()) @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_cancellations")
 }

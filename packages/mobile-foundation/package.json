@@ -15,9 +15,11 @@
   "dependencies": {
     "@jamzo/api-client": "workspace:*",
     "@jamzo/mobile-ui": "workspace:*",
-    "@jamzo/validation": "workspace:*"
+    "@jamzo/validation": "workspace:*",
+    "socket.io-client": "^4.8.3"
   },
   "peerDependencies": {
+    "@react-native-community/netinfo": "*",
     "expo": "*",
     "expo-constants": "*",
     "expo-device": "*",
@@ -25,10 +27,10 @@
     "expo-secure-store": "*",
     "react": "*",
     "react-native": "*",
-    "react-native-safe-area-context": "*",
-    "@react-native-community/netinfo": "*"
+    "react-native-safe-area-context": "*"
   },
   "devDependencies": {
+    "@react-native-community/netinfo": "catalog:",
     "expo": "catalog:",
     "expo-constants": "catalog:",
     "expo-device": "catalog:",
@@ -36,7 +38,6 @@
     "expo-secure-store": "catalog:",
     "react": "catalog:",
     "react-native": "catalog:",
-    "react-native-safe-area-context": "catalog:",
-    "@react-native-community/netinfo": "catalog:"
+    "react-native-safe-area-context": "catalog:"
   }
 }

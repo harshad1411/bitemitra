@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (131 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (152 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -150,6 +150,13 @@ _Generated from the route definitions by `pnpm docs:api` (131 endpoints). Do not
 | `PATCH` | `/v1/admin/media/:id` | admin token | ADMIN | `media.manage` |  |
 | `DELETE` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
 | `PATCH` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
+| `GET` | `/v1/admin/notification-templates` | admin token | ADMIN | `notifications.manage` |  |
+| `PATCH` | `/v1/admin/notification-templates/:id` | admin token | ADMIN | `notifications.manage` |  |
+| `GET` | `/v1/admin/orders` | admin token | ADMIN | `orders.view` |  |
+| `GET` | `/v1/admin/orders/:id` | admin token | ADMIN | `orders.view` |  |
+| `POST` | `/v1/admin/orders/:id/attention` | admin token | ADMIN | `orders.edit` |  |
+| `POST` | `/v1/admin/orders/:id/cancel` | admin token | ADMIN | `orders.cancel` |  |
+| `POST` | `/v1/admin/orders/:id/notes` | admin token | ADMIN | `orders.edit` |  |
 | `GET` | `/v1/admin/permissions` | admin token | ADMIN | `roles.view` |  |
 | `GET` | `/v1/admin/pricing/effective` | admin token | ADMIN | `pricing.view` |  |
 | `POST` | `/v1/admin/pricing/preview` | admin token | ADMIN | `pricing.view` |  |
@@ -216,6 +223,9 @@ _Generated from the route definitions by `pnpm docs:api` (131 endpoints). Do not
 | `DELETE` | `/v1/customer/favorites/:id` | required | CUSTOMER | — |  |
 | `PUT` | `/v1/customer/favorites/:id` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/home` | optional | CUSTOMER | — |  |
+| `GET` | `/v1/customer/orders` | required | CUSTOMER | — |  |
+| `GET` | `/v1/customer/orders/:id` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/orders/:id/cancel` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants/:id` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/search` | optional | CUSTOMER | — |  |
@@ -223,8 +233,19 @@ _Generated from the route definitions by `pnpm docs:api` (131 endpoints). Do not
 | `GET` | `/v1/me` | required | any | — |  |
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
 | `POST` | `/v1/me/devices` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `GET` | `/v1/me/notifications` | required | any | — |  |
 | `GET` | `/v1/media/files/*` | none | browser (no headers) | — |  |
+| `POST` | `/v1/orders` | required | CUSTOMER | — |  |
 | `PATCH` | `/v1/restaurant/branches/:id/status` | required | RESTAURANT | — |  |
+| `GET` | `/v1/restaurant/orders` | required | RESTAURANT | — |  |
+| `GET` | `/v1/restaurant/orders/:id` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/accept` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/cancel` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/prep-time` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/preparing` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/ready` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/reject` | required | RESTAURANT | — |  |
+| `POST` | `/v1/restaurant/orders/:id/seen` | required | RESTAURANT | — |  |
 | `POST` | `/v1/restaurant/products/:id/availability` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id/menu` | required | RESTAURANT | — |  |

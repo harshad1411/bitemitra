@@ -5,7 +5,7 @@ import { startTestDatabase } from '../testing.js';
 import { randomBytes } from 'node:crypto';
 import { createFieldCipher } from '@jamzo/auth';
 import { validateProductStructure, validateWeeklyRows } from '@jamzo/catalog-engine';
-import { DEFAULT_FLAGS, seed } from './index.js';
+import { DEFAULT_FLAGS, NOTIFICATION_TEMPLATES, seed } from './index.js';
 import { DEMO_CATEGORIES, DEMO_RESTAURANTS } from './catalog-data.js';
 
 let db;
@@ -33,6 +33,7 @@ describe('seed', () => {
     });
     expect(superRole.permissions).toHaveLength(PERMISSION_KEYS.length);
     expect(await prisma.featureFlag.count()).toBe(DEFAULT_FLAGS.length);
+    expect(await prisma.notificationTemplate.count()).toBe(NOTIFICATION_TEMPLATES.length);
     expect(await prisma.appVersionPolicy.count()).toBe(6);
 
     const users = await prisma.user.findMany({
@@ -124,6 +125,7 @@ describe('seed', () => {
     expect(await prisma.taxRule.count({ where: { effectiveTo: null } })).toBe(7);
     expect(await prisma.deliveryPricingRule.count()).toBe(1);
     expect(await prisma.markupRule.count()).toBe(2);
+    expect(await prisma.cancellationRule.count()).toBe(1); // A-25 placeholder
     expect(await prisma.coupon.count()).toBe(2);
     expect(await prisma.cmsPage.count({ where: { isPublished: true } })).toBe(0); // legal texts are drafts (Q-12)
     // Bank numbers are stored encrypted, never in clear text.

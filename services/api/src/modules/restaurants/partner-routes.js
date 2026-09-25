@@ -2,13 +2,14 @@
 // membership, its role and the restaurant status — signing in is never enough (OD-13).
 import { z } from 'zod';
 import { availabilityBody, partnerBranchStatusBody, uuid } from '@jamzo/validation';
-import { PARTNER_APP_RESTAURANT_STATUSES, restaurantRoleCan } from '@jamzo/auth';
-import { forbidden, invalid, notFound } from '../../core/errors.js';
+import { restaurantRoleCan } from '@jamzo/auth';
+import { invalid, notFound } from '../../core/errors.js';
 import { parse } from '../../core/validate.js';
 import { audit } from '../../core/audit.js';
 import { mediaBase as mediaBaseOf } from '../media/urls.js';
 import { applyAvailability, loadMenu, productInclude, productSummary } from '../catalog/service.js';
 import { branchDto } from './service.js';
+import { createMemberGuard } from './membership.js';
 
 const idParam = z.object({ id: uuid });
 const PARTNER = { apps: ['RESTAURANT'] };
@@ -19,25 +20,15 @@ export default async function partnerRoutes(app) {
   const { config } = app.services;
   const mediaBase = mediaBaseOf(app.services.env);
 
-  /**
-   * The caller's active membership of a restaurant allowed to use the partner app, with the capability.
-   * Non-members get 404 (a restaurant's existence is not revealed); members without the capability 403.
-   */
-  async function requireMember(request, restaurantId, capability) {
-    const membership = await prisma.restaurantUser.findFirst({
-      where: { restaurantId, userId: request.auth.userId, isActive: true },
-      include: { restaurant: { include: { city: true } } },
-    });
-    if (!membership) throw notFound('Restaurant');
-    if (!PARTNER_APP_RESTAURANT_STATUSES.includes(membership.restaurant.onboardingStatus))
-      throw forbidden('This restaurant is not approved to use the partner app.');
-    if (!restaurantRoleCan(membership.role, capability))
-      throw forbidden('Your role in this restaurant does not allow this.');
-    return membership;
-  }
+  const requireMember = createMemberGuard(prisma);
 
   const capabilitiesOf = (role) =>
-    Object.fromEntries(['store.status', 'menu.availability'].map((c) => [c, restaurantRoleCan(role, c)]));
+    Object.fromEntries(
+      ['store.status', 'menu.availability', 'orders.handle', 'orders.cancel', 'orders.finance'].map((c) => [
+        c,
+        restaurantRoleCan(role, c),
+      ]),
+    );
 
   async function storeView(membership) {
     const r = membership.restaurant;

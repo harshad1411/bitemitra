@@ -36,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active now (migrated): Phase 1, 2, 3 and 4 tables. **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1, 2, 3, 4 and 5 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -95,15 +95,29 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | rider_earning_rules | Rider pay rule, needed for every quote's rider-cost estimate (moved from Phase 6 — D-53) |
 | coupons, promotions | Discounts with targeting, funding source and limits (D-52) |
 
-### 3.2 LATER PHASE (39 tables)
+### 3.1c CORE — Phase 5, orders (12 tables)
+
+| Table | Why it exists |
+|---|---|
+| orders | The order: both tracks, derived status, `version` for optimistic concurrency, `orderSeq` for order numbers (D-63), `needsAttention` for operations (D-68) |
+| order_items, order_item_addons | Frozen per-line prices: restaurant base, customer display, markup, tax, commission share (per line, largest remainder) |
+| order_status_history | Append-only log of every transition with actor, reason and metadata (spec §18) |
+| order_pricing_snapshots | The frozen financial snapshot incl. the customer bill and the full engine output (D-64) |
+| order_addresses | Copy of the delivery address at order time |
+| order_notes | Internal admin notes |
+| order_cancellations | Who cancelled, stage, rule snapshot, fee / refund / compensations / platform loss (D-66) |
+| cancellation_rules | Versioned stage × actor cancellation money rules (D-66) |
+| coupon_usages | One usage per order; released on cancellation (D-65) |
+| notifications, notification_templates | Recorded order notifications and their editable templates (D-69) |
+
+### 3.2 LATER PHASE (27 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
-| 5 — Orders | orders, order_items, order_item_addons, order_status_history, order_pricing_snapshots, order_addresses, order_notes, order_cancellations, cancellation_rules, coupon_usages, notifications, notification_templates, notification_preferences, reviews | Order lifecycle, frozen financial snapshot, cancellations, notifications, ratings |
-| 6 — Riders & dispatch | rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, order_assignments | KYC, live availability/location, offers & single-winner assignment, earnings |
+| 6 — Riders & dispatch | rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, order_assignments, reviews | KYC, live availability/location, offers & single-winner assignment, earnings; ratings of delivered orders (CH-20) |
 | 7 — Payments | payments, payment_attempts, payment_events, refunds | Provider-agnostic payments (Razorpay first), idempotent webhooks, refunds |
 | 8 — Financials | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, rider_payouts, rider_cod_deposits, platform_ledger_entries, invoices, invoice_sequences | Append-only ledgers, COD reconciliation, settlements, statements, invoices |
-| 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views | Support with full order context, saved table views |
+| 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views, notification_preferences | Support with full order context, saved table views |
 
 ### 3.3 FUTURE (1 table)
 

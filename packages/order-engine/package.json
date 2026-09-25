@@ -1,0 +1,16 @@
+{
+  "name": "@jamzo/order-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure order state machine: kitchen and delivery tracks, derived status, actor guards, cancellations (ORDERS.md).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

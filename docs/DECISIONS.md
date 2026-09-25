@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phases 3 + 4 complete — awaiting owner review).
+Last updated: 2026-09-25 (Phase 5 in progress).
 
 ---
 
@@ -53,6 +53,7 @@ Last updated: 2026-09-25 (Phases 3 + 4 complete — awaiting owner review).
 | OD-34 | Detailed Phase 1 completion report (22 items), then stop. |
 | OD-35 | **Phase 1 accepted; start Phase 2** (owner, 2026-09-24: "now start phase 2"). Phase 2 = MASTER_SPEC §82 "Restaurant/Menu": restaurant management, categories, products, variants, add-ons, availability, admin UI, tests. The same working rules apply (docs first, JavaScript only, no fake completeness, stop for review after the phase). Items that asked for explicit approval in Phase 1 (CH-5, CH-8, CH-9, D-30) have not been answered and stay open. |
 | OD-36 | **Complete Phases 3 and 4 together** (owner, 2026-09-25: "Complete 3rd and 4th phase"). Taken as acceptance of Phase 2. Phase 3 = customer discovery (§82: customer auth, location, home CMS, restaurant listing, search, restaurant detail, menu, cart); Phase 4 = pricing (§82: pricing engine, markup, commission, taxes, delivery, platform fee, surcharges, coupons, promotions). One review after both; still stop before Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, D-30) remain open. |
+| OD-37 | **Start Phase 5 — Orders** (owner, 2026-09-25: "next phase strt"). Taken as acceptance of Phases 3 + 4. Phase 5 = §78: checkout, order creation, restaurant acceptance, order state machine, restaurant app, complete lifecycle tested. Stop for review after Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, CH-17/Q-14, D-30, Q-19) remain open. |
 
 ## 2. Engineering decisions
 
@@ -410,7 +411,86 @@ The engine applies the percentage exactly to add-ons and rounds only the main it
 +10% = ₹27.50), so several add-ons do not accumulate rounding. Changing this is one engine function
 plus golden-test updates.
 
-## 3. Changes from MASTER_SPEC (OD-30)
+## 2c. Engineering decisions — Phase 5 (orders)
+
+### D-60. Phase 5 takes cash on delivery only; online payment arrives with the gateway (Phase 7)
+Online methods need the payment gateway, signed webhooks and reconciliation (Phase 7); accepting them
+earlier would mean trusting the client that it paid, which is never allowed. So `POST /v1/orders` accepts
+`COD` (when the `cod` flag and the `cod` setting allow it and the total is within
+`cod.maxOrderValuePaise`) and orders whose total is ₹0; any other method is refused with
+`PAYMENT_METHOD_UNAVAILABLE`. The customer app shows online methods as "coming soon". No `payments` row
+is written for COD in Phase 5; the COD amount is on the order (`codAmountPaise`) and collection is
+recorded by the rider in Phase 6.
+
+### D-61. Phase 5 runs the kitchen track; the delivery track starts with dispatch (Phase 6)
+`@jamzo/order-engine` implements **every** transition in ORDERS.md (both tracks, cancellations,
+derived status) and is tested exhaustively. The API in Phase 5 drives the payment phase, the kitchen
+track (NEW → ACCEPTED → PREPARING → READY_FOR_PICKUP) and cancellations. The dispatch trigger
+(`dispatch.startAt`) and every rider event arrive with dispatch in Phase 6, so a Phase 5 order waits at
+READY_FOR_PICKUP with delivery NOT_STARTED; nothing marks an order delivered without a rider. Stuck
+orders are visible to operations and can be cancelled by an admin.
+
+### D-62. Realtime: PostgreSQL NOTIFY → Socket.IO; REST stays the truth (D-10)
+State changes call `pg_notify('jamzo_realtime', …)` **inside** their transaction, so a notification is
+delivered only if the change commits, and from any process (API or workers). Each API instance
+`LISTEN`s and forwards to Socket.IO rooms: `restaurant:<id>`, `order:<id>`, `ops`. Messages carry ids
+and the new status only; clients re-fetch over REST. Sockets authenticate with the access token and
+join only rooms they are allowed to see. Apps also poll (restaurant: 15 s, customer tracking: 20 s) so a
+dropped socket never hides an order. No Redis adapter until there is more than one API instance (D-9).
+
+### D-63. Order numbers
+`<CITY CODE>-<YYMMDD>-<sequence>` (e.g. `UNJ-250925-00042`), the sequence from one PostgreSQL sequence
+(never reused, gap-tolerant, race-free). The date is the city's local date. Restaurants and riders use
+the last four digits verbally.
+
+### D-64. Checkout re-prices and revalidates inside the order transaction
+`POST /v1/orders` (Idempotency-Key required) runs the same revalidation and pricing as the cart quote
+(D-46) from current database state immediately before writing, then compares the total with `expectedTotalPaise` — the total the
+customer saw. Different → `409 PRICE_CHANGED` with the fresh quote; any blocking issue (closed,
+unavailable item, not deliverable, coupon no longer valid, below minimum order, COD limit) →
+`422 CHECKOUT_BLOCKED` with the issues; nothing is created. The order, items, add-ons, address copy,
+frozen pricing snapshot (engine output incl. restaurant/rider/platform side), coupon usage, status
+history and outbox events are written in one transaction, which also re-checks what can be raced: the
+customer row is locked (per-customer coupon rules), the coupon's global limit is a conditional update backed
+by a constraint, and `(customerId, idempotencyKey)` is unique. A menu change in the milliseconds between
+pricing and the write is not re-checked. The delivery address must be a saved address (it is copied into
+the order).
+
+### D-65. Coupon limits enforced at checkout (completes D-52)
+Usage is counted from `coupon_usages` that are not reversed: `firstOrderOnly` (no earlier order that
+reached PLACED, excluding cancelled/failed ones), `perUserLimit`, and the global `usageLimit` through a
+conditional increment of `coupons.usedCount` (`… WHERE usedCount < usageLimit`), so two customers cannot
+take the last use. Cancellation before pickup releases the usage (`reversedAt`) and decrements the count.
+
+### D-66. Cancellation rules are versioned commercial rules
+`cancellation_rules` joins the rule framework of D-50 (versions, history, stale-edit guard, admin UI in
+Pricing). One rule per target holds a matrix stage × actor → `{ allowed, customerFee, refund,
+restaurantCompensation, riderCompensation }`. The engine computes the outcome and it is stored in
+`order_cancellations` with the rule snapshot. **All default values are placeholders (A-25, Q-20)** and no
+money moves in Phase 5: refunds are Phase 7 and ledger postings Phase 8. With COD-only orders nothing has
+been collected, so a Phase 5 cancellation never owes the customer a refund.
+
+### D-67. What the restaurant sees of an order
+Restaurant screens show the restaurant's own prices (base prices), restaurant-funded discounts,
+packaging, commission, and net payable from the frozen snapshot — never customer display prices, markup,
+platform fees or platform revenue (spec §19). The customer's name is shown as the first name; phone and
+address are not shown to the restaurant.
+
+### D-68. Restaurant acceptance timeout
+When an order is placed, a delayed outbox job is scheduled for `orders.restaurantAcceptance.timeoutSec`.
+The job re-reads the order and acts only if the kitchen is still NEW: `AUTO_ACCEPT`, `AUTO_REJECT`, or
+`ESCALATE_TO_OPS` (default) → the order is flagged for operations (`needsAttention`, shown in the admin)
+and a second job auto-rejects after `escalationGraceSec`. Accept vs timeout races are decided by the
+order's version (optimistic concurrency); exactly one wins.
+
+### D-69. Notifications: rows first, providers second
+Order events create `notifications` rows from `notification_templates` (seeded, editable by
+`notifications.manage`), which appear in the apps' order screens and are pushed through the push
+provider. Development and tests use the console provider. The Expo push provider is implemented and
+tested against a fake Expo endpoint only — **not verified against Expo's service** until the EAS projects
+exist (Q-18). The restaurant app also alerts in-app (looping sound + vibration) while an order is NEW.
+
+
 
 | # | Change | Why | Consequence | Approval |
 |---|---|---|---|---|
@@ -430,6 +510,9 @@ plus golden-test updates.
 | CH-15 | Cart quote endpoint `/v1/customer/cart/quote` (ORDER_FLOW said `/v1/cart/quote`) | customer resources share one prefix (API.md §1) | none | Informational |
 | CH-16 | `rider_earning_rules` activated in Phase 4 instead of 6 | quotes need the rider-cost estimate (D-53) | rule editing available earlier | Informational |
 | CH-17 | Delivery fees use straight-line distance × 1.3, flagged FALLBACK, until a maps provider is chosen (OD-14 wants road distance) | no provider decided (Q-14) | fees may differ from road distance; every quote says which source was used | **Needs Q-14** |
+| CH-18 | Phase 5 accepts COD and ₹0 orders only; online payment waits for Phase 7 (D-60) | payments are Phase 7; the client can never be trusted to have paid | customers cannot pay online until Phase 7 | Recorded |
+| CH-19 | Phase 5 orders stop at READY_FOR_PICKUP; delivery starts with dispatch in Phase 6 (D-61) | riders are Phase 6 | the full lifecycle is proven in the engine tests, not end to end, until Phase 6 | Recorded |
+| CH-20 | `reviews` and `notification_preferences` move from Phase 5 to Phase 6 / Phase 9 | reviews need delivered orders; preferences need the marketing notifications of Phase 9 | none now | Recorded |
 | CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | Needs approval |
 
 ## 4. Assumptions (configurable defaults)
@@ -457,6 +540,8 @@ plus golden-test updates.
 | A-22 | New branch preparation time 20 minutes; pause limited to 15–120 minutes; busy mode adds 10 minutes (setting `restaurants.operations`). |
 | A-23 | Development pricing defaults (all **placeholders**, A-16): no global markup (demo: Pizza Point +10% with Farmhouse +15%, the owner's example); commission 15% on food value after restaurant-funded discount; platform fee ₹5; delivery slabs 0–2 km ₹20, 2–4 km ₹30, 4–6 km ₹40, max 7 km, free above ₹499; small-order fee ₹15 below ₹99; night surcharge ₹10 23:00–06:00 (only while flag `night_pricing` is on); rider ₹25 incl. 2 km + ₹6/km; tax per D-51. |
 | A-24 | ETA estimate: average rider speed 18 km/h, 5-minute buffer, shown as a 10-minute range (setting `delivery.eta`). |
+| A-25 | Default cancellation rule (**placeholder**, Q-20): before the restaurant accepts, the customer cancels free; after acceptance the customer cannot cancel in the app (support/admin can); restaurant reject/cancel costs the customer nothing; every compensation amount 0 until the owner sets them. |
+| A-26 | Restaurant reject reasons: item unavailable, too busy, closing soon, cannot deliver this order, other (text). Prep time on accept: 5–60 minutes in 5-minute steps (bounded by `orders.preparation.maxPrepMinutes`). |
 | A-20 | Store names: "Jamzo", "Jamzo Restaurant Partner", "Jamzo Delivery Partner"; URL schemes `jamzo`, `jamzo-restaurant`, `jamzo-rider` (Q-8). |
 
 ## 5. Questions
@@ -486,5 +571,6 @@ plus golden-test updates.
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-15** Admin 2FA method (TOTP app vs email OTP) — before production (CH-8).
 - **Q-17 (toolchains)** Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
+- **Q-20 (business)** Cancellation money: customer fee after the restaurant accepts, restaurant compensation when the customer or Jamzo cancels after preparation starts, rider compensation, and who absorbs the loss. Placeholders in A-25; needed before online payment (Phase 7) and settlements (Phase 8).
 - **Q-19 (business)** Should a markup rule's rounding also apply to add-on prices? Today it does not (D-59); e.g. an add-on can show ₹27.50.
 - **Q-18 (Expo/EAS)** An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).

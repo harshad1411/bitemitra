@@ -6,6 +6,9 @@ import { createLogger } from '@jamzo/logger';
 import { createStorage } from '@jamzo/api/media-storage';
 import { createOutboxRelay } from './outbox.js';
 import { createMediaUploadedHandler } from './handlers/media.js';
+import { createOrderJobs } from '@jamzo/api/order-jobs';
+import { createNotificationDispatcher } from '@jamzo/api/notification-dispatch';
+import { createPushProvider } from '@jamzo/notifications';
 
 const env = loadEnv(workerEnvSchema);
 const log = createLogger({ name: 'workers', level: env.LOG_LEVEL });
@@ -18,7 +21,15 @@ const relay = createOutboxRelay({
   batchSize: env.WORKER_BATCH_SIZE,
   maxAttempts: env.WORKER_MAX_ATTEMPTS,
   leaseSec: env.WORKER_LEASE_SEC,
-  handlers: { 'media.uploaded': createMediaUploadedHandler({ prisma, storage }) },
+  handlers: {
+    'media.uploaded': createMediaUploadedHandler({ prisma, storage }),
+    ...createNotificationDispatcher({
+      prisma,
+      push: createPushProvider(env.PUSH_PROVIDER, { logger: log, accessToken: env.EXPO_ACCESS_TOKEN }),
+      log,
+    }),
+    ...createOrderJobs({ prisma, log }),
+  },
 });
 
 let running = true;

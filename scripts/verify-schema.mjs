@@ -355,5 +355,41 @@ async function checkGuarantees(db) {
     `insert into promotions (id, name, "discountType", "valuePaise", "startsAt", "updatedAt") values ('${id()}', 'Bad', 'FIXED', 0, now(), now())`,
     CHECK,
   );
+
+  // Phase 5 — orders, cancellations, coupon usage
+  await rejects(
+    'two open GLOBAL cancellation rules',
+    `insert into cancellation_rules (id, scope, params) values ('${id()}', 'GLOBAL', '{}'), ('${id()}', 'GLOBAL', '{}')`,
+    UNIQUE,
+  );
+  const limited = id();
+  await db.exec(
+    `insert into coupons (id, code, "discountType", "valuePaise", "usageLimit", "usedCount", "startsAt", "updatedAt") values ('${limited}', 'LAST1', 'FIXED', 1000, 1, 1, now(), now())`,
+  );
+  await rejects(
+    'taking a coupon use beyond its limit',
+    `update coupons set "usedCount" = "usedCount" + 1 where id = '${limited}'`,
+    CHECK,
+  );
+  await rejects(
+    'accepted kitchen without a preparation time',
+    `update orders set "restaurantStatus" = 'ACCEPTED' where id = '${ids.order}'`,
+    CHECK,
+  );
+  await rejects(
+    'cancelled order without a cancellation time',
+    `update orders set status = 'CUSTOMER_CANCELLED' where id = '${ids.order}'`,
+    CHECK,
+  );
+  await rejects(
+    'cash-on-delivery order whose cash amount differs from its total',
+    `update orders set "codAmountPaise" = 100 where id = '${ids.order}'`,
+    CHECK,
+  );
+  await rejects(
+    'cancellation outcome with a negative refund',
+    `insert into order_cancellations ("orderId", stage, "cancelledByType", "reasonCode", "ruleSnapshot", "refundDuePaise") values ('${ids.order}', 'BEFORE_ACCEPT', 'CUSTOMER', 'X', '{}', -1)`,
+    CHECK,
+  );
   console.log('✓ database-level guarantees hold');
 }

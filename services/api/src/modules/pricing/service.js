@@ -12,7 +12,18 @@ export const RULE_SOURCES = Object.freeze({
   DELIVERY: { key: 'delivery', table: 'deliveryPricingRule' },
   SURGE: { key: 'surge', table: 'surgeRule' },
   RIDER_EARNING: { key: 'riderEarning', table: 'riderEarningRule' },
+  CANCELLATION: { key: 'cancellation', table: 'cancellationRule' },
 });
+/** Rule types the quote reads (cancellation rules are read only when an order is cancelled). */
+export const QUOTE_RULE_TYPES = /** @type {(keyof typeof RULE_SOURCES)[]} */ ([
+  'MARKUP',
+  'COMMISSION',
+  'TAX',
+  'PLATFORM_FEE',
+  'DELIVERY',
+  'SURGE',
+  'RIDER_EARNING',
+]);
 
 /**
  * (scope, target) pairs that can apply to any line of a cart at a location.
@@ -40,12 +51,7 @@ export function ruleTargets(ids) {
  * @param {Date} now
  * @param {(keyof typeof RULE_SOURCES)[]} [types]
  */
-export async function loadRuleSet(
-  prisma,
-  targets,
-  now,
-  types = /** @type {any} */ (Object.keys(RULE_SOURCES)),
-) {
+export async function loadRuleSet(prisma, targets, now, types = QUOTE_RULE_TYPES) {
   const where = {
     OR: targets.map((t) => ({ scope: t.scope, scopeRefId: t.scopeRefId })),
     effectiveFrom: { lte: now },

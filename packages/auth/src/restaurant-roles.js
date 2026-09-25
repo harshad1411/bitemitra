@@ -7,6 +7,11 @@ export const RESTAURANT_ROLE_CAPABILITIES = Object.freeze({
   'menu.view': ['OWNER', 'MANAGER', 'STAFF'],
   'menu.availability': ['OWNER', 'MANAGER', 'STAFF'],
   'store.status': ['OWNER', 'MANAGER'],
+  // Phase 5 (RESTAURANTS.md §8): everyone on shift handles orders; money and cancelling are for managers.
+  'orders.view': ['OWNER', 'MANAGER', 'STAFF'],
+  'orders.handle': ['OWNER', 'MANAGER', 'STAFF'],
+  'orders.cancel': ['OWNER', 'MANAGER'],
+  'orders.finance': ['OWNER', 'MANAGER'],
 });
 
 /**

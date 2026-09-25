@@ -1,6 +1,6 @@
 {
-  "$comment": "Models migrated in the current phase. Classification and reasons: docs/DATABASE.md \u00a73. Adding a model here activates it; run `pnpm --filter @jamzo/database schema:generate` and create a migration.",
-  "phase": 4,
+  "$comment": "Models migrated in the current phase. Classification and reasons: docs/DATABASE.md §3. Adding a model here activates it; run `pnpm --filter @jamzo/database schema:generate` and create a migration.",
+  "phase": 5,
   "models": [
     "User",
     "AuthIdentity",
@@ -59,6 +59,18 @@
     "SurgeRule",
     "RiderEarningRule",
     "Coupon",
-    "Promotion"
+    "Promotion",
+    "Order",
+    "OrderItem",
+    "OrderItemAddon",
+    "OrderStatusHistory",
+    "OrderPricingSnapshot",
+    "OrderAddress",
+    "OrderNote",
+    "OrderCancellation",
+    "CancellationRule",
+    "CouponUsage",
+    "Notification",
+    "NotificationTemplate"
   ]
 }

@@ -903,3 +903,26 @@ describe('property test: random carts and rules always satisfy the invariants (P
     }
   });
 });
+
+describe('per-line commission (order items, Phase 5)', () => {
+  it('one line carries the whole commission of the golden example', () => {
+    const q = run();
+    expect(q.lines[0].commission).toMatchObject({ amountPaise: q.restaurant.commission.amountPaise });
+    expect(q.lines[0].commission.basis).toBe(q.restaurant.commission.groups[0].basis);
+  });
+  it('several lines split their group exactly, in proportion to their base (largest remainder)', () => {
+    const lines = [
+      pizzaLine({ key: 'a', quantity: 1, unitBasePaise: 10_001 }),
+      pizzaLine({ key: 'b', productId: 'garlic-bread', quantity: 3, unitBasePaise: 3_333 }),
+      pizzaLine({ key: 'c', productId: 'coke', quantity: 1, unitBasePaise: 999 }),
+    ];
+    const q = run({ lines, coupon: null });
+    const parts = q.lines.map((l) => l.commission.amountPaise);
+    expect(parts.reduce((a, b) => a + b, 0)).toBe(q.restaurant.commission.amountPaise);
+    const bases = q.lines.map((l) => l.commission.basePaise);
+    const total = bases.reduce((a, b) => a + b, 0);
+    parts.forEach((p, i) =>
+      expect(Math.abs(p - (q.restaurant.commission.amountPaise * bases[i]) / total)).toBeLessThan(1),
+    );
+  });
+});

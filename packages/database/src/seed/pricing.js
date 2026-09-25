@@ -112,6 +112,30 @@ export async function seedPricing(prisma, { log }) {
     }),
   );
 
+  // Cancellation rule (A-25 — every amount a placeholder, Q-20): customer free before acceptance only.
+  const none = { type: 'NONE' };
+  const outcome = (allowed) => ({
+    allowed,
+    customerFee: none,
+    restaurantCompensation: none,
+    riderCompensation: none,
+  });
+  const stage = (customer, restaurant) => ({
+    CUSTOMER: outcome(customer),
+    RESTAURANT: outcome(restaurant),
+    ADMIN: outcome(true),
+  });
+  added += Number(
+    await ensureRule(prisma, 'cancellationRule', {
+      params: {
+        BEFORE_ACCEPT: stage(true, false),
+        AFTER_ACCEPT: stage(false, true),
+        AFTER_PREPARING: stage(false, true),
+        AFTER_PICKUP: stage(false, false),
+      },
+    }),
+  );
+
   // The owner's markup example (OD-8): restaurant +10%, one item +15% — no global markup.
   const pizza = await prisma.restaurant.findUnique({ where: { slug: 'pizza-point-unjha' } });
   if (pizza) {

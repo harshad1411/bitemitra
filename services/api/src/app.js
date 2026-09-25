@@ -27,6 +27,8 @@ import customerRoutes from './modules/customer/routes.js';
 import pricingRoutes from './modules/pricing/routes.js';
 import cmsRoutes from './modules/cms/routes.js';
 import customersRoutes from './modules/customers/routes.js';
+import orderRoutes from './modules/orders/routes.js';
+import notificationRoutes from './modules/notifications/routes.js';
 import { createDistanceProvider } from './modules/delivery/distance.js';
 import { mediaBase } from './modules/media/urls.js';
 import { createFieldCipher } from '@jamzo/auth';
@@ -205,6 +207,8 @@ export async function buildApp(deps) {
   await app.register(pricingRoutes);
   await app.register(cmsRoutes);
   await app.register(customersRoutes);
+  await app.register(orderRoutes);
+  await app.register(notificationRoutes);
 
   return app;
 }

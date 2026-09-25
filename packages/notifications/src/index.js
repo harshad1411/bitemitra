@@ -78,3 +78,118 @@ export function createEmailProvider(name, deps) {
   if (name === 'console') return createConsoleEmailProvider(deps);
   throw new Error(`Email provider "${name}" is not implemented (DECISIONS Q-6)`);
 }
+
+/**
+ * @typedef {object} PushMessage
+ * @property {string} to device push token
+ * @property {string} title
+ * @property {string} body
+ * @property {Record<string, unknown>} [data]
+ * @property {string} [sound] 'default' or a bundled sound file name
+ * @property {string} [channelId] Android notification channel
+ * @property {'default'|'high'} [priority]
+ */
+/**
+ * @typedef {object} PushResult
+ * @property {boolean} ok
+ * @property {string} [providerRef]
+ * @property {string} [error]
+ * @property {boolean} [deviceGone] the token is no longer valid; stop sending to it
+ */
+/**
+ * @typedef {object} PushProvider
+ * @property {string} name
+ * @property {(messages: PushMessage[]) => Promise<PushResult[]>} send one result per message, same order
+ */
+
+/**
+ * Development/test push provider: records messages, delivers nothing. NOT a real delivery channel.
+ * @param {{ logger?: { info: Function }, keep?: number }} [opts]
+ * @returns {PushProvider & { sent: PushMessage[] }}
+ */
+export function createConsolePushProvider({ logger, keep = 200 } = {}) {
+  const sent = [];
+  return {
+    name: 'console',
+    sent,
+    async send(messages) {
+      for (const m of messages) {
+        sent.push(m);
+        if (sent.length > keep) sent.shift();
+        logger?.info(
+          { channel: 'PUSH', title: m.title, data: m.data },
+          'console push provider (development only)',
+        );
+      }
+      return messages.map(() => ({ ok: true, providerRef: ref('console-push') }));
+    },
+  };
+}
+
+/**
+ * Expo push service (https://docs.expo.dev/push-notifications/sending-notifications/). Sends in batches of
+ * 100 and maps each ticket back to its message. **Tested only against a fake endpoint — not verified with
+ * Expo's service until the EAS projects exist (DECISIONS D-69, Q-18).** Receipts (delivery confirmation)
+ * are not fetched yet.
+ * @param {{ accessToken?: string, endpoint?: string, fetch?: typeof fetch, timeoutMs?: number }} [opts]
+ * @returns {PushProvider}
+ */
+export function createExpoPushProvider({
+  accessToken,
+  endpoint = 'https://exp.host/--/api/v2/push/send',
+  fetch: doFetch = globalThis.fetch,
+  timeoutMs = 10_000,
+} = {}) {
+  return {
+    name: 'expo',
+    async send(messages) {
+      const results = [];
+      for (let i = 0; i < messages.length; i += 100) {
+        const batch = messages.slice(i, i + 100);
+        try {
+          const res = await doFetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              accept: 'application/json',
+              ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+            },
+            body: JSON.stringify(batch),
+            signal: AbortSignal.timeout(timeoutMs),
+          });
+          const json = /** @type {any} */ (await res.json().catch(() => null));
+          if (!res.ok || !Array.isArray(json?.data)) {
+            const error = `Expo push HTTP ${res.status}`;
+            results.push(...batch.map(() => ({ ok: false, error })));
+            continue;
+          }
+          for (const t of json.data)
+            results.push(
+              t.status === 'ok'
+                ? { ok: true, providerRef: t.id }
+                : {
+                    ok: false,
+                    error: t.details?.error ?? t.message ?? 'Expo push error',
+                    deviceGone: t.details?.error === 'DeviceNotRegistered',
+                  },
+            );
+        } catch (err) {
+          const error = String(/** @type {any} */ (err)?.message ?? err).slice(0, 200);
+          results.push(...batch.map(() => ({ ok: false, error })));
+        }
+      }
+      return results;
+    },
+  };
+}
+
+/**
+ * @param {string} name 'console' | 'expo'
+ * @param {{ logger?: { info: Function }, accessToken?: string }} deps
+ * @returns {PushProvider}
+ */
+export function createPushProvider(name, deps) {
+  if (name === 'console') return createConsolePushProvider(deps);
+  if (name === 'expo') return createExpoPushProvider({ accessToken: deps.accessToken });
+  throw new Error(`Push provider "${name}" is not implemented`);
+}

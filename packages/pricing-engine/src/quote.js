@@ -555,6 +555,8 @@ export function quote(cart, ctx, rules, settings, extra) {
 
   // ── Restaurant side (never shown to customers) ──
   const byRule = new Map();
+  const lineCommissionBase = [];
+  const lineCommissionKey = [];
   lines.forEach((l, i) => {
     const rule = resolve('COMMISSION', rules.commission, l.lineCtx);
     const key = rule?.id ?? 'none';
@@ -565,9 +567,11 @@ export function quote(cart, ctx, rules, settings, extra) {
         : basis === 'POST_RESTAURANT_DISCOUNT'
           ? l.lineBasePaise - lineRestaurantFunded[i]
           : l.lineBasePaise - lineDiscount[i];
-    const g = byRule.get(key) ?? { rule, basis, basePaise: 0 };
+    const g = byRule.get(key) ?? { key, rule, basis, basePaise: 0 };
     g.basePaise += Math.max(0, base);
     byRule.set(key, g);
+    lineCommissionBase[i] = Math.max(0, base);
+    lineCommissionKey[i] = key;
   });
   const commissionGroups = [...byRule.values()].map((g) => {
     if (!g.rule) {
@@ -593,6 +597,17 @@ export function quote(cart, ctx, rules, settings, extra) {
       basePaise: g.basePaise,
       amountPaise: amount,
     };
+  });
+  // Each group's commission split across its lines by commission base (largest remainder), for order items.
+  const lineCommission = lines.map(() => 0);
+  [...byRule.values()].forEach((g, gi) => {
+    const idx = lines.map((_, i) => i).filter((i) => lineCommissionKey[i] === g.key);
+    const weights = idx.map((i) => lineCommissionBase[i]);
+    const parts = allocate(
+      commissionGroups[gi].amountPaise,
+      weights.some((w) => w > 0) ? weights : weights.map(() => 1),
+    );
+    idx.forEach((i, k) => (lineCommission[i] = parts[k]));
   });
   const commission = sum(commissionGroups.map((c) => c.amountPaise));
   const commissionTaxRule = commission > 0 ? taxRuleFor('COMMISSION', restaurantCtx) : null;
@@ -735,6 +750,13 @@ export function quote(cart, ctx, rules, settings, extra) {
       restaurantFundedDiscountPaise: lineRestaurantFunded[i],
       packagingPaise: l.packagingLinePaise,
       tax: lineTaxes[i],
+      commission: {
+        ruleId: lineCommissionKey[i] === 'none' ? null : lineCommissionKey[i],
+        basis: byRule.get(lineCommissionKey[i]).basis,
+        basePaise: lineCommissionBase[i],
+        rateBps: byRule.get(lineCommissionKey[i]).rule?.params.rateBps ?? null,
+        amountPaise: lineCommission[i],
+      },
     })),
     discounts: applied.map(({ allocation: _a, ...d }) => d),
     coupon: couponResult ?? (coupon ? { code: coupon.code, status: 'APPLIED' } : null),
@@ -846,6 +868,8 @@ export function checkInvariants(q, { platformByComponents, commissionTax }) {
     if (l.unitMarkupPaise < 0 || l.lineDisplayPaise < 0 || l.discountPaise > l.lineDisplayPaise)
       fail('negative line', { key: l.key });
   }
+  if (sum(q.lines.map((l) => l.commission.amountPaise)) !== q.restaurant.commission.amountPaise)
+    fail('commission allocation');
   const foodDiscounts = q.discounts.filter((d) => d.discountType !== 'FREE_DELIVERY');
   if (sum(q.lines.map((l) => l.discountPaise)) !== sum(foodDiscounts.map((d) => d.amountPaise)))
     fail('discount allocation');

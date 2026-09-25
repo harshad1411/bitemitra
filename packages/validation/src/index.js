@@ -694,6 +694,7 @@ export const PRICING_RULE_TYPES = [
   'DELIVERY',
   'SURGE',
   'RIDER_EARNING',
+  'CANCELLATION',
 ];
 export const pricingRuleType = z.enum(PRICING_RULE_TYPES);
 export const pricingRuleCreateBody = z.object({
@@ -796,6 +797,123 @@ export const pricingPreviewBody = z.object({
       params: z.record(z.string(), z.unknown()),
     })
     .optional(),
+});
+
+// ── Orders (Phase 5) ────────────────────────────────────────────────────────
+
+export const PAYMENT_METHODS = ['COD', 'UPI', 'CARD', 'NETBANKING', 'WALLET'];
+/** POST /v1/orders (D-64). The delivery address must be a saved address. */
+export const checkoutBody = z.object({
+  restaurantId: uuid,
+  addressId: uuid,
+  lines: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(64),
+        productId: uuid,
+        variantId: uuid.nullable().optional(),
+        addonIds: z.array(uuid).max(50).default([]),
+        quantity: z.number().int().min(1).max(50),
+      }),
+    )
+    .min(1)
+    .max(100),
+  couponCode: z.string().trim().toUpperCase().max(20).optional(),
+  tipPaise: pricePaise.max(100_000).default(0),
+  paymentMethod: z.enum(PAYMENT_METHODS),
+  /** The total the customer saw and confirmed; a different server total → 409 PRICE_CHANGED. */
+  expectedTotalPaise: pricePaise,
+  deliveryInstructions: optionalText(300),
+  restaurantInstructions: optionalText(300),
+  contactless: z.boolean().default(false),
+});
+
+export const CUSTOMER_CANCEL_REASONS = [
+  'CHANGED_MIND',
+  'ORDERED_BY_MISTAKE',
+  'TAKING_TOO_LONG',
+  'WRONG_ADDRESS',
+  'OTHER',
+];
+export const customerCancelBody = z.object({
+  reasonCode: z.enum(CUSTOMER_CANCEL_REASONS),
+  reasonText: optionalText(300),
+});
+
+/** A-26 */
+export const RESTAURANT_REJECT_REASONS = [
+  'ITEM_UNAVAILABLE',
+  'TOO_BUSY',
+  'CLOSING_SOON',
+  'CANNOT_PREPARE',
+  'OTHER',
+];
+export const RESTAURANT_CANCEL_REASONS = ['ITEM_UNAVAILABLE', 'KITCHEN_ISSUE', 'CLOSING_SOON', 'OTHER'];
+const prepMinutes = z.number().int().min(5).max(240);
+export const acceptOrderBody = z.object({ prepTimeMinutes: prepMinutes, version: z.number().int().min(0) });
+export const rejectOrderBody = z
+  .object({
+    reasonCode: z.enum(RESTAURANT_REJECT_REASONS),
+    reasonText: optionalText(300),
+    version: z.number().int().min(0),
+  })
+  .refine((b) => b.reasonCode !== 'OTHER' || b.reasonText, { message: 'Tell us why', path: ['reasonText'] });
+export const orderStepBody = z.object({ version: z.number().int().min(0) });
+export const prepTimeBody = z.object({ prepTimeMinutes: prepMinutes, version: z.number().int().min(0) });
+export const restaurantCancelBody = z
+  .object({
+    reasonCode: z.enum(RESTAURANT_CANCEL_REASONS),
+    reasonText: optionalText(300),
+    version: z.number().int().min(0),
+  })
+  .refine((b) => b.reasonCode !== 'OTHER' || b.reasonText, { message: 'Tell us why', path: ['reasonText'] });
+export const restaurantOrdersQuery = z.object({
+  restaurantId: uuid,
+  view: z.enum(['NEW', 'ACTIVE', 'PAST']).default('ACTIVE'),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const ADMIN_CANCEL_REASONS = [
+  'CUSTOMER_REQUEST',
+  'RESTAURANT_UNRESPONSIVE',
+  'RESTAURANT_REQUEST',
+  'NO_RIDER',
+  'RIDER_ISSUE',
+  'FRAUD_SUSPECTED',
+  'OTHER',
+];
+export const adminCancelBody = z.object({
+  reasonCode: z.enum(ADMIN_CANCEL_REASONS),
+  reasonText: z.string().trim().min(3).max(500),
+  riderIssue: z.boolean().default(false),
+  /** Replace the computed money outcome (audit-logged, D-66). */
+  override: z
+    .object({
+      customerFeePaise: pricePaise,
+      restaurantCompensationPaise: pricePaise,
+      riderCompensationPaise: pricePaise,
+    })
+    .optional(),
+  version: z.number().int().min(0),
+});
+export const adminOrderListQuery = pageQuery.extend({
+  q: z.string().trim().max(60).optional(),
+  status: z.string().trim().max(400).optional(), // comma-separated OrderStatus values
+  restaurantId: uuid.optional(),
+  cityId: uuid.optional(),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  needsAttention: z.enum(['true', 'false']).optional(),
+  from: isoDateTime.optional(),
+  to: isoDateTime.optional(),
+});
+export const orderNoteBody = z.object({ body: z.string().trim().min(1).max(1000) });
+export const attentionBody = z.object({ resolved: z.literal(true), note: z.string().trim().min(3).max(500) });
+
+export const notificationTemplateBody = z.object({
+  title: optionalText(100),
+  body: z.string().trim().min(1).max(500),
+  isActive: z.boolean(),
 });
 
 export const onboardingStatus = {

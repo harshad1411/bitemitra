@@ -83,13 +83,25 @@ export const apiEnvSchema = z
       });
   });
 
-export const workerEnvSchema = z.object({
-  ...base,
-  WORKER_POLL_MS: z.coerce.number().int().min(50).default(1000),
-  WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(10),
-  WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(8),
-  WORKER_LEASE_SEC: z.coerce.number().int().min(5).default(60),
-});
+export const workerEnvSchema = z
+  .object({
+    ...base,
+    WORKER_POLL_MS: z.coerce.number().int().min(50).default(1000),
+    WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(10),
+    WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(8),
+    WORKER_LEASE_SEC: z.coerce.number().int().min(5).default(60),
+    // Push delivery for order notifications (D-69). `expo` is not verified against Expo's service yet (Q-18).
+    PUSH_PROVIDER: z.enum(['console', 'expo']).default('console'),
+    EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+  })
+  .superRefine((env, ctx) => {
+    if ((env.APP_ENV === 'staging' || env.APP_ENV === 'production') && env.PUSH_PROVIDER === 'console')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PUSH_PROVIDER'],
+        message: 'console push provider is not allowed in staging/production',
+      });
+  });
 
 /**
  * Parse an env source against a schema; throws one readable error listing every problem.

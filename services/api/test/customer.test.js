@@ -238,7 +238,7 @@ describe('cart quote (D-46, PRICING.md)', () => {
       variantName: 'Regular 7"',
     });
     expect(q.offers).toEqual([{ name: 'Pizza Point: 10% off', amountPaise: 3_300 }]);
-    expect(q.canCheckout).toBe(false);
+    expect(q.canCheckout).toBe(true); // nothing blocks it (Phase 5: checkout exists)
     expect(q.delivery.distanceSource).toBe('FALLBACK');
     // Nothing internal reaches customers.
     expect(res.body).not.toMatch(/commission|"payablePaise"|riderCost|"netPaise"|gateway|"engine"/i);

@@ -1,6 +1,7 @@
 // Parameter schemas of the versioned commercial rules (PRICING.md §3, DELIVERY.md §4). Validated when a
 // rule is written (API) and again when the engine reads it — a malformed stored rule never prices an order.
 import { z } from 'zod';
+import { cancellationParams } from '@jamzo/order-engine';
 
 const paise = z.number().int().min(0).max(1_000_000_000);
 const bps = z.number().int().min(0).max(10_000);
@@ -172,6 +173,13 @@ export const RULE_TYPES = Object.freeze({
   RIDER_EARNING: {
     schema: riderEarningParams,
     table: 'riderEarningRule',
+    permission: 'pricing.manage',
+    lineScopes: false,
+  },
+  /** Not used by the quote: the order module reads it when an order is cancelled (D-66). */
+  CANCELLATION: {
+    schema: cancellationParams,
+    table: 'cancellationRule',
     permission: 'pricing.manage',
     lineScopes: false,
   },
