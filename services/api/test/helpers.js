@@ -52,7 +52,12 @@ export async function startTestApp(opts = {}) {
     ...opts.env,
   });
   let offsetMs = 0;
-  const clock = { now: () => new Date(Date.now() + offsetMs), advance: (ms) => (offsetMs += ms) };
+  const clock = {
+    now: () => new Date(Date.now() + offsetMs),
+    advance: (ms) => (offsetMs += ms),
+    /** Moves the clock so that now = the given instant (time keeps running from there). */
+    set: (date) => (offsetMs = new Date(date).getTime() - Date.now()),
+  };
   const sms = createConsoleSmsProvider();
   const email = createConsoleEmailProvider();
   const storage = createLocalStorage({ root: mediaDir });
@@ -170,3 +175,6 @@ export const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR4nGOM1mpjYGBgYgADAAyDAQ/ufyXrAAAAAElFTkSuQmCC',
   'base64',
 );
+
+/** An instant in India Standard Time, e.g. ist('2026-09-28T13:00:00') — a Monday. */
+export const ist = (local) => new Date(`${local}+05:30`);

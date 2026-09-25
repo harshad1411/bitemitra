@@ -27,6 +27,7 @@
     "@jamzo/delivery-engine": "workspace:*",
     "@jamzo/logger": "workspace:*",
     "@jamzo/notifications": "workspace:*",
+    "@jamzo/pricing-engine": "workspace:*",
     "@jamzo/shared-types": "workspace:*",
     "@jamzo/validation": "workspace:*",
     "fastify": "^5.12.5",

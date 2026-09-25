@@ -120,6 +120,12 @@ describe('seed', () => {
           expect(p.basePricePaise).toBe(p.variants.find((v) => v.isDefault).basePricePaise);
       }
     }
+    // Placeholder pricing rules (A-23): one open version per target, tax on every charge, nothing duplicated on re-run.
+    expect(await prisma.taxRule.count({ where: { effectiveTo: null } })).toBe(7);
+    expect(await prisma.deliveryPricingRule.count()).toBe(1);
+    expect(await prisma.markupRule.count()).toBe(2);
+    expect(await prisma.coupon.count()).toBe(2);
+    expect(await prisma.cmsPage.count({ where: { isPublished: true } })).toBe(0); // legal texts are drafts (Q-12)
     // Bank numbers are stored encrypted, never in clear text.
     const bank = await prisma.restaurantBankAccount.findFirst();
     expect(bank.accountNumberEncrypted).not.toMatch(/^\d+$/);

@@ -390,10 +390,14 @@ describe('lists and performance (OD-27)', () => {
   });
 
   it('loads a whole menu with a constant number of SQL statements, whatever its size (no N+1)', async () => {
+    // Prisma emits query events asynchronously: let earlier events land before and after measuring.
+    const settle = () => new Promise((r) => setTimeout(r, 150));
     const measure = async (restaurantId) => {
+      await settle();
       const before = ctx.queries.count;
       const res = await call('GET', `/v1/admin/restaurants/${restaurantId}/menu`);
       expect(res.statusCode).toBe(200);
+      await settle();
       return { sql: ctx.queries.count - before, products: res.json().productCount };
     };
     const small = await measure(eggCafe.id);

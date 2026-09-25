@@ -4,6 +4,7 @@ import { MOBILE_APPS } from '@jamzo/config';
 import { PERMISSIONS, SYSTEM_ROLES, hashPassword } from '@jamzo/auth';
 import { bboxOf } from '@jamzo/delivery-engine';
 import { seedCatalog } from './catalog.js';
+import { seedPricing } from './pricing.js';
 
 /** Feature flags (CONFIGURATION.md §4). Values are development defaults. */
 export const DEFAULT_FLAGS = [
@@ -93,7 +94,8 @@ export const DEMO_ACCOUNTS = {
  *   catalog?: boolean,
  *   fieldCipher?: { encrypt: (v: string) => string },
  *   log?: (msg: string) => void,
- * }} [options] catalog = demo restaurants and menus (needs demo); fieldCipher enables demo bank accounts
+ * }} [options] catalog = demo restaurants, menus, placeholder pricing rules, offers and home layout (needs demo);
+ *   fieldCipher enables demo bank accounts
  */
 export async function seed(
   prisma,
@@ -177,7 +179,10 @@ export async function seed(
 
   if (demo) {
     const cityIds = await seedDemo(prisma, log);
-    if (catalog) await seedCatalog(prisma, { cityId: cityIds.unjha, log, fieldCipher });
+    if (catalog) {
+      await seedCatalog(prisma, { cityId: cityIds.unjha, log, fieldCipher });
+      await seedPricing(prisma, { log });
+    }
   }
 }
 

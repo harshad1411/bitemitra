@@ -530,6 +530,274 @@ export const productBulkBody = z
     path: ['menuCategoryId'],
   });
 
+// ── Customer discovery (Phase 3) ────────────────────────────────────────────
+
+export const locationQuery = z.object({
+  lat: z.coerce.number().pipe(latitude).optional(),
+  lng: z.coerce.number().pipe(longitude).optional(),
+  addressId: uuid.optional(),
+});
+export const customerRestaurantsQuery = locationQuery.extend({
+  q: z.string().trim().max(80).optional(),
+  cuisine: z.string().trim().max(40).optional(),
+  veg: z.enum(['true', 'false']).optional(),
+  freeDelivery: z.enum(['true', 'false']).optional(),
+  openNow: z.enum(['true', 'false']).optional(),
+  sort: z.enum(['RELEVANCE', 'DISTANCE', 'DELIVERY_TIME', 'RATING', 'DELIVERY_FEE']).default('RELEVANCE'),
+  offset: z.coerce.number().int().min(0).max(10_000).default(0),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export const customerSearchQuery = locationQuery.extend({ q: z.string().trim().min(2).max(80) });
+export const addressBody = z.object({
+  label: text(1, 30),
+  line1: text(3, 200),
+  line2: optionalText(200),
+  landmark: optionalText(120),
+  area: optionalText(80),
+  pincode: pincode.nullable().optional(),
+  lat: latitude,
+  lng: longitude,
+  contactName: optionalText(80),
+  contactPhone: phone.nullable().optional(),
+  makeDefault: z.boolean().default(false),
+});
+export const addressUpdateBody = patchOf(addressBody);
+export const consentBody = z.object({
+  kind: z.enum(['TERMS', 'PRIVACY', 'MARKETING_SMS', 'MARKETING_EMAIL', 'MARKETING_PUSH']),
+  version: z.string().trim().min(1).max(20),
+  granted: z.boolean(),
+});
+export const cartQuoteBody = z
+  .object({
+    restaurantId: uuid,
+    lines: z
+      .array(
+        z.object({
+          key: z.string().min(1).max(64),
+          productId: uuid,
+          variantId: uuid.nullable().optional(),
+          addonIds: z.array(uuid).max(50).default([]),
+          quantity: z.number().int().min(1).max(50),
+        }),
+      )
+      .min(1)
+      .max(100),
+    addressId: uuid.optional(),
+    lat: latitude.optional(),
+    lng: longitude.optional(),
+    couponCode: z.string().trim().toUpperCase().max(20).optional(),
+    tipPaise: pricePaise.max(100_000).default(0),
+    paymentMethod: z.enum(['UPI', 'CARD', 'NETBANKING', 'WALLET', 'COD']).optional(),
+  })
+  .refine((b) => b.addressId || (b.lat !== undefined && b.lng !== undefined), 'Send an addressId or lat/lng');
+
+// ── CMS (Phase 3) ───────────────────────────────────────────────────────────
+
+export const HOME_SECTION_TYPES = [
+  'BANNER_CAROUSEL',
+  'CATEGORIES',
+  'TOP_RESTAURANTS',
+  'POPULAR_NEAR_YOU',
+  'RECOMMENDED',
+  'OFFERS',
+  'NEW_RESTAURANTS',
+  'FREE_DELIVERY',
+  'UNDER_PRICE',
+  'TOP_RATED',
+  'CUISINE_COLLECTION',
+  'RESTAURANT_COLLECTION',
+  'PRODUCT_COLLECTION',
+  'IMAGE_PROMO',
+  'TEXT',
+];
+const isoDateTime = z.iso.datetime({ offset: true });
+export const homeSectionBody = z
+  .object({
+    type: z.enum(HOME_SECTION_TYPES),
+    title: optionalText(80),
+    subtitle: optionalText(160),
+    mediaId: uuid.nullable().optional(),
+    background: z
+      .string()
+      .regex(/^#[0-9A-Fa-f]{6}$/, 'Use a colour like #F6F1FA')
+      .nullable()
+      .optional(),
+    ctaLabel: optionalText(30),
+    deepLink: z.string().trim().max(200).nullable().optional(),
+    config: z
+      .object({
+        limit: z.number().int().min(1).max(30).optional(),
+        cuisine: z.string().trim().max(40).optional(),
+        maxPricePaise: pricePaise.optional(),
+        restaurantIds: z.array(uuid).max(30).optional(),
+        productIds: z.array(uuid).max(30).optional(),
+      })
+      .default({}),
+    cityIds: z.array(uuid).max(50).default([]),
+    zoneIds: z.array(uuid).max(100).default([]),
+    audience: z.object({ newCustomers: z.boolean().optional() }).default({}),
+    startsAt: isoDateTime.nullable().optional(),
+    endsAt: isoDateTime.nullable().optional(),
+    isEnabled: z.boolean().default(true),
+  })
+  .refine((b) => b.type !== 'CUISINE_COLLECTION' || b.config.cuisine, {
+    message: 'Choose a cuisine',
+    path: ['config', 'cuisine'],
+  })
+  .refine((b) => b.type !== 'UNDER_PRICE' || b.config.maxPricePaise, {
+    message: 'Set the price limit',
+    path: ['config', 'maxPricePaise'],
+  })
+  .refine((b) => b.type !== 'RESTAURANT_COLLECTION' || b.config.restaurantIds?.length, {
+    message: 'Choose restaurants',
+    path: ['config', 'restaurantIds'],
+  })
+  .refine((b) => b.type !== 'PRODUCT_COLLECTION' || b.config.productIds?.length, {
+    message: 'Choose dishes',
+    path: ['config', 'productIds'],
+  })
+  .refine((b) => b.type !== 'IMAGE_PROMO' || b.mediaId, { message: 'Choose an image', path: ['mediaId'] })
+  .refine((b) => !b.startsAt || !b.endsAt || b.endsAt > b.startsAt, {
+    message: 'End must be after start',
+    path: ['endsAt'],
+  });
+export const bannerBody = z
+  .object({
+    homeSectionId: uuid.nullable().optional(),
+    mediaId: uuid,
+    title: optionalText(80),
+    deepLink: z.string().trim().max(200).nullable().optional(),
+    cityIds: z.array(uuid).max(50).default([]),
+    zoneIds: z.array(uuid).max(100).default([]),
+    startsAt: isoDateTime.nullable().optional(),
+    endsAt: isoDateTime.nullable().optional(),
+    isEnabled: z.boolean().default(true),
+  })
+  .refine((b) => !b.startsAt || !b.endsAt || b.endsAt > b.startsAt, {
+    message: 'End must be after start',
+    path: ['endsAt'],
+  });
+export const cmsPageBody = z.object({
+  slug,
+  title: text(2, 120),
+  body: z.string().max(100_000),
+  isPublished: z.boolean().default(false),
+});
+
+// ── Pricing rules, coupons, promotions (Phase 4) ────────────────────────────
+
+export const PRICING_RULE_TYPES = [
+  'MARKUP',
+  'COMMISSION',
+  'TAX',
+  'PLATFORM_FEE',
+  'DELIVERY',
+  'SURGE',
+  'RIDER_EARNING',
+];
+export const pricingRuleType = z.enum(PRICING_RULE_TYPES);
+export const pricingRuleCreateBody = z.object({
+  type: pricingRuleType,
+  scope: configScope,
+  scopeRefId: uuid.nullable().optional(),
+  restaurantId: uuid.nullable().optional(), // CATEGORY rules limited to one restaurant
+  kind: z.enum(['NIGHT', 'DEMAND', 'WEATHER', 'MANUAL']).optional(), // SURGE only
+  isEnabled: z.boolean().optional(), // SURGE only
+  priority: z.number().int().min(-100).max(100).default(0),
+  params: z.record(z.string(), z.unknown()),
+  effectiveFrom: isoDateTime.optional(),
+  changeNote: z.string().trim().min(3).max(500),
+  /** The version this edit was based on (null = "there was none"). Omitted = no stale-edit check. */
+  basedOnId: uuid.nullable().optional(),
+});
+export const pricingRuleEndBody = z.object({
+  changeNote: z.string().trim().min(3).max(500),
+  at: isoDateTime.optional(),
+});
+export const pricingRuleListQuery = z.object({
+  type: pricingRuleType,
+  scope: configScope.optional(),
+  scopeRefId: uuid.optional(),
+  include: z.enum(['CURRENT', 'ALL']).default('CURRENT'),
+});
+export const surgeSwitchBody = z.object({
+  isEnabled: z.boolean(),
+  changeNote: z.string().trim().min(3).max(500),
+});
+const offerTargeting = z
+  .object({
+    cityIds: z.array(uuid).max(50).optional(),
+    zoneIds: z.array(uuid).max(100).optional(),
+    restaurantIds: z.array(uuid).max(200).optional(),
+    categoryIds: z.array(uuid).max(50).optional(),
+    productIds: z.array(uuid).max(200).optional(),
+    paymentMethods: z
+      .array(z.enum(['UPI', 'CARD', 'NETBANKING', 'WALLET', 'COD']))
+      .max(5)
+      .optional(),
+  })
+  .default({});
+const offerFields = {
+  discountType: z.enum(['FIXED', 'PERCENTAGE', 'FREE_DELIVERY']),
+  valueBps: z.number().int().min(1).max(10_000).nullable().optional(),
+  valuePaise: pricePaise.nullable().optional(),
+  maxDiscountPaise: pricePaise.nullable().optional(),
+  minOrderPaise: pricePaise.nullable().optional(),
+  fundingSource: z.enum(['PLATFORM', 'RESTAURANT', 'SHARED']),
+  restaurantShareBps: z.number().int().min(0).max(10_000).nullable().optional(),
+  targeting: offerTargeting,
+  startsAt: isoDateTime,
+  endsAt: isoDateTime.nullable().optional(),
+  isActive: z.boolean().default(true),
+};
+const offerRules = (schema) =>
+  schema
+    .refine((b) => b.discountType !== 'PERCENTAGE' || b.valueBps, {
+      message: 'Set the percentage',
+      path: ['valueBps'],
+    })
+    .refine((b) => b.discountType !== 'FIXED' || b.valuePaise, {
+      message: 'Set the amount',
+      path: ['valuePaise'],
+    })
+    .refine((b) => b.fundingSource !== 'SHARED' || b.restaurantShareBps != null, {
+      message: 'Set the restaurant’s share',
+      path: ['restaurantShareBps'],
+    })
+    .refine((b) => !b.endsAt || b.endsAt > b.startsAt, {
+      message: 'End must be after start',
+      path: ['endsAt'],
+    });
+export const couponBody = offerRules(
+  z.object({
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9]{3,20}$/, '3–20 letters or digits'),
+    description: optionalText(200),
+    firstOrderOnly: z.boolean().default(false),
+    usageLimit: z.number().int().min(1).nullable().optional(),
+    perUserLimit: z.number().int().min(1).nullable().optional(),
+    ...offerFields,
+  }),
+);
+export const promotionBody = offerRules(
+  z.object({ name: text(2, 80), priority: z.number().int().min(-100).max(100).default(0), ...offerFields }),
+);
+export const pricingPreviewBody = z.object({
+  restaurantId: uuid,
+  draft: z
+    .object({
+      type: z.enum(['MARKUP', 'COMMISSION']),
+      scope: configScope,
+      scopeRefId: uuid.nullable().optional(),
+      restaurantId: uuid.nullable().optional(),
+      params: z.record(z.string(), z.unknown()),
+    })
+    .optional(),
+});
+
 export const onboardingStatus = {
   restaurant: z.enum(values(RESTAURANT_ONBOARDING_STATUSES)),
   rider: z.enum(values(RIDER_ONBOARDING_STATUSES)),

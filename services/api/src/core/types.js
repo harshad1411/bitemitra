@@ -34,7 +34,7 @@
  * @typedef {import('fastify').FastifyInstance & {
  *   prisma: import('@jamzo/database').Db,
  *   clock: { now: () => Date },
- *   services: { env: any, config: any, auth: any, storage: import('../modules/media/storage.js').Storage, sms: any, email: any, fieldCipher: ReturnType<typeof import('@jamzo/auth').createFieldCipher> },
+ *   services: { env: any, config: any, auth: any, storage: import('../modules/media/storage.js').Storage, sms: any, email: any, fieldCipher: ReturnType<typeof import('@jamzo/auth').createFieldCipher>, distance: import('../modules/delivery/distance.js').DistanceProvider, mediaBase: string },
  * }} JamzoApp
  */
 

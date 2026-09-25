@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 2 complete, awaiting review).
+Last updated: 2026-09-25 (Phases 3 + 4 in progress).
 
 ---
 
@@ -52,6 +52,7 @@ Last updated: 2026-09-25 (Phase 2 complete, awaiting review).
 | OD-33 | **No fake completeness:** placeholders, mocks, simulations, unconnected or untested pieces are labelled explicitly. |
 | OD-34 | Detailed Phase 1 completion report (22 items), then stop. |
 | OD-35 | **Phase 1 accepted; start Phase 2** (owner, 2026-09-24: "now start phase 2"). Phase 2 = MASTER_SPEC §82 "Restaurant/Menu": restaurant management, categories, products, variants, add-ons, availability, admin UI, tests. The same working rules apply (docs first, JavaScript only, no fake completeness, stop for review after the phase). Items that asked for explicit approval in Phase 1 (CH-5, CH-8, CH-9, D-30) have not been answered and stay open. |
+| OD-36 | **Complete Phases 3 and 4 together** (owner, 2026-09-25: "Complete 3rd and 4th phase"). Taken as acceptance of Phase 2. Phase 3 = customer discovery (§82: customer auth, location, home CMS, restaurant listing, search, restaurant detail, menu, cart); Phase 4 = pricing (§82: pricing engine, markup, commission, taxes, delivery, platform fee, surcharges, coupons, promotions). One review after both; still stop before Phase 5. Open approvals (CH-5, CH-8, CH-9, CH-12/D-39, D-30) remain open. |
 
 ## 2. Engineering decisions
 
@@ -319,6 +320,83 @@ was impossible); renaming a zone silently re-activated it. All update schemas no
 removes defaults; a test asserts every PATCH schema turns `{}` into `{}`, and API tests cover the city and
 zone cases.
 
+## 2b. Engineering decisions — Phases 3 + 4 (customer discovery, pricing)
+
+### D-46. The cart lives on the device; the server quote is authoritative
+There is no cart table in the design. The customer app keeps the cart locally (one restaurant per cart)
+and asks `POST /v1/customer/cart/quote` for a fully priced, re-validated breakdown whenever it changes.
+Clients never compute a price (spec §9, B5). The quote lists problems (item sold out, restaurant closed,
+address not serviceable, coupon not applicable) instead of silently dropping items. ORDER_FLOW's
+`/v1/cart/quote` is placed under the customer prefix (CH-15). Phase 5 checkout re-quotes and freezes the result.
+
+### D-47. When a restaurant is shown for a location
+Listed only when: the customer point is serviceable (city live, inside a zone service area — D-19); the
+restaurant is ACTIVE; `restaurant_zones` contains the customer's zone; the point is inside the branch's
+active delivery area; and the distance is within `delivery.distance.maxDistanceM` and the delivery rule's
+maximum. Closed or paused restaurants are still listed (sorted after open ones) with "Opens at …", so
+customers can plan; they cannot be ordered from (Phase 5 re-checks). Guest browsing follows the setting
+`customer.guestBrowsing`.
+
+### D-48. Distance: provider interface, fallback until a maps provider is chosen (OD-14, A-19, Q-14)
+`DistanceProvider` interface; the only implementation today is `none`, so every quote uses the configured
+fallback (`HAVERSINE_FACTOR`: straight line × `roadFactorBps`, default 1.3) and is flagged
+`distanceSource = FALLBACK`. With the setting on `REJECT`, no quote is given. Real road distance arrives
+when Q-14 is answered (CH-17). ETA shown to customers = branch preparation time (+ busy-mode minutes) +
+travel time at the setting `delivery.eta` average speed + buffer, as a range — an estimate, labelled so.
+
+### D-49. Pricing engine implements PRICING.md exactly (`@jamzo/pricing-engine`, engine version `2026.09-1`)
+Pure `quote(cart, context, rules, now)`; the 14-step pipeline and the 6 invariants of PRICING.md §4/§8,
+including conservation (every paise of the payable is assigned to restaurant, rider, tax, gateway or
+platform). The PRICING.md §6 worked example is a golden test with exact paise. Menus show customer prices
+from the same markup function, so a menu price and a cart line can never disagree.
+
+### D-50. Versioned commercial rules: write model
+A rule change creates a **new version**; the open version for the same target (rule type, scope,
+target, restaurant qualifier, priority, and kind for surge) is closed at the new version's
+`effectiveFrom`, linked by `supersedesId`. "End rule" closes a version without replacement (the parent
+scope's rule applies again). Back-dating is refused (old quotes must stay reproducible); future-dated
+versions are allowed. A partial unique index guarantees one open version per target for every rule table.
+Every change needs a change note, is audit-logged, and needs the rule type's permission (markup, delivery,
+platform fee, small order: `pricing.manage`; surge/night: `pricing.surge`; commission:
+`commissions.manage`; tax: `taxes.manage`; rider earnings: `pricing.manage`).
+
+### D-51. Tax and withholdings are rules, and every default is a placeholder pending the CA (OD-9, Q-3)
+`tax_rules.params.appliesTo` selects the charge (FOOD, PACKAGING, DELIVERY_FEE, PLATFORM_FEE,
+SMALL_ORDER_FEE, SURCHARGE, COMMISSION) or `WITHHOLDING` (TCS/TDS on restaurant payouts). Development
+seed: food 5% exclusive (CGST 2.5% + SGST 2.5%), packaging same as food, 18% on delivery, platform fee,
+small-order fee, surcharges and commission, **no withholdings**. The admin and every quote label tax as
+"pending CA review". Nothing here is tax advice; production financial launch waits for Q-3.
+
+### D-52. Coupon limits that need order history are enforced from Phase 5
+Coupon/promotion targeting, dates, minimum order, caps and funding work now. Per-user limits, total
+usage limits and "first order only" depend on `coupon_usages` and orders (Phase 5); until then the quote
+evaluates them with zero past orders/usages and says so in the response (`limitsCheckedAtCheckout`).
+
+### D-53. Rider earning rules activated in Phase 4 (moved from Phase 6)
+Every quote needs the rider-cost estimate for the conservation invariant and the admin's margin preview.
+Only the rule table moves; rider earnings, ledgers and payouts stay in Phases 6/8 (CH-16).
+
+### D-54. Payment gateway cost is an admin-only estimate
+Setting `payments.gatewayFees` (per method, placeholder) estimates gateway cost for the platform-net
+figure in admin previews. Actual fees come from the payment provider in Phase 7.
+
+### D-55. Customer app state and location
+TanStack Query is introduced (as planned in D-29). The cart is persisted on the device with AsyncStorage
+(not secure storage — it holds no secrets). Location: "Use my current location" with foreground permission
+(`expo-location`) plus saved addresses entered as text with the device location; a map pin picker needs
+the maps provider (Q-14).
+
+### D-56. Home screen is CMS-driven and resolved on the server
+Admins create, order, schedule and target (city/zone) home sections and banners. Dynamic section types
+(top rated, new, free delivery, under ₹X, cuisine, chosen restaurants/products) are filled on the server
+from the same listing rules as D-47, so the app never shows a restaurant it cannot deliver from.
+Ratings are not collected yet (Phase 5 `reviews`): "top rated" uses the stored rating (0 for everyone
+today) and says so in the admin.
+
+### D-57. Customer data in the admin is masked by default
+Customer list/detail show masked phone numbers and addresses unless the admin holds `customers.pii`
+(RBAC §2). Viewing unmasked data is audit-logged.
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 | # | Change | Why | Consequence | Approval |
@@ -336,6 +414,9 @@ zone cases.
 | CH-12 | Restaurant self-editing of menu content not built in Phase 2 (spec §19) | needs a price/content review flow; flag stays off | restaurants use sold-out toggles and store controls; Jamzo edits menus | Needs approval (D-39) |
 | CH-13 | Product admin shows no customer-price preview yet (spec §31 "customer/display price preview, markup, tax") | markup and tax rules are Phase 4 | the editor says so; preview added with the pricing engine | Informational |
 | CH-14 | `restaurant_settings` slimmed; hierarchical values use the settings registry | avoid two sources of truth | admins override per restaurant/branch in Configuration | Informational (D-40) |
+| CH-15 | Cart quote endpoint `/v1/customer/cart/quote` (ORDER_FLOW said `/v1/cart/quote`) | customer resources share one prefix (API.md §1) | none | Informational |
+| CH-16 | `rider_earning_rules` activated in Phase 4 instead of 6 | quotes need the rider-cost estimate (D-53) | rule editing available earlier | Informational |
+| CH-17 | Delivery fees use straight-line distance × 1.3, flagged FALLBACK, until a maps provider is chosen (OD-14 wants road distance) | no provider decided (Q-14) | fees may differ from road distance; every quote says which source was used | **Needs Q-14** |
 | CH-9 | Extra admin roles beyond OD-24 kept from spec §42 (Rider Manager, Marketing, Content Manager) and spec's platform "Restaurant Manager" renamed **Partner Manager** to avoid clashing with the restaurant-side "Restaurant Manager" | naming collision | clearer RBAC | Needs approval |
 
 ## 4. Assumptions (configurable defaults)
@@ -361,6 +442,8 @@ zone cases.
 | A-19 | Route-distance fallback: `haversine × 1.3` with the order flagged `distanceSource = FALLBACK`; alternative setting value `REJECT` refuses to quote. |
 | A-21 | Required restaurant documents before approval: FSSAI and PAN (setting `restaurants.requiredDocuments`); GST certificate only when the restaurant has a GSTIN. **Legal review** (Q-12). |
 | A-22 | New branch preparation time 20 minutes; pause limited to 15–120 minutes; busy mode adds 10 minutes (setting `restaurants.operations`). |
+| A-23 | Development pricing defaults (all **placeholders**, A-16): no global markup (demo: Pizza Point +10% with Farmhouse +15%, the owner's example); commission 15% on food value after restaurant-funded discount; platform fee ₹5; delivery slabs 0–2 km ₹20, 2–4 km ₹30, 4–6 km ₹40, max 7 km, free above ₹499; small-order fee ₹15 below ₹99; night surcharge ₹10 23:00–06:00 (only while flag `night_pricing` is on); rider ₹25 incl. 2 km + ₹6/km; tax per D-51. |
+| A-24 | ETA estimate: average rider speed 18 km/h, 5-minute buffer, shown as a 10-minute range (setting `delivery.eta`). |
 | A-20 | Store names: "Jamzo", "Jamzo Restaurant Partner", "Jamzo Delivery Partner"; URL schemes `jamzo`, `jamzo-restaurant`, `jamzo-rider` (Q-8). |
 
 ## 5. Questions

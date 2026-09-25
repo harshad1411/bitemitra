@@ -14,7 +14,8 @@ import {
   zoneCreateBody,
   zoneUpdateBody,
 } from '@jamzo/validation';
-import { bboxOf, resolveServiceability } from '@jamzo/delivery-engine';
+import { bboxOf } from '@jamzo/delivery-engine';
+import { resolvePoint } from './service.js';
 import { isUniqueViolation } from '@jamzo/database';
 import { AppError, conflict, forbidden, notFound } from '../../core/errors.js';
 import { parse } from '../../core/validate.js';
@@ -59,34 +60,7 @@ export default async function geographyRoutes(app) {
     { config: { auth: 'optional', rateLimit: { max: 60, timeWindow: '1 minute' } } },
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
       const { lat, lng } = parse(serviceabilityQuery, request.query);
-      // Indexed bbox pre-filter, then exact point-in-polygon in the pure engine.
-      const zones = await prisma.zone.findMany({
-        where: {
-          isActive: true,
-          minLat: { lte: lat },
-          maxLat: { gte: lat },
-          minLng: { lte: lng },
-          maxLng: { gte: lng },
-        },
-        include: { city: true, serviceAreas: { where: { isActive: true } } },
-      });
-      // More specific (smaller) zones first when zones overlap.
-      zones.sort((a, b) => area(a) - area(b));
-      const result = resolveServiceability(
-        { lat, lng },
-        {
-          cities: zones.map((z) => z.city),
-          zones: zones.map((z) => ({
-            id: z.id,
-            name: z.name,
-            slug: z.slug,
-            cityId: z.cityId,
-            isActive: z.isActive,
-            geometry: z.geometry,
-          })),
-          serviceAreas: zones.flatMap((z) => z.serviceAreas.map(areaDto)),
-        },
-      );
+      const result = await resolvePoint(prisma, { lat, lng });
       return {
         serviceable: result.serviceable,
         reason: result.reason,
@@ -382,8 +356,4 @@ export default async function geographyRoutes(app) {
       });
     },
   );
-}
-
-function area(z) {
-  return (Number(z.maxLat) - Number(z.minLat)) * (Number(z.maxLng) - Number(z.minLng));
 }

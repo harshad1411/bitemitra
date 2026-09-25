@@ -532,7 +532,17 @@ importers:
 
   packages/notifications: {}
 
-  packages/pricing-engine: {}
+  packages/pricing-engine:
+    dependencies:
+      '@jamzo/catalog-engine':
+        specifier: workspace:*
+        version: link:../catalog-engine
+      '@jamzo/config':
+        specifier: workspace:*
+        version: link:../config
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
 
   packages/shared-types: {}
 
@@ -585,6 +595,9 @@ importers:
       '@jamzo/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
+      '@jamzo/pricing-engine':
+        specifier: workspace:*
+        version: link:../../packages/pricing-engine
       '@jamzo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

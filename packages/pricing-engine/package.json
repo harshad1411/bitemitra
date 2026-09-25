@@ -2,12 +2,17 @@
   "name": "@jamzo/pricing-engine",
   "version": "0.1.0",
   "private": true,
-  "description": "Pure pricing domain. Phase 1: integer money math only.",
+  "description": "Pure pricing domain: money math, rule schemas and the quote pipeline (PRICING.md).",
   "type": "module",
   "exports": {
     ".": "./src/index.js"
   },
   "scripts": {
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jamzo/catalog-engine": "workspace:*",
+    "@jamzo/config": "workspace:*",
+    "zod": "^4.6.5"
   }
 }

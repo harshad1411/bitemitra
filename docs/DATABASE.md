@@ -1,6 +1,6 @@
 # Database
 
-Status: **Phase 2.** 43 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, OD-20, OD-21.
+Status: **Phases 3 + 4.** 58 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
 
 | File | Purpose |
 |---|---|
@@ -9,7 +9,7 @@ Status: **Phase 2.** 43 of 98 designed tables are active (migrated). Decisions: 
 | [`prisma/schema.prisma`](../packages/database/prisma/schema.prisma) | **Generated** active schema (what Prisma migrates and the client uses). |
 | [`prisma/constraints.sql`](../packages/database/prisma/constraints.sql) | Partial unique indexes + CHECK constraints Prisma cannot express (all tables). |
 | `prisma/constraints.active.sql` | Generated subset for active tables, applied as a migration. |
-| `prisma/migrations/` | Migrations (Phase 1: init + constraints; Phase 2: catalog + constraints). |
+| `prisma/migrations/` | Migrations (Phase 1: init + constraints; Phase 2: catalog + constraints; Phases 3 + 4: discovery & pricing + constraints). |
 
 `pnpm --filter @jamzo/database schema:generate` regenerates the active files; `pnpm verify:schema` fails if they
 are stale, validates both schemas, checks that the migration chain produces **exactly** the active schema
@@ -36,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active now (migrated): Phase 1 and Phase 2 tables. **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1, 2, 3 and 4 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -82,14 +82,25 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | product_availability | Dated sold-out windows ("sold out for today") |
 | product_schedules | Recurring windows when a product can be ordered |
 
-### 3.2 LATER PHASE (54 tables)
+### 3.1b CORE — Phases 3 + 4, customer discovery and pricing (15 tables)
+
+| Table | Why it exists |
+|---|---|
+| customer_addresses | Saved delivery addresses with location and resolved zone (soft delete; orders copy the address) |
+| favorite_restaurants | Customer favourites |
+| consent_records | Terms / privacy / marketing consents with version (DPDP, Q-12) |
+| home_sections, banners | CMS-driven home page: ordered, scheduled, city/zone-targeted sections and banners (D-56) |
+| cms_pages | Terms, privacy, FAQ and other static pages |
+| markup_rules, commission_rules, tax_rules, platform_fee_rules, delivery_pricing_rules, surge_rules | Versioned commercial rules resolved by the pricing engine (OD-7..OD-16, D-50, D-51) |
+| rider_earning_rules | Rider pay rule, needed for every quote's rider-cost estimate (moved from Phase 6 — D-53) |
+| coupons, promotions | Discounts with targeting, funding source and limits (D-52) |
+
+### 3.2 LATER PHASE (39 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
-| 3 — Customer discovery | customer_addresses, favorite_restaurants, consent_records, home_sections, banners, cms_pages | Saved addresses, favourites, legal consents, CMS-driven home page |
-| 4 — Pricing | markup_rules, commission_rules, tax_rules, platform_fee_rules, delivery_pricing_rules, surge_rules, coupons, promotions | Versioned commercial rules and promotions (OD-7..OD-10) |
 | 5 — Orders | orders, order_items, order_item_addons, order_status_history, order_pricing_snapshots, order_addresses, order_notes, order_cancellations, cancellation_rules, coupon_usages, notifications, notification_templates, notification_preferences, reviews | Order lifecycle, frozen financial snapshot, cancellations, notifications, ratings |
-| 6 — Riders & dispatch | rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, rider_earning_rules, order_assignments | KYC, live availability/location, offers & single-winner assignment, earnings |
+| 6 — Riders & dispatch | rider_documents, rider_vehicles, rider_availability, rider_locations, rider_shifts, rider_earnings, order_assignments | KYC, live availability/location, offers & single-winner assignment, earnings |
 | 7 — Payments | payments, payment_attempts, payment_events, refunds | Provider-agnostic payments (Razorpay first), idempotent webhooks, refunds |
 | 8 — Financials | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, rider_payouts, rider_cod_deposits, platform_ledger_entries, invoices, invoice_sequences | Append-only ledgers, COD reconciliation, settlements, statements, invoices |
 | 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views | Support with full order context, saved table views |
@@ -134,7 +145,8 @@ Enforced by PostgreSQL and exercised by `pnpm verify:schema` (each must fail wit
 | One successful payment per order; refund ≤ capture; duplicate refund | partial unique + CHECK + unique key | Phase 7 |
 | Same ledger posting twice; non-positive amounts | unique idempotency key + CHECK | Phase 8 |
 | Duplicate settlement | unique `(restaurant|rider, periodStart, periodEnd)` | Phase 8 |
-| Two open versions of one rule | partial unique on open versions | Phase 4 |
+| Two open versions of one rule (per rule type; tax per charge, surge per kind) | partial unique on open versions | Phase 4 |
+| Rule windows valid; GLOBAL rules untargeted; upper-case coupon codes; valid promotion values | CHECKs | Phase 4 |
 
 Application complements: `SELECT … FOR UPDATE` for ledgers/sequences, conditional updates for state
 changes, optimistic `version` columns, atomic counters for limits.
@@ -148,6 +160,7 @@ backed by indexes. Later phases add indexes driven by measured admin filter usag
 ## 7. Migrations
 
 - Phase 1: `…_phase1_init` (generated from the active schema) and `…_phase1_constraints` (from `constraints.active.sql`).
+- Phases 3 + 4: `…_phase3_4_discovery_pricing` (15 new tables, no change to existing tables) and `…_phase3_4_constraints`.
 - Phase 2: `…_phase2_catalog` (`prisma migrate diff` from the Phase 1 active schema to the Phase 2 one: 16 new tables, no changes to existing tables) and `…_phase2_constraints` (the constraint statements that became active).
 - Activating a table = add it to `active-models.json`, regenerate, `prisma migrate dev`, plus a constraints migration if new statements apply.
 - Production: forward-only, expand → migrate → contract across releases so older mobile versions keep working.

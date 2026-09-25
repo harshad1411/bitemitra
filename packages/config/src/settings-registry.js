@@ -251,6 +251,22 @@ const DEFINITIONS = [
     phase: 6,
   },
 
+  {
+    key: 'delivery.eta',
+    section: 'Delivery',
+    label: 'Delivery time estimate',
+    description:
+      'Estimate shown to customers: preparation time + travel at this average speed + buffer, as a range (A-24). An estimate, not a promise.',
+    schema: z.object({
+      avgSpeedKmph: z.number().int().min(5).max(60),
+      bufferMinutes: z.number().int().min(0).max(60),
+      rangeMinutes: z.number().int().min(0).max(60),
+    }),
+    default: { avgSpeedKmph: 18, bufferMinutes: 5, rangeMinutes: 10 },
+    scopes: GEO_SCOPES,
+    phase: 3,
+  },
+
   // ── Payments & COD ───────────────────────────────────────────────────────
   {
     key: 'payments.methods',
@@ -289,6 +305,35 @@ const DEFINITIONS = [
     phase: 6,
     placeholder: true,
     critical: true,
+  },
+  {
+    key: 'payments.gatewayFees',
+    section: 'Payments',
+    label: 'Payment gateway fee estimate',
+    description:
+      'Estimated gateway fee per method, used only for the platform-margin figures in the admin (D-54). Actual fees come from the provider (Phase 7).',
+    schema: z.object({
+      methods: z.record(
+        z.enum(['UPI', 'CARD', 'NETBANKING', 'WALLET', 'COD']),
+        z.object({ bps, fixedPaise: paise }),
+      ),
+      gstBps: bps,
+      defaultMethod: z.enum(['UPI', 'CARD', 'NETBANKING', 'WALLET', 'COD']),
+    }),
+    default: {
+      methods: {
+        UPI: { bps: 0, fixedPaise: 0 },
+        CARD: { bps: 200, fixedPaise: 0 },
+        NETBANKING: { bps: 190, fixedPaise: 0 },
+        WALLET: { bps: 190, fixedPaise: 0 },
+        COD: { bps: 0, fixedPaise: 0 },
+      },
+      gstBps: 1800,
+      defaultMethod: 'UPI',
+    },
+    scopes: ['GLOBAL'],
+    phase: 4,
+    placeholder: true,
   },
   {
     key: 'refunds.approval',

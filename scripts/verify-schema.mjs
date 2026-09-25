@@ -324,5 +324,36 @@ async function checkGuarantees(db) {
     `insert into product_addon_groups (id, "productId", name, "minSelect", "maxSelect") values ('${id()}', '${product}', 'Extras', 0, 0)`,
     CHECK,
   );
+  // Phases 3 + 4 — versioned pricing rules, coupons, promotions
+  const taxRule = (appliesTo, extra = '') =>
+    `insert into tax_rules (id, scope, params) values ('${id()}', 'GLOBAL', '{"appliesTo":"${appliesTo}","mode":"EXCLUSIVE","components":[]${extra}}')`;
+  await db.exec(taxRule('FOOD'));
+  await db.exec(taxRule('DELIVERY_FEE')); // a different charge at the same scope is a different target
+  await rejects('two open GLOBAL tax rules for the same charge', taxRule('FOOD'), UNIQUE);
+  const surge = (kind) =>
+    `insert into surge_rules (id, scope, kind, params) values ('${id()}', 'GLOBAL', '${kind}', '{}')`;
+  await db.exec(surge('NIGHT'));
+  await db.exec(surge('DEMAND'));
+  await rejects('two open GLOBAL night surcharge rules', surge('NIGHT'), UNIQUE);
+  await rejects(
+    'rule version that ends before it starts',
+    `insert into delivery_pricing_rules (id, scope, params, "effectiveFrom", "effectiveTo") values ('${id()}', 'GLOBAL', '{}', now(), now() - interval '1 day')`,
+    CHECK,
+  );
+  await rejects(
+    'city-scoped rule without a target city',
+    `insert into platform_fee_rules (id, scope, params) values ('${id()}', 'CITY', '{}')`,
+    CHECK,
+  );
+  await rejects(
+    'lower-case coupon code',
+    `insert into coupons (id, code, "discountType", "valuePaise", "startsAt", "updatedAt") values ('${id()}', 'save10', 'FIXED', 1000, now(), now())`,
+    CHECK,
+  );
+  await rejects(
+    'promotion with a zero fixed amount',
+    `insert into promotions (id, name, "discountType", "valuePaise", "startsAt", "updatedAt") values ('${id()}', 'Bad', 'FIXED', 0, now(), now())`,
+    CHECK,
+  );
   console.log('✓ database-level guarantees hold');
 }

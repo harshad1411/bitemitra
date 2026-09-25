@@ -351,7 +351,22 @@ export function createConfigService(prisma, clock, { ttlMs = 30_000 } = {}) {
     };
   }
 
+  /**
+   * Every feature flag evaluated for a context (server-side business checks use this, never the client value).
+   * @param {{ userId?: string | null, cityId?: string | null, zoneId?: string | null, appId?: string | null, appVersion?: string | null }} who
+   */
+  async function flagMap(who = {}) {
+    const rows = await flags();
+    return Object.fromEntries(
+      rows.map((f) => [
+        f.key,
+        evaluateFlag({ key: f.key, enabled: f.enabled, rules: /** @type {any} */ (f.rules) }, who),
+      ]),
+    );
+  }
+
   return {
+    flagMap,
     resolve,
     listForScope,
     write,

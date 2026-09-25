@@ -114,9 +114,39 @@ enum ActorType {
   SYSTEM
 }
 
+enum FundingSource {
+  PLATFORM
+  RESTAURANT
+  SHARED
+}
+
+enum DiscountType {
+  FIXED
+  PERCENTAGE
+  FREE_DELIVERY
+}
+
 enum MediaKind {
   IMAGE
   DOCUMENT
+}
+
+enum HomeSectionType {
+  BANNER_CAROUSEL
+  CATEGORIES
+  TOP_RESTAURANTS
+  POPULAR_NEAR_YOU
+  RECOMMENDED
+  OFFERS
+  NEW_RESTAURANTS
+  FREE_DELIVERY
+  UNDER_PRICE
+  TOP_RATED
+  CUISINE_COLLECTION
+  RESTAURANT_COLLECTION
+  PRODUCT_COLLECTION
+  IMAGE_PROMO
+  TEXT
 }
 
 /// One human identity. Profiles (Customer, Rider, RestaurantUser, AdminUser) hang off it.
@@ -140,6 +170,7 @@ model User {
   identities              AuthIdentity[]
   sessions                Session[]
   devices                 Device[]
+  consents                ConsentRecord[]
 
   @@map("users")
 }
@@ -290,6 +321,21 @@ model AdminUserRole {
   @@map("admin_user_roles")
 }
 
+model ConsentRecord {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  kind      String // e.g. TERMS, PRIVACY, MARKETING_SMS
+  version   String
+  granted   Boolean
+  ipAddress String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+  @@map("consent_records")
+}
+
 model Country {
   id           String   @id @default(uuid(7)) @db.Uuid
   code         String   @unique // ISO 3166-1 alpha-2
@@ -393,8 +439,47 @@ model Customer {
   updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
   user           User                 @relation(fields: [userId], references: [id])
+  addresses      CustomerAddress[]
+  favorites      FavoriteRestaurant[]
 
   @@map("customers")
+}
+
+model CustomerAddress {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  customerId   String    @db.Uuid
+  label        String // Home / Work / custom
+  line1        String
+  line2        String?
+  landmark     String?
+  area         String?
+  cityName     String
+  pincode      String?
+  lat          Decimal   @db.Decimal(9, 6)
+  lng          Decimal   @db.Decimal(9, 6)
+  zoneId       String?   @db.Uuid // resolved at save time; re-resolved at checkout
+  contactName  String?
+  contactPhone String?
+  deletedAt    DateTime? @db.Timestamptz(3) // soft delete: orders keep their own OrderAddress copy
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@map("customer_addresses")
+}
+
+model FavoriteRestaurant {
+  customerId   String   @db.Uuid
+  restaurantId String   @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, restaurantId])
+  @@map("favorite_restaurants")
 }
 
 /// A restaurant brand/business. Physical outlets are RestaurantBranch; today every
@@ -433,6 +518,7 @@ model Restaurant {
   zones          RestaurantZone[]
   menuCategories MenuCategory[]
   products       Product[]
+  favorites      FavoriteRestaurant[]
 
   @@index([cityId, onboardingStatus])
   @@map("restaurants")
@@ -763,6 +849,135 @@ model Rider {
   @@map("riders")
 }
 
+model MarkupRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid // null only for GLOBAL
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json // { type: PERCENTAGE|FIXED, valueBps?, valuePaise?, rounding }
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("markup_rules")
+}
+
+model CommissionRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json // { type: PERCENTAGE|FIXED|HYBRID, rateBps?, fixedPaise?, taxRateBps? }
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("commission_rules")
+}
+
+model TaxRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json // { mode: INCLUSIVE|EXCLUSIVE|EXEMPT, components: [{ code: CGST, rateBps }], appliesTo: [...] }
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("tax_rules")
+}
+
+model PlatformFeeRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json // { enabled, fixedPaise, rateBps, minPaise, maxPaise, schedule? }
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("platform_fee_rules")
+}
+
+model DeliveryPricingRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json // { strategy: SLABS|BASE_PLUS_PER_KM, slabs?, basePaise?, includedM?, perKmPaise?, minPaise?, maxPaise?, freeAbovePaise?, smallOrder? }
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("delivery_pricing_rules")
+}
+
+model RiderEarningRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  params        Json // { basePaise, perKmPaise, slabs?, minPaise, waitingPerMinPaise, nightIncentive?, peakIncentive? }
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, effectiveFrom])
+  @@map("rider_earning_rules")
+}
+
+/// Night (scheduled) and manual/demand surge rules.
+model SurgeRule {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  scope         ConfigScope
+  scopeRefId    String?     @db.Uuid
+  restaurantId  String?     @db.Uuid // qualifier: CATEGORY rule limited to one restaurant (ranks above an unqualified CATEGORY rule)
+  kind          String // NIGHT | DEMAND | WEATHER | MANUAL
+  params        Json // { startTime?, endTime?, type: FIXED|PERCENTAGE|MULTIPLIER, value }
+  isEnabled     Boolean     @default(true) // instant kill-switch (spec §15)
+  priority      Int         @default(0)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
+  supersedesId  String?     @unique @db.Uuid
+  createdById   String?     @db.Uuid
+  changeNote    String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([scope, scopeRefId, kind, effectiveFrom])
+  @@map("surge_rules")
+}
+
 /// Generic hierarchical key/value settings (operational config, not money rules).
 /// e.g. orders.restaurantAcceptanceTimeoutSec, cod.maxOrderValuePaise, app.minVersion.
 model Setting {
@@ -833,6 +1048,57 @@ model AppVersionPolicy {
   @@map("app_version_policies")
 }
 
+model Coupon {
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  code               String        @unique // upper-case
+  description        String?
+  discountType       DiscountType
+  valueBps           Int? // PERCENTAGE
+  valuePaise         Int? // FIXED
+  maxDiscountPaise   Int?
+  minOrderPaise      Int?
+  fundingSource      FundingSource @default(PLATFORM)
+  restaurantShareBps Int? // SHARED: restaurant's share of the discount
+  firstOrderOnly     Boolean       @default(false)
+  usageLimit         Int?
+  perUserLimit       Int?
+  usedCount          Int           @default(0)
+  targeting          Json          @default("{}") // { cityIds, zoneIds, restaurantIds, categoryIds, productIds, paymentMethods }
+  startsAt           DateTime      @db.Timestamptz(3)
+  endsAt             DateTime?     @db.Timestamptz(3)
+  isActive           Boolean       @default(true)
+  createdById        String?       @db.Uuid
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+
+
+  @@index([isActive, startsAt])
+  @@map("coupons")
+}
+
+/// Automatic (code-less) promotions, e.g. restaurant "20% off above ₹299".
+model Promotion {
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  name               String
+  discountType       DiscountType
+  valueBps           Int?
+  valuePaise         Int?
+  maxDiscountPaise   Int?
+  minOrderPaise      Int?
+  fundingSource      FundingSource @default(RESTAURANT)
+  restaurantShareBps Int?
+  targeting          Json          @default("{}")
+  startsAt           DateTime      @db.Timestamptz(3)
+  endsAt             DateTime?     @db.Timestamptz(3)
+  isActive           Boolean       @default(true)
+  priority           Int           @default(0)
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@index([isActive, startsAt])
+  @@map("promotions")
+}
+
 model Media {
   id           String    @id @default(uuid(7)) @db.Uuid
   kind         MediaKind @default(IMAGE)
@@ -856,6 +1122,67 @@ model Media {
 
   @@index([kind, createdAt])
   @@map("media")
+}
+
+model CmsPage {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  slug        String   @unique // terms, privacy, faq …
+  title       String
+  body        String // Markdown
+  isPublished Boolean  @default(false)
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("cms_pages")
+}
+
+model HomeSection {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  type       HomeSectionType
+  title      String?
+  subtitle   String?
+  mediaId    String?         @db.Uuid
+  background String?
+  ctaLabel   String?
+  deepLink   String?
+  /// Type-specific configuration (restaurant ids, cuisine, price cap, …)
+  config     Json            @default("{}")
+  position   Int             @default(0)
+  cityIds    String[]        @db.Uuid // empty = all cities
+  zoneIds    String[]        @db.Uuid
+  audience   Json            @default("{}") // e.g. { newCustomers: true }
+  startsAt   DateTime?       @db.Timestamptz(3)
+  endsAt     DateTime?       @db.Timestamptz(3)
+  isEnabled  Boolean         @default(true)
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @db.Timestamptz(3)
+
+  banners Banner[]
+
+  @@index([isEnabled, position])
+  @@map("home_sections")
+}
+
+model Banner {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  homeSectionId String?   @db.Uuid
+  mediaId       String    @db.Uuid
+  title         String?
+  deepLink      String?
+  position      Int       @default(0)
+  cityIds       String[]  @db.Uuid
+  zoneIds       String[]  @db.Uuid
+  startsAt      DateTime? @db.Timestamptz(3)
+  endsAt        DateTime? @db.Timestamptz(3)
+  isEnabled     Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+
+  homeSection HomeSection? @relation(fields: [homeSectionId], references: [id])
+
+  @@index([homeSectionId, position])
+  @@map("banners")
 }
 
 model AuditLog {
