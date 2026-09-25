@@ -1055,6 +1055,50 @@ export const refundRejectBody = z.object({ reason: z.string().trim().min(3).max(
 /** A cash-on-delivery refund paid back outside the gateway: the UPI / bank transfer reference. */
 export const refundPaidBody = z.object({ reference: z.string().trim().min(4).max(100) });
 
+// ── Phase 8: ledgers and settlements (D-88 … D-92) ───────────────────────────
+
+export const SETTLEMENT_KINDS = ['RESTAURANT', 'RIDER'];
+export const SETTLEMENT_STATUSES = ['DRAFT', 'PENDING', 'PROCESSING', 'PAID', 'FAILED', 'CANCELLED'];
+const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
+export const settlementListQuery = pageQuery.extend({
+  kind: z.enum(SETTLEMENT_KINDS).default('RESTAURANT'),
+  status: z.enum(SETTLEMENT_STATUSES).optional(),
+});
+/** Run settlements now: for today's due periods, or for a chosen period (India dates, end exclusive). */
+export const settlementRunBody = z
+  .object({ kind: z.enum(SETTLEMENT_KINDS), from: dateOnly.optional(), to: dateOnly.optional() })
+  .refine((b) => Boolean(b.from) === Boolean(b.to), { message: 'Give both dates or neither', path: ['to'] })
+  .refine((b) => !b.from || b.from < b.to, { message: 'The end must be after the start', path: ['to'] });
+export const settlementPaidBody = z.object({ reference: z.string().trim().min(4).max(100) });
+export const settlementNoteBody = z.object({ note: z.string().trim().min(3).max(300) });
+export const ledgerEntriesQuery = pageQuery.extend({ unsettled: z.coerce.boolean().optional() });
+export const restaurantAdjustmentBody = z.object({
+  direction: z.enum(['CREDIT', 'DEBIT']),
+  amountPaise: pricePaise.min(1),
+  reason: z.string().trim().min(3).max(300),
+  idempotencyKey: z.string().trim().min(8).max(100),
+});
+export const riderAdjustmentBody = z.object({
+  type: z.enum(['BONUS', 'ADJUSTMENT', 'PENALTY']),
+  direction: z.enum(['CREDIT', 'DEBIT']),
+  amountPaise: pricePaise.min(1),
+  reason: z.string().trim().min(3).max(300),
+  idempotencyKey: z.string().trim().min(8).max(100),
+});
+export const COD_DEPOSIT_METHODS = ['UPI', 'BANK_DEPOSIT', 'CASH_AT_HUB'];
+export const codDepositBody = z.object({
+  amountPaise: pricePaise.min(100),
+  method: z.enum(COD_DEPOSIT_METHODS),
+  reference: z.string().trim().min(3).max(100).nullable().optional(),
+  idempotencyKey: z.string().trim().min(8).max(100),
+});
+export const codDepositListQuery = pageQuery.extend({
+  status: z.enum(['PENDING', 'VERIFIED', 'REJECTED']).optional(),
+});
+export const financeRangeQuery = z
+  .object({ from: dateOnly, to: dateOnly })
+  .refine((b) => b.from < b.to, { message: 'The end must be after the start', path: ['to'] });
+
 /**
  * Converts a ZodError into `{ field: [messages] }` for the standard error body (API.md §3).
  * @param {import('zod').ZodError} error

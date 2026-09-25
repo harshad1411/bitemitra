@@ -4,6 +4,7 @@ import Home from '../src/app/index';
 import Menu from '../src/app/menu';
 import Orders from '../src/app/orders';
 import OrderDetail from '../src/app/order/[id]';
+import Payouts from '../src/app/payouts';
 import ORDERS from './order-fixtures.json';
 import { Vibration } from 'react-native';
 import NotFound from '../src/app/+not-found';
@@ -31,6 +32,7 @@ const routes = {
   menu: Menu,
   orders: Orders,
   'order/[id]': OrderDetail,
+  payouts: Payouts,
   '+not-found': NotFound,
 };
 const OWNER_ME = {
@@ -60,7 +62,11 @@ function storeFor(role, branch = {}) {
       city: { name: 'Unjha', timezone: 'Asia/Kolkata' },
     },
     role,
-    capabilities: { 'store.status': role !== 'STAFF', 'menu.availability': true },
+    capabilities: {
+      'store.status': role !== 'STAFF',
+      'menu.availability': true,
+      'orders.finance': role !== 'STAFF',
+    },
     limits: { maxPauseMinutes: 120 },
     branches: [
       {
@@ -137,6 +143,7 @@ function partnerApi(role = 'OWNER') {
       return { body: store };
     }
     if (path === '/v1/restaurant/restaurants/r1/menu') return { body: MENU };
+    if (path === '/v1/restaurant/payouts') return { body: ORDERS.payouts };
     if (path === '/v1/restaurant/products/p1/availability')
       return {
         body: product('p1', 'Gujarati Thali', {
@@ -183,6 +190,26 @@ describe('restaurant partner app', () => {
     );
     expect(await screen.findByText('Only owners and managers can change the store status.')).toBeTruthy();
     expect(screen.queryByLabelText('Accepting orders')).toBeNull();
+  });
+
+  it('payouts: an owner sees what Jamzo owes and what waits for the next settlement (own prices only)', async () => {
+    const calls = await signIn(OWNER_ME, partnerApi('OWNER'));
+    await fireEvent.press(await screen.findByLabelText('Payouts'));
+    const p = ORDERS.payouts;
+    expect(await screen.findByText(`Jamzo owes you ₹${(p.balancePaise / 100).toFixed(2)}`)).toBeTruthy();
+    expect(screen.getByText(`Waiting for the next settlement (${p.pending.orders} orders)`)).toBeTruthy();
+    expect(screen.getByText(`− ₹${(p.pending.commissionPaise / 100).toFixed(2)}`)).toBeTruthy();
+    expect(calls.find((c) => c.path === '/v1/restaurant/payouts').url).toContain('restaurantId=r1');
+    expect(JSON.stringify(p)).not.toMatch(/markup|platformFee|commissionRevenue/i);
+  });
+
+  it('staff do not see payouts', async () => {
+    await signIn(
+      { ...OWNER_ME, restaurants: [{ ...OWNER_ME.restaurants[0], role: 'STAFF' }] },
+      partnerApi('STAFF'),
+    );
+    expect(await screen.findByLabelText('Orders')).toBeTruthy();
+    expect(screen.queryByLabelText('Payouts')).toBeNull();
   });
 
   it('marks an item sold out for today from the menu screen', async () => {

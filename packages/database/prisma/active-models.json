@@ -1,6 +1,6 @@
 {
   "$comment": "Models migrated in the current phase. Classification and reasons: docs/DATABASE.md \u00a73. Adding a model here activates it; run `pnpm --filter @jamzo/database schema:generate` and create a migration.",
-  "phase": 7,
+  "phase": 8,
   "models": [
     "User",
     "AuthIdentity",
@@ -82,6 +82,15 @@
     "Payment",
     "PaymentAttempt",
     "PaymentEvent",
-    "Refund"
+    "Refund",
+    "RestaurantLedger",
+    "RestaurantLedgerEntry",
+    "RestaurantSettlement",
+    "RiderLedger",
+    "RiderLedgerEntry",
+    "RiderSettlement",
+    "RiderPayout",
+    "RiderCodDeposit",
+    "PlatformLedgerEntry"
   ]
 }

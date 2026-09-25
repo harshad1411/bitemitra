@@ -119,7 +119,14 @@ export async function generate() {
     .filter((s) => s.replace(/--.*$/gm, '').trim());
   const activeStatements = statements.filter((stmt) => {
     const body = stmt.replace(/--.*$/gm, '');
-    const refs = [...body.matchAll(/(?:ON|ALTER TABLE)\s+"?(\w+)"?/g)].map((m) => m[1]);
+    // Functions name no table themselves: a `-- for: table_a, table_b` line says which tables they serve.
+    const forRefs = [...stmt.matchAll(/^--\s*for:\s*([\w,\s]+)$/gm)].flatMap((m) =>
+      m[1]
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    );
+    const refs = [...[...body.matchAll(/\b(?:ON|ALTER TABLE)\s+"?(\w+)"?/g)].map((m) => m[1]), ...forRefs];
     return refs.length > 0 && refs.every((t) => tables.has(t));
   });
   const constraints = [

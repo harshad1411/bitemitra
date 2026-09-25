@@ -610,6 +610,12 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
+  packages/settlement-engine:
+    devDependencies:
+      '@jamzo/pricing-engine':
+        specifier: workspace:*
+        version: link:../pricing-engine
+
   packages/shared-types: {}
 
   packages/ui: {}
@@ -667,6 +673,9 @@ importers:
       '@jamzo/pricing-engine':
         specifier: workspace:*
         version: link:../../packages/pricing-engine
+      '@jamzo/settlement-engine':
+        specifier: workspace:*
+        version: link:../../packages/settlement-engine
       '@jamzo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

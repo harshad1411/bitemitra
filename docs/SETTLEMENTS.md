@@ -1,7 +1,8 @@
 # Ledgers & settlements
 
-Status: **Design (updated for OD-21..OD-23).** Implemented in Phase 8. **No real payouts are made before
-that, and none in Phase 1.** Payout rails: Q-5b. All commercial amounts are placeholders (A-16).
+Status: **Built in Phase 8** (D-88 … D-92; §8 below is what was built). **Jamzo makes no payouts: Finance
+pays outside Jamzo and records the reference.** Payout rails: Q-5b. All commercial amounts are placeholders
+(A-16). Invoices wait for the CA (Q-3, Q-12).
 
 Covers MASTER_SPEC §23, §25, §26, §27, §68, §69, §82.
 
@@ -131,10 +132,39 @@ Invoice documents and numbering (gap-free per series and financial year via `inv
 lock) are generated from the snapshot. Which invoices exist and who issues them depends on
 **⚠ [Q-3/Q-12](DECISIONS.md#5-questions)**. Credit notes accompany refunds that reverse taxed amounts.
 
+## 8. As built in Phase 8
+
+Where this differs from §1–§6, this section and DECISIONS D-88 … D-92 win.
+
+- **Engine:** `@jamzo/settlement-engine` (pure). `deliveredPostings`, `cancelledPostings`, `refundPostings`,
+  `conservation`, `settlementPeriod` / `nextRunAt` (India time), `riderNetting`. It is tested with the
+  PRICING.md §6 worked example priced by the real pricing engine: restaurant ₹334.48 and rider ₹37.20, and
+  everything adds up to ₹479.00.
+- **Posting:** the worker (`services/api/src/modules/ledgers/jobs.js`) posts on `order.delivered`,
+  `order.cancelled` and `order.refunded`, using the actual rider pay and the actual gateway fee. Each ledger
+  row is locked, and an idempotency key already posted is skipped. A database trigger keeps entries
+  append-only.
+- **Settlements:** `ledgers/settlements.js`. "Run settlements" in Jamzo Admin (due periods, or chosen
+  dates) and the worker's daily `settlements.tick` at 06:00 India time, which reschedules itself. Two runs
+  at the same moment create one settlement (tested). DRAFT → approve (PROCESSING) → record payout (PAID,
+  debit posted), or payout failed / cancel (entries released).
+- **Delivery partners:** netting at payout (earnings debit + COD_SUBMITTED "netted"); UPI / bank deposits
+  reported in the app, cash at a hub recorded by an admin, verified or rejected by Finance; FIFO
+  reconciliation of collected cash payments; a deposit above the cash held is COD_EXCESS (owed to the
+  partner). Dispatch's cash held = collected − handed over.
+- **Screens:** Jamzo Admin **Settlements** (restaurants / partners, run, approve, record payout, failed,
+  cancel, statement CSV), **Cash deposits**, **Finance** (Jamzo's ledger by type, and the checks),
+  **Ledger** pages with adjustments. Restaurant Partner app **Payouts** (owners and managers). Delivery
+  Partner app **Your money** on Earnings (cash in hand, owes / owed, deposits, payouts).
+- **Not built:** reserve / holdback (setting stays 0), a second approver for large adjustments, PDF
+  statements, invoices and credit notes (CA), payout rails (Q-5b).
+
 ## 7. Tests (Phase 8)
 
 Posting rules for every order outcome (delivered, each cancellation stage/actor, each refund type) ·
 idempotent re-posting · balance recomputation equals cached balance · each schedule's period boundaries
 (incl. month/week edges in IST) · carry-forward when net ≤ 0 · duplicate settlement run rejected ·
 payout failure reversal · COD netting (positive and negative) · deposit FIFO allocation · conservation
-invariant over the full seed dataset · statement totals equal ledger totals.
+invariant over the full seed dataset · statement totals equal ledger totals. Phase 8 test files:
+`packages/settlement-engine/src/*.test.js` (13), `services/api/test/ledgers.test.js` (9), the database rules
+in `pnpm verify:schema`, `apps/admin/e2e/settlements.spec.js`, restaurant and rider app tests.

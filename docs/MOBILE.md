@@ -1,7 +1,7 @@
 # Mobile applications
 
 Status: **Phase 1 built the three application shells and shared foundations** (OD-4, OD-26). **Phase 2** adds the Restaurant Partner app's store status controls (open/close, pause, busy mode, preparation time) and menu screen with sold-out toggles (RESTAURANTS.md §7); menu content editing by restaurants is not built (D-39). **Phases 3 + 4** turn the customer shell into a browsing app: location, CMS home, search, restaurant menus, item customisation and a cart whose bill comes from the server (§8); **Phase 5** adds checkout (cash on delivery), order tracking and cancellation to the customer app and the order
-screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 7** adds online payment to the customer app (in-app browser payment page, "Pay now", refunds). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
+screens with a looping new-order alert to the Restaurant Partner app (§9). **Phase 8** adds Payouts to the Restaurant Partner app and "Your money" (cash in hand, deposits, payouts) to the Delivery Partner app. **Phase 7** adds online payment to the customer app (in-app browser payment page, "Pay now", refunds). **Phase 6** builds the Jamzo Delivery Partner app (apply, go online with background location, requests, the whole trip, cash, earnings — §10), rider tracking and the delivery code in the customer app, and "who collects" in the Restaurant Partner app. Nothing in the shells pretends to be a
 finished feature: after sign-in each app shows who you are, your approval status and which phase delivers
 the next functionality.
 
@@ -131,6 +131,7 @@ development database (restaurant marked open so the tests do not depend on the t
 | Screen (`apps/restaurant/src/app/`) | What it does |
 |---|---|
 | `orders.js` | New / In the kitchen / Past. New orders on top with items, choices, notes, food value and time left to accept; accept with a preparation time or reject with a reason; start preparing, ready, +5 minutes. Tells the API the order was seen. |
+| `payouts.js` | Phase 8, owners and managers: what Jamzo owes, what waits for the next settlement (from the restaurant's own prices), past settlements with payout references |
 | `order/[id].js` | Full order; owners and managers also see the money and can cancel an accepted order (D-67). Phase 6: the delivery partner's first name and whether they are at the counter (also on the kitchen list); never their phone. |
 
 **New-order alert.** While any order waits for acceptance and the app is open, a chime loops and the phone
@@ -149,7 +150,7 @@ push need a simulator/device and the Expo projects (Q-17, Q-18).
 |---|---|
 | `apply.js` | Application: name and city, vehicle, document photos (camera or library; number only where needed, shown back as last 4), submit; shows what is missing and rejection notes |
 | `index.js` | Not yet active → application status. Active → online switch (prominent location disclosure first, then foreground → background permission), the current request with a countdown and vibration (accept / reject with a reason), the current trip: at restaurant → pickup (last 4 digits of the order number) → arrived → delivered (delivery code, cash amount, optional proof photo), navigate (opens Google Maps / Apple Maps), call support, report a problem, give the order back (before pickup), cash in hand and limit |
-| `earnings.js` | Today or this week: trips, trip pay, waiting pay, incentives, tips — never food prices or commission |
+| `earnings.js` | **Your money** (Phase 8: earnings not yet paid, cash in hand, what the partner owes or is owed, "I deposited cash" by UPI / bank, deposits and payouts), then today or this week: trips, trip pay, waiting pay, incentives, tips — never food prices or commission |
 
 **Background location.** `src/lib/location.js` registers the task `jamzo-rider-location`
 (`expo-location` + `expo-task-manager`; Android foreground service with a "You are online" notification;

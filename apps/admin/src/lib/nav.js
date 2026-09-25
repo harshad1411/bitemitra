@@ -25,6 +25,8 @@ import {
   Users,
   UtensilsCrossed,
   Wallet,
+  Banknote,
+  Landmark,
 } from 'lucide-react';
 
 export const NAV = [
@@ -52,7 +54,9 @@ export const NAV = [
     items: [
       { href: '/payments', label: 'Payments', icon: CreditCard, permission: 'payments.view' },
       { href: '/refunds', label: 'Refunds', icon: Receipt, permission: 'payments.view' },
-      { label: 'Settlements', icon: Wallet, phase: 8 },
+      { href: '/settlements', label: 'Settlements', icon: Wallet, permission: 'settlements.view' },
+      { href: '/cod-deposits', label: 'Cash deposits', icon: Banknote, permission: 'settlements.view' },
+      { href: '/finance', label: 'Finance', icon: Landmark, permission: 'settlements.view' },
       { href: '/pricing', label: 'Pricing', icon: Calculator, permission: 'pricing.view' },
       { href: '/offers', label: 'Offers & coupons', icon: Megaphone, permission: 'promotions.manage' },
     ],

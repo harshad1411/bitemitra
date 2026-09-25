@@ -14,16 +14,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/jamzo/form-field';
 
-/** A cash-on-delivery refund paid back outside the gateway: record the UPI / bank transfer reference. */
-export function PaidDialog({ refund, busy, onClose, onSave }) {
+/**
+ * Money paid outside Jamzo (a cash-on-delivery refund, a settlement payout): record the UPI / bank transfer
+ * reference. `title` and `intro` override the refund wording.
+ */
+export function PaidDialog({ refund, busy, onClose, onSave, title = 'Record the payout', intro }) {
   const [reference, setReference] = useState('');
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record the payout</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {`Pay ${formatPaise(refund.amountPaise)} to the customer by UPI or bank transfer first, then enter its reference. Recorded in the audit log.`}
+            {intro ??
+              `Pay ${formatPaise(refund.amountPaise)} to the customer by UPI or bank transfer first, then enter its reference. Recorded in the audit log.`}
           </DialogDescription>
         </DialogHeader>
         <FormField id="payout-reference" label="Transfer reference (UTR / UPI id)">

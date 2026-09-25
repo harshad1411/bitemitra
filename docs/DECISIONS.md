@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 7 complete; Phase 8 next, OD-42).
+Last updated: 2026-09-25 (Phase 8 complete; Phase 9 next, OD-42).
 
 ---
 
@@ -689,6 +689,56 @@ Jamzo Admin gets:
 - a **Refund** dialog on the order.
 
 Every refund action is audit-logged.
+
+## 2f. Engineering decisions — Phase 8 (ledgers and settlements)
+
+### D-88. When money is posted
+Postings are pure functions in `@jamzo/settlement-engine`. The worker writes them from the order's outbox
+events (`order.delivered`, `order.cancelled`, `order.refunded`), not inside the order transaction, so a
+ledger problem can never block a delivery. Each entry has a unique idempotency key, so a repeated or late
+job never posts twice.
+- **Delivered:** restaurant FOOD_SALE (food + packaging + any rounding it absorbs), RESTAURANT_FUNDED_DISCOUNT,
+  COMMISSION, COMMISSION_TAX, WITHHOLDING. Rider: the final earning split into base, distance, waiting,
+  incentive and tip, plus COD_COLLECTED for cash orders. Platform: markup, commission, fees, surcharges,
+  platform-funded discounts, the **actual** rider cost and the **actual** gateway fee, rounding, and the
+  liabilities (taxes collected, withholding, tips passed through) kept apart from revenue.
+- **Cancelled:** the restaurant's compensation (credit); a cancelled trip's pay (rider); the fee kept
+  from the customer, the compensation costs and any gateway fee (platform).
+- **Refunded after delivery:** RESTAURANT → restaurant REFUND debit; PLATFORM → platform REFUND_LOSS.
+  Refunds before delivery only return money that was never recognised, so nothing is posted.
+
+The conservation rule of SETTLEMENTS.md §5 is checked per delivered order with the actual amounts (a
+Finance "Checks" view), together with a recomputation of every cached balance from its entries.
+
+### D-89. Settlements (no real payouts)
+A settlement takes a ledger's unsettled entries up to the period's cut-off, per schedule (`settlements.restaurants`
+per restaurant; `settlements.riders`), in India time. One settlement per ledger per period (database rule).
+A net below the minimum payout creates nothing: it carries forward. Lifecycle:
+**DRAFT → (Finance approves) PROCESSING → PAID** (the payout reference is typed in after paying outside
+Jamzo; a SETTLEMENT / PAYOUT debit is posted) **or FAILED / CANCELLED** (the entries are released for the
+next run). **Jamzo does not move money:** payout rails are Q-5b. Settlements are created by "Run
+settlements" in Jamzo Admin and by a daily worker job at 06:00 India time. The reserve percentage is not
+applied yet (the setting stays 0).
+
+### D-90. Cash on delivery deposits
+The rider reports a deposit in the app (UPI, bank or cash at a hub, amount, reference), or an admin records
+cash received at a hub. Finance verifies it (COD_SUBMITTED: cash held goes down by the amount) or rejects
+it with a reason. Collected cash payments are marked reconciled in collection order once the verified
+deposits cover them (FIFO). A deposit above the cash held becomes COD_EXCESS: Jamzo owes the rider. Cash
+held used by dispatch is now collected minus verified deposits.
+
+### D-91. Delivery partner settlement and netting
+Earnings in the period minus the cash held (when `cod.netAgainstEarnings`) is what gets paid. When paid,
+the netted cash is closed with an earnings debit and a COD_SUBMITTED entry ("netted"). A negative result
+pays nothing and carries forward; the rider app shows what the rider owes.
+
+### D-92. Adjustments, statements, invoices
+- **Adjustments:** manual ledger adjustments need `ledgers.adjust`, a reason and an idempotency key, and are
+  audit-logged. A second approver for large adjustments is **not built yet**.
+- **Statements:** CSV from the ledger entries (Jamzo Admin). The restaurant app shows the balance and each
+  settlement's breakdown. PDFs come later.
+- **Invoices and credit notes** are **not built**: who issues which document is the CA's decision (Q-3,
+  Q-12). The `invoices` tables stay LATER.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

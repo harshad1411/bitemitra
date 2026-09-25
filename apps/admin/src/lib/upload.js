@@ -43,3 +43,18 @@ export async function openPrivateFile(path) {
   window.open(url, '_blank', 'noopener');
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+/** Downloads a private file (e.g. a settlement statement CSV) with the admin session. */
+export async function downloadFile(path, filename) {
+  const res = await withRefresh(() => fetch(apiUrl(path), { headers: baseHeaders() }));
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(json.error?.message ?? 'Could not download the file'), json.error ?? {});
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

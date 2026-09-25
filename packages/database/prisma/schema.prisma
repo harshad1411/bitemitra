@@ -247,6 +247,72 @@ enum DiscountType {
   FREE_DELIVERY
 }
 
+enum LedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+enum RestaurantLedgerEntryType {
+  FOOD_SALE
+  COMMISSION
+  COMMISSION_TAX
+  RESTAURANT_FUNDED_DISCOUNT
+  TAX_ADJUSTMENT
+  REFUND
+  CANCELLATION
+  PENALTY
+  WITHHOLDING // TCS/TDS deducted per tax configuration (Q-3)
+  RESTAURANT_FEE // fees charged to the restaurant, if configured
+  MANUAL_CREDIT
+  MANUAL_DEBIT
+  REVERSAL // corrects an earlier entry — entries are never edited (OD-21)
+  SETTLEMENT
+}
+
+enum RiderLedgerEntryType {
+  DELIVERY_EARNING
+  DISTANCE_EARNING
+  WAITING_CHARGE
+  INCENTIVE
+  BONUS
+  TIP
+  ADJUSTMENT
+  COD_COLLECTED
+  COD_SUBMITTED
+  COD_SHORTAGE // verified deposit below expected cash
+  COD_EXCESS // verified deposit above expected cash
+  PENALTY // only where legally appropriate (OD-23)
+  REVERSAL
+  PAYOUT
+}
+
+enum PlatformLedgerEntryType {
+  MARKUP_REVENUE
+  COMMISSION_REVENUE
+  PLATFORM_FEE
+  DELIVERY_FEE
+  SMALL_ORDER_FEE
+  SURCHARGE
+  PLATFORM_FUNDED_DISCOUNT
+  RIDER_COST
+  GATEWAY_FEE
+  REFUND_LOSS
+  TAX_COLLECTED
+  WITHHOLDING_TAX // TCS/TDS withheld from restaurant payouts (liability; CA to confirm, Q-3)
+  TIP_PASS_THROUGH // tips held for riders — a liability, never revenue (OD-15)
+  ROUNDING_ADJUSTMENT // explicit rounding line (OD-16)
+  ADJUSTMENT
+  REVERSAL
+}
+
+enum SettlementSchedule {
+  DAILY
+  T_PLUS_1
+  T_PLUS_2
+  WEEKLY
+  MANUAL
+}
+
 enum SettlementStatus {
   DRAFT
   PENDING
@@ -668,6 +734,8 @@ model Restaurant {
   products       Product[]
   orders         Order[]
   favorites      FavoriteRestaurant[]
+  ledger         RestaurantLedger?
+  settlements    RestaurantSettlement[]
 
   @@index([cityId, onboardingStatus])
   @@map("restaurants")
@@ -999,7 +1067,11 @@ model Rider {
   locations    RiderLocation[]
   shifts       RiderShift[]
   earnings     RiderEarning[]
+  payouts      RiderPayout[]
   assignments  OrderAssignment[]
+  ledger       RiderLedger?
+  settlements  RiderSettlement[]
+  codDeposits  RiderCodDeposit[]
 
   @@index([cityId, onboardingStatus])
   @@map("riders")
@@ -1105,6 +1177,22 @@ model RiderEarning {
 
   @@index([riderId, createdAt])
   @@map("rider_earnings")
+}
+
+model RiderPayout {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  riderId      String           @db.Uuid
+  settlementId String?          @db.Uuid
+  amountPaise  Int
+  status       SettlementStatus @default(PENDING)
+  reference    String?
+  paidAt       DateTime?        @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([riderId, createdAt])
+  @@map("rider_payouts")
 }
 
 model MarkupRule {
@@ -1767,6 +1855,156 @@ model Refund {
   @@map("refunds")
 }
 
+model RestaurantLedger {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  restaurantId String   @unique @db.Uuid
+  balancePaise BigInt   @default(0) // positive = platform owes restaurant
+  version      Int      @default(0)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant              @relation(fields: [restaurantId], references: [id])
+  entries    RestaurantLedgerEntry[]
+
+  @@map("restaurant_ledgers")
+}
+
+/// Append-only. Corrections are new entries, never edits.
+model RestaurantLedgerEntry {
+  id                String                    @id @default(uuid(7)) @db.Uuid
+  ledgerId          String                    @db.Uuid
+  type              RestaurantLedgerEntryType
+  direction         LedgerDirection
+  amountPaise       BigInt // always positive; sign given by direction
+  balanceAfterPaise BigInt
+  orderId           String?                   @db.Uuid
+  refundId          String?                   @db.Uuid
+  settlementId      String?                   @db.Uuid
+  description       String?
+  /// Unique business key, e.g. "order:<id>:FOOD_SALE" → the same posting can't happen twice.
+  idempotencyKey    String                    @unique
+  createdById       String?                   @db.Uuid
+  createdAt         DateTime                  @default(now()) @db.Timestamptz(3)
+
+  ledger     RestaurantLedger      @relation(fields: [ledgerId], references: [id])
+  settlement RestaurantSettlement? @relation(fields: [settlementId], references: [id])
+
+  @@index([ledgerId, createdAt])
+  @@index([orderId])
+  @@map("restaurant_ledger_entries")
+}
+
+model RestaurantSettlement {
+  id               String             @id @default(uuid(7)) @db.Uuid
+  restaurantId     String             @db.Uuid
+  periodStart      DateTime           @db.Timestamptz(3)
+  periodEnd        DateTime           @db.Timestamptz(3)
+  schedule         SettlementSchedule
+  openingPaise     BigInt // previous balance carried forward
+  grossSalesPaise  BigInt             @default(0)
+  commissionPaise  BigInt             @default(0)
+  taxesPaise       BigInt             @default(0) // tax on commission etc. charged to the restaurant
+  withholdingPaise BigInt             @default(0) // TCS/TDS
+  feesPaise        BigInt             @default(0)
+  discountsPaise   BigInt             @default(0) // restaurant-funded
+  refundsPaise     BigInt             @default(0)
+  adjustmentsPaise BigInt             @default(0) // manual credits − debits − penalties
+  codInfoPaise     BigInt             @default(0) // COD collected on this restaurant's orders (informational; cash sits with riders)
+  creditsPaise     BigInt
+  debitsPaise      BigInt
+  netPayablePaise  BigInt
+  status           SettlementStatus   @default(DRAFT)
+  payoutReference  String?
+  paidAt           DateTime?          @db.Timestamptz(3)
+  /// Finance approval before paying outside Jamzo (D-89); why a run failed or was cancelled.
+  approvedById     String?            @db.Uuid
+  approvedAt       DateTime?          @db.Timestamptz(3)
+  note             String?
+  statementMediaId String?            @db.Uuid
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant              @relation(fields: [restaurantId], references: [id])
+  entries    RestaurantLedgerEntry[]
+
+  @@unique([restaurantId, periodStart, periodEnd]) // no duplicate settlement (spec §69)
+  @@map("restaurant_settlements")
+}
+
+model RiderLedger {
+  id                   String   @id @default(uuid(7)) @db.Uuid
+  riderId              String   @unique @db.Uuid
+  earningsBalancePaise BigInt   @default(0) // platform owes rider
+  codHeldPaise         BigInt   @default(0) // rider owes platform (cash in hand)
+  version              Int      @default(0)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(3)
+
+  rider   Rider              @relation(fields: [riderId], references: [id])
+  entries RiderLedgerEntry[]
+
+  @@map("rider_ledgers")
+}
+
+model RiderLedgerEntry {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  ledgerId       String               @db.Uuid
+  type           RiderLedgerEntryType
+  direction      LedgerDirection
+  amountPaise    BigInt
+  orderId        String?              @db.Uuid
+  settlementId   String?              @db.Uuid
+  description    String?
+  idempotencyKey String               @unique
+  createdById    String?              @db.Uuid
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+
+  ledger     RiderLedger      @relation(fields: [ledgerId], references: [id])
+  settlement RiderSettlement? @relation(fields: [settlementId], references: [id])
+
+  @@index([ledgerId, createdAt])
+  @@index([orderId])
+  @@map("rider_ledger_entries")
+}
+
+model RiderSettlement {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  riderId         String           @db.Uuid
+  periodStart     DateTime         @db.Timestamptz(3)
+  periodEnd       DateTime         @db.Timestamptz(3)
+  earningsPaise   BigInt
+  codOwedPaise    BigInt
+  netPayablePaise BigInt // may be negative: rider owes platform
+  status          SettlementStatus @default(DRAFT)
+  payoutReference String?
+  paidAt          DateTime?        @db.Timestamptz(3)
+  approvedById    String?          @db.Uuid
+  approvedAt      DateTime?        @db.Timestamptz(3)
+  note            String?
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+
+  rider   Rider              @relation(fields: [riderId], references: [id])
+  entries RiderLedgerEntry[]
+
+  @@unique([riderId, periodStart, periodEnd])
+  @@map("rider_settlements")
+}
+
+model PlatformLedgerEntry {
+  id             String                  @id @default(uuid(7)) @db.Uuid
+  type           PlatformLedgerEntryType
+  direction      LedgerDirection
+  amountPaise    BigInt
+  orderId        String?                 @db.Uuid
+  cityId         String?                 @db.Uuid
+  description    String?
+  idempotencyKey String                  @unique
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+
+  @@index([orderId])
+  @@index([type, createdAt])
+  @@map("platform_ledger_entries")
+}
+
 model NotificationTemplate {
   id        String              @id @default(uuid(7)) @db.Uuid
   event     String // ORDER_PLACED, RESTAURANT_ACCEPTED …
@@ -1974,4 +2212,31 @@ model OrderCancellation {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_cancellations")
+}
+
+/// Cash a rider hands over (spec §23). COD is only platform cash once a deposit is
+/// verified; the rider ledger records COD_SUBMITTED against it.
+model RiderCodDeposit {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  riderId        String    @db.Uuid
+  amountPaise    Int
+  expectedPaise  Int? // cash the rider should have handed over for the allocated orders
+  variancePaise  Int       @default(0) // amount − expected; ≠ 0 posts COD_SHORTAGE / COD_EXCESS
+  method         String // CASH_AT_HUB | BANK_DEPOSIT | UPI
+  reference      String? // bank/UPI reference or hub receipt number
+  status         String    @default("PENDING") // PENDING | VERIFIED | REJECTED
+  /// Who reported it: the rider in the app (D-90) or an admin who received cash at a hub.
+  reportedBy     String    @default("RIDER") // RIDER | ADMIN
+  receivedById   String?   @db.Uuid
+  verifiedById   String?   @db.Uuid
+  verifiedAt     DateTime? @db.Timestamptz(3)
+  note           String?
+  idempotencyKey String    @unique
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  rider Rider @relation(fields: [riderId], references: [id])
+
+  @@index([riderId, createdAt])
+  @@index([status])
+  @@map("rider_cod_deposits")
 }

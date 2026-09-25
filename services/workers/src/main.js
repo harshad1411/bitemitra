@@ -11,12 +11,17 @@ import { createNotificationDispatcher, mergeHandlers } from '@jamzo/api/notifica
 import { createDispatch } from '@jamzo/api/dispatch';
 import { createPayments } from '@jamzo/api/payments';
 import { createPaymentProvider } from '@jamzo/api/payment-providers';
+import { createLedgerJobs } from '@jamzo/api/ledger-jobs';
+import { createSettlements } from '@jamzo/api/settlements';
 import { createPushProvider } from '@jamzo/notifications';
 
 const env = loadEnv(workerEnvSchema);
 const log = createLogger({ name: 'workers', level: env.LOG_LEVEL });
 const prisma = createPrismaClient({ url: env.DATABASE_URL });
 const storage = createStorage(env);
+const settlements = createSettlements({ prisma, log });
+// The daily settlement run (06:00 India time) re-schedules itself; make sure one is scheduled (D-89).
+await settlements.ensureScheduled();
 const relay = createOutboxRelay({
   prisma,
   log,
@@ -34,6 +39,8 @@ const relay = createOutboxRelay({
     createOrderJobs({ prisma, log }),
     createDispatch({ prisma, log }).handlers,
     createPayments({ prisma, log, provider: createPaymentProvider(env) }).handlers,
+    createLedgerJobs({ prisma, log }),
+    settlements.handlers,
   ),
 });
 

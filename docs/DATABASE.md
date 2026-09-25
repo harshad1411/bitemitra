@@ -1,6 +1,6 @@
 # Database
 
-Status: **Phase 7.** 81 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
+Status: **Phase 8.** 90 of 98 designed tables are active (migrated). Decisions: D-5, D-6, D-18, D-19, D-35 … D-41, D-46 … D-57, OD-20, OD-21.
 
 | File | Purpose |
 |---|---|
@@ -36,7 +36,7 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 
 ## 3. Table classification
 
-**CORE** = active now (migrated): Phase 1–7 tables. **LATER PHASE** = designed, migrated in the named phase.
+**CORE** = active now (migrated): Phase 1–8 tables. **LATER PHASE** = designed, migrated in the named phase.
 **FUTURE** = designed for a capability not yet scheduled; kept so the design stays coherent.
 
 ### 3.1 CORE — Phase 1 (27 tables)
@@ -131,12 +131,22 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | payment_events | Every webhook stored before it is processed; `(provider, providerEventId)` unique, so a repeated delivery is a no-op (D-85) |
 | refunds | Refunds with type, bearer, maker-checker approval, gateway id or cash payout reference, retries (D-86); one per idempotency key |
 
-### 3.2 LATER PHASE (16 tables)
+### 3.1f CORE — Phase 8, ledgers and settlements (9 tables)
+
+| Table | Why |
+|---|---|
+| restaurant_ledgers, rider_ledgers | One cached balance per restaurant / partner (earnings and cash held), locked while posting |
+| restaurant_ledger_entries, rider_ledger_entries, platform_ledger_entries | **Append-only** entries with unique idempotency keys; a database trigger refuses edits and deletes (only the settlement link may change — OD-21, D-88) |
+| restaurant_settlements, rider_settlements | One per ledger and period (unique); DRAFT → PROCESSING → PAID with the payout reference, or FAILED / CANCELLED (D-89) |
+| rider_payouts | Payout history shown to the partner (D-91) |
+| rider_cod_deposits | Cash handed over by UPI, bank or at a hub; verified or rejected with a reason (D-90) |
+
+### 3.2 LATER PHASE (7 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
 | 6+ — Ratings | reviews | Ratings of delivered orders (CH-20); built with the ratings flag |
-| 8 — Financials | restaurant_ledgers, restaurant_ledger_entries, restaurant_settlements, rider_ledgers, rider_ledger_entries, rider_settlements, rider_payouts, rider_cod_deposits, platform_ledger_entries, invoices, invoice_sequences | Append-only ledgers, COD reconciliation, settlements, statements, invoices |
+| After the CA's answer (Q-3, Q-12) | invoices, invoice_sequences | Tax invoices and credit notes: who issues which document is a tax decision (D-92) |
 | 9 — Admin operations | support_tickets, support_ticket_messages, admin_saved_views, notification_preferences | Support with full order context, saved table views |
 
 ### 3.3 FUTURE (1 table)

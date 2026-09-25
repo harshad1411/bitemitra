@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 accepted (2026-09-25); Phase 5 accepted (2026-09-25); Phase 6 accepted; Phase 7 (online payments) complete; Phases 8–10 in progress (OD-42).** Decisions referenced as OD-/D-/CH- are
+Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 accepted (2026-09-25); Phase 5 accepted (2026-09-25); Phase 6 accepted; Phases 7 (online payments) and 8 (ledgers, settlements) complete; Phases 9–10 in progress (OD-42).** Decisions referenced as OD-/D-/CH- are
 recorded in [DECISIONS.md](DECISIONS.md), which is authoritative.
 
 Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md) · [ORDER_FLOW](ORDER_FLOW.md) ·
@@ -73,7 +73,7 @@ jamzo/  (repository: bitemitra)
 │   ├── pricing-engine/    PURE pricing: markup, offers, tax, delivery, fees, commission, quote (Phase 4)
 │   ├── order-engine/      PURE state machine: both tracks, derived status, cancellations (Phase 5)
 │   ├── delivery-engine/   PURE geo, serviceability, dispatch ranking (Phase 6)
-│   ├── settlement-engine/ PURE ledger postings (Phase 8)
+│   ├── settlement-engine/ PURE ledger postings, settlement periods, netting, conservation (Phase 8)
 │   ├── ui/                design tokens (provisional Jamzo palette, D-17)
 │   ├── mobile-ui/         React Native primitives on the tokens
 │   ├── mobile-foundation/ shared RN foundations: session, secure storage, API binding, version gate,

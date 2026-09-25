@@ -438,5 +438,37 @@ async function checkGuarantees(db) {
     `insert into rider_documents (id, "riderId", kind, "updatedAt") values ('${id()}', '${ids.rider1}', 'AADHAAR_NUMBER', now())`,
     CHECK,
   );
+  // Phase 8 (D-88 … D-92): append-only entries, paid settlements need a payout reference.
+  const rEntry = id();
+  await db.exec(
+    `insert into restaurant_ledger_entries (id, "ledgerId", type, direction, "amountPaise", "balanceAfterPaise", "idempotencyKey") values ('${rEntry}', '${ledger}', 'FOOD_SALE', 'CREDIT', 41000, 41000, 'order:x:FOOD_SALE')`,
+  );
+  await rejects(
+    'editing a ledger entry (append-only)',
+    `update restaurant_ledger_entries set "amountPaise" = 1 where id = '${rEntry}'`,
+    CHECK,
+  );
+  await rejects(
+    'deleting a ledger entry',
+    `delete from restaurant_ledger_entries where id = '${rEntry}'`,
+    CHECK,
+  );
+  const rSettlement = id();
+  await db.exec(`
+    insert into restaurant_settlements (id, "restaurantId", "periodStart", "periodEnd", schedule, "openingPaise", "creditsPaise", "debitsPaise", "netPayablePaise", "updatedAt")
+      values ('${rSettlement}', '${ids.restaurant}', '2026-09-21', '2026-09-28', 'WEEKLY', 0, 41000, 0, 41000, now());
+    update restaurant_ledger_entries set "settlementId" = '${rSettlement}' where id = '${rEntry}';
+  `);
+  console.log('  ✓ allows: linking a ledger entry to a settlement');
+  await rejects(
+    'settlement marked paid without a payout reference',
+    `update restaurant_settlements set status = 'PAID', "paidAt" = now() where id = '${rSettlement}'`,
+    CHECK,
+  );
+  await rejects(
+    'cash deposit verified without who and when',
+    `insert into rider_cod_deposits (id, "riderId", "amountPaise", method, status, "idempotencyKey") values ('${id()}', '${ids.rider1}', 5000, 'UPI', 'VERIFIED', 'dep-1')`,
+    CHECK,
+  );
   console.log('✓ database-level guarantees hold');
 }

@@ -5,7 +5,8 @@
   "description": "Pure pricing domain: money math, rule schemas and the quote pipeline (PRICING.md).",
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./golden": "./src/golden.fixture.js"
   },
   "scripts": {
     "test": "vitest run"

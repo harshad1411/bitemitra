@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from 'next/link';
 import { PageHeader } from '@/components/jamzo/page-header';
 import { StatusBadge } from '@/components/jamzo/status-badge';
 import { ConfirmDialog } from '@/components/jamzo/confirm-dialog';
@@ -105,7 +106,16 @@ function RestaurantContent({ id }) {
           </span>
         }
         description={`${r.cuisines.join(', ') || 'No cuisines yet'} · ${r.city.name}, ${r.city.stateName}`}
-        actions={<StatusActions restaurant={r} />}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {can('settlements.view') ? (
+              <Button variant="outline" asChild>
+                <Link href={`/ledgers/restaurant/${r.id}`}>Ledger</Link>
+              </Button>
+            ) : null}
+            <StatusActions restaurant={r} />
+          </div>
+        }
       />
       <Tabs value={tab} onValueChange={(v) => router.replace(`${pathname}?tab=${v}`)}>
         <TabsList className="mb-4 flex-wrap">

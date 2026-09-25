@@ -1,0 +1,16 @@
+{
+  "name": "@jamzo/settlement-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure ledger posting rules, settlement periods, COD netting and the conservation check (SETTLEMENTS.md).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@jamzo/pricing-engine": "workspace:*"
+  }
+}

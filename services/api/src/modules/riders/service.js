@@ -32,12 +32,21 @@ export function missingDocuments(rider, required) {
  */
 export async function codBalances(db, riderIds) {
   if (!riderIds.length) return new Map();
-  const rows = await db.payment.groupBy({
-    by: ['codCollectedById'],
-    where: { provider: 'cod', status: 'SUCCEEDED', codCollectedById: { in: riderIds } },
-    _sum: { capturedPaise: true },
-  });
-  return new Map(rows.map((r) => [r.codCollectedById, r._sum.capturedPaise ?? 0]));
+  // Cash collected at delivery (known at once) minus cash handed over — verified deposits and netting (D-90).
+  const [rows, handed] = await Promise.all([
+    db.payment.groupBy({
+      by: ['codCollectedById'],
+      where: { provider: 'cod', status: 'SUCCEEDED', codCollectedById: { in: riderIds } },
+      _sum: { capturedPaise: true },
+    }),
+    db.riderLedgerEntry.findMany({
+      where: { type: 'COD_SUBMITTED', ledger: { riderId: { in: riderIds } } },
+      select: { amountPaise: true, ledger: { select: { riderId: true } } },
+    }),
+  ]);
+  const out = new Map(rows.map((r) => [r.codCollectedById, r._sum.capturedPaise ?? 0]));
+  for (const h of handed) out.set(h.ledger.riderId, (out.get(h.ledger.riderId) ?? 0) - Number(h.amountPaise));
+  return out;
 }
 
 /** The rider record of the signed-in rider-app user; 404 when they have not applied yet. */

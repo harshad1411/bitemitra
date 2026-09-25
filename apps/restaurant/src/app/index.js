@@ -171,6 +171,13 @@ function Store({ restaurantId }) {
           router.push({ pathname: '/orders', params: { restaurantId, timeZone: s.restaurant.city.timezone } })
         }
       />
+      {s.capabilities['orders.finance'] ? (
+        <Button
+          title="Payouts"
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/payouts', params: { restaurantId } })}
+        />
+      ) : null}
       <Button
         title="Menu & sold-out items"
         onPress={() => router.push({ pathname: '/menu', params: { restaurantId } })}

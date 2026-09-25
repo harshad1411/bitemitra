@@ -2,7 +2,7 @@
   "name": "@jamzo/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Jamzo HTTP API — modular monolith (Fastify, Prisma 6, PostgreSQL).",
+  "description": "Jamzo HTTP API \u2014 modular monolith (Fastify, Prisma 6, PostgreSQL).",
   "type": "module",
   "main": "src/server.js",
   "exports": {
@@ -12,7 +12,9 @@
     "./notification-dispatch": "./src/modules/notifications/dispatch.js",
     "./dispatch": "./src/modules/dispatch/service.js",
     "./payments": "./src/modules/payments/service.js",
-    "./payment-providers": "./src/modules/payments/providers/index.js"
+    "./payment-providers": "./src/modules/payments/providers/index.js",
+    "./ledger-jobs": "./src/modules/ledgers/jobs.js",
+    "./settlements": "./src/modules/ledgers/settlements.js"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --watch src/server.js",
@@ -34,6 +36,7 @@
     "@jamzo/notifications": "workspace:*",
     "@jamzo/order-engine": "workspace:*",
     "@jamzo/pricing-engine": "workspace:*",
+    "@jamzo/settlement-engine": "workspace:*",
     "@jamzo/shared-types": "workspace:*",
     "@jamzo/validation": "workspace:*",
     "fastify": "^5.12.5",

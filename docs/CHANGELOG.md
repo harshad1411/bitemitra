@@ -3,6 +3,23 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Phase 8 — Ledgers and settlements (2026-09-25) — built under OD-42
+
+### Added
+- `@jamzo/settlement-engine`: posting rules for delivered, cancelled and refunded orders; the conservation check; settlement periods in India time; delivery partner netting (D-88, D-89, D-91).
+- Append-only restaurant, delivery partner and Jamzo ledgers posted by the worker with the actual rider pay and gateway fee; balances kept per ledger; a database trigger refuses edits and deletes.
+- Settlements: run by Jamzo Admin or the daily 06:00 job; approve, record the payout made outside Jamzo (no money moves), payout failed / cancel releases the entries; statement CSV.
+- Cash deposits: partners report UPI / bank deposits in the app, hubs record cash, Finance verifies or rejects; collected cash reconciled first-in, first-out (D-90).
+- Manual ledger adjustments with a reason and audit (D-92).
+- Jamzo Admin: Settlements, Cash deposits, Finance (Jamzo's ledger and checks), Ledger pages on restaurants and partners.
+- Restaurant Partner app: Payouts. Delivery Partner app: "Your money" with deposits and payouts.
+- Database: 9 tables activated, 2 migrations, 8 new rules (paid settlements need a reference; deposits valid; ledger entries append-only).
+
+### Changed
+- Dispatch's cash-held check now subtracts verified deposits and netted cash.
+- The pricing engine's worked example is a shared test fixture (`@jamzo/pricing-engine/golden`).
+- The constraints generator keeps trigger functions (`-- for:` marker) and matches table names on word boundaries.
+
 ## Phase 7 — Online payments and refunds (2026-09-25) — built under OD-42
 
 ### Added

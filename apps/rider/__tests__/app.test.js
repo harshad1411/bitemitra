@@ -93,6 +93,12 @@ function riderApi(start) {
       return { body: next ?? F.tripDelivered };
     }
     if (path === '/v1/rider/earnings') return { body: F.earningsToday };
+    if (path === '/v1/rider/wallet') return { body: s.wallet ?? F.wallet };
+    if (path === '/v1/rider/cod-deposits') {
+      s.posts.push({ path, body });
+      s.wallet = F.walletAfterDeposit;
+      return { body: F.depositReported };
+    }
     return null;
   };
   return { s, handler };
@@ -225,6 +231,28 @@ describe('delivery partner app', () => {
     await fireEvent.press(await screen.findByLabelText('Earnings'));
     expect(await screen.findByText(`₹${(F.earningsToday.totalPaise / 100).toFixed(2)}`)).toBeTruthy();
     expect(screen.getByText(/1 deliveries · tips ₹20.00/)).toBeTruthy();
+  });
+
+  it('money: cash in hand and what is owed; reporting a UPI deposit (checked by Jamzo before it counts)', async () => {
+    const api = riderApi({ me: F.meAfter, work: { ...F.workIdle, online: false } });
+    await signIn(api);
+    await fireEvent.press(await screen.findByLabelText('Earnings'));
+    const w = F.wallet;
+    const rupees = (p) => `₹${(p / 100).toFixed(2)}`;
+    expect(await screen.findByText(`Cash in hand: ${rupees(w.codHeldPaise)}`)).toBeTruthy();
+    expect(screen.getByText(`Earnings not yet paid: ${rupees(w.earningsBalancePaise)}`)).toBeTruthy();
+    expect(
+      screen.getByText(`You owe Jamzo ${rupees(w.owesPaise)}. Deposit the cash to keep taking cash orders.`),
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('I deposited cash'));
+    const d = F.depositReported;
+    await fireEvent.changeText(screen.getByLabelText('Amount (₹)'), String(d.amountPaise / 100));
+    await fireEvent.changeText(screen.getByLabelText('UPI / bank reference'), d.reference);
+    await fireEvent.press(screen.getByLabelText('Send'));
+    expect(await screen.findByText('Being checked')).toBeTruthy();
+    const sent = api.s.posts.find((x) => x.path === '/v1/rider/cod-deposits').body;
+    expect(sent).toMatchObject({ amountPaise: d.amountPaise, method: 'UPI', reference: d.reference });
+    expect(sent.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('a suspended partner cannot go online and is told to contact support', async () => {

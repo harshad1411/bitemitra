@@ -1997,6 +1997,10 @@ model RestaurantSettlement {
   status           SettlementStatus   @default(DRAFT)
   payoutReference  String?
   paidAt           DateTime?          @db.Timestamptz(3)
+  /// Finance approval before paying outside Jamzo (D-89); why a run failed or was cancelled.
+  approvedById     String?            @db.Uuid
+  approvedAt       DateTime?          @db.Timestamptz(3)
+  note             String?
   statementMediaId String?            @db.Uuid
   createdAt        DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
@@ -2054,6 +2058,9 @@ model RiderSettlement {
   status          SettlementStatus @default(DRAFT)
   payoutReference String?
   paidAt          DateTime?        @db.Timestamptz(3)
+  approvedById    String?          @db.Uuid
+  approvedAt      DateTime?        @db.Timestamptz(3)
+  note            String?
   createdAt       DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
 
@@ -2370,6 +2377,8 @@ model RiderCodDeposit {
   method         String // CASH_AT_HUB | BANK_DEPOSIT | UPI
   reference      String? // bank/UPI reference or hub receipt number
   status         String    @default("PENDING") // PENDING | VERIFIED | REJECTED
+  /// Who reported it: the rider in the app (D-90) or an admin who received cash at a hub.
+  reportedBy     String    @default("RIDER") // RIDER | ADMIN
   receivedById   String?   @db.Uuid
   verifiedById   String?   @db.Uuid
   verifiedAt     DateTime? @db.Timestamptz(3)

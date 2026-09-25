@@ -21,8 +21,8 @@ test('signs in and shows an honest dashboard', async ({ page }) => {
   await expect(page.getByText('Cities', { exact: true }).first()).toBeVisible();
   // Future modules are visibly not built yet
   await expect(
-    page.getByRole('navigation', { name: 'Main' }).getByText('Settlements').locator('..'),
-  ).toContainText('Phase 8');
+    page.getByRole('navigation', { name: 'Main' }).getByText('Support').locator('..'),
+  ).toContainText('Phase 9');
   await shot(page, '02-dashboard');
 });
 

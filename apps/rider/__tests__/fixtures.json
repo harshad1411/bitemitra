@@ -1099,5 +1099,40 @@
       "code": null,
       "contact": null
     }
+  },
+  "wallet": {
+    "earningsBalancePaise": 4500,
+    "codHeldPaise": 25700,
+    "netting": true,
+    "owesPaise": 21200,
+    "owedPaise": 0,
+    "payouts": [],
+    "deposits": []
+  },
+  "depositReported": {
+    "id": "01a0d985-59fd-7451-9f1b-dca8a1587175",
+    "amountPaise": 20000,
+    "method": "UPI",
+    "reference": "UPI-331122",
+    "status": "PENDING"
+  },
+  "walletAfterDeposit": {
+    "earningsBalancePaise": 4500,
+    "codHeldPaise": 25700,
+    "netting": true,
+    "owesPaise": 21200,
+    "owedPaise": 0,
+    "payouts": [],
+    "deposits": [
+      {
+        "id": "01a0d985-59fd-7451-9f1b-dca8a1587175",
+        "amountPaise": 20000,
+        "method": "UPI",
+        "reference": "UPI-331122",
+        "status": "PENDING",
+        "note": null,
+        "createdAt": "2026-09-25T17:03:10.333Z"
+      }
+    ]
   }
 }

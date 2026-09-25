@@ -143,7 +143,8 @@ export default async function riderAdminRoutes(app) {
         limitPaise: r.codLimitPaise,
         inheritedLimitPaise: codCfg?.riderLimitPaise ?? null,
         balancePaise: cod,
-        depositsNote: 'Cash deposits and their verification arrive with settlements (Phase 8).',
+        depositsNote:
+          'Cash collected minus verified deposits and cash netted in settlements (D-90). Deposits are checked under Cash deposits.',
       },
       position:
         r.availability?.lastLat != null

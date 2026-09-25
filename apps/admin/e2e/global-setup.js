@@ -18,6 +18,7 @@ import {
 import { createOrderJobs } from '@jamzo/api/order-jobs';
 import { createNotificationDispatcher, mergeHandlers } from '@jamzo/api/notification-dispatch';
 import { createDispatch } from '@jamzo/api/dispatch';
+import { createLedgerJobs } from '@jamzo/api/ledger-jobs';
 import { buildApp } from '@jamzo/api/app';
 import { createLocalStorage } from '@jamzo/api/media-storage';
 import { createOutboxRelay } from '../../../services/workers/src/outbox.js';
@@ -76,6 +77,7 @@ export default async function globalSetup() {
       createDispatch({ prisma }).handlers,
       // Same fake gateway instance as the API, so refunds created in the admin are processed (Phase 7).
       app.services.payments.handlers,
+      createLedgerJobs({ prisma }),
     ),
   });
   process.env.E2E_ORDERS = JSON.stringify(await placeDemoOrders(app, prisma, sms));
@@ -238,6 +240,13 @@ async function prepareRiders({ app, call, login, h }) {
   await call('POST', '/v1/rider/status', 'RIDER', partner, { online: true });
   await call('POST', '/v1/rider/locations', 'RIDER', partner, {
     points: [{ lat: 23.9, lng: 72.39, accuracyM: 10, recordedAt: new Date().toISOString() }],
+  });
+  // Phase 8: the partner reports a UPI deposit for Finance to check.
+  await call('POST', '/v1/rider/cod-deposits', 'RIDER', partner, {
+    amountPaise: 25_000,
+    method: 'UPI',
+    reference: 'UPI-E2E-4821',
+    idempotencyKey: 'e2e-deposit-0001',
   });
 }
 

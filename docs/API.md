@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (214 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -122,6 +122,9 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `POST` | `/v1/admin/cms/pages` | admin token | ADMIN | `cms.manage` |  |
 | `GET` | `/v1/admin/cms/pages/:id` | admin token | ADMIN | `cms.manage` |  |
 | `PUT` | `/v1/admin/cms/pages/:id` | admin token | ADMIN | `cms.manage` |  |
+| `GET` | `/v1/admin/cod-deposits` | admin token | ADMIN | `settlements.view` |  |
+| `POST` | `/v1/admin/cod-deposits/:id/reject` | admin token | ADMIN | `settlements.manage` |  |
+| `POST` | `/v1/admin/cod-deposits/:id/verify` | admin token | ADMIN | `settlements.manage` |  |
 | `GET` | `/v1/admin/coupons` | admin token | ADMIN | `promotions.manage` |  |
 | `POST` | `/v1/admin/coupons` | admin token | ADMIN | `promotions.manage` |  |
 | `PATCH` | `/v1/admin/coupons/:id` | admin token | ADMIN | `promotions.manage` |  |
@@ -131,6 +134,8 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `POST` | `/v1/admin/customers/:id/reveal` | admin token | ADMIN | `customers.view + customers.pii` |  |
 | `GET` | `/v1/admin/dashboard` | admin token | ADMIN | `dashboard.view` |  |
 | `GET` | `/v1/admin/dispatch` | admin token | ADMIN | `orders.view` |  |
+| `GET` | `/v1/admin/finance/checks` | admin token | ADMIN | `settlements.view` |  |
+| `GET` | `/v1/admin/finance/platform` | admin token | ADMIN | `settlements.view` |  |
 | `GET` | `/v1/admin/flags` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/flags/:key` | admin token | ADMIN | `flags.manage` |  |
 | `GET` | `/v1/admin/geo/cities` | admin token | ADMIN | `geo.view` |  |
@@ -145,6 +150,8 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `POST` | `/v1/admin/geo/zones` | admin token | ADMIN | `geo.manage` |  |
 | `GET` | `/v1/admin/geo/zones/:id` | admin token | ADMIN | `geo.view` |  |
 | `PATCH` | `/v1/admin/geo/zones/:id` | admin token | ADMIN | `geo.manage` |  |
+| `GET` | `/v1/admin/ledgers/:kind/:id` | admin token | ADMIN | `settlements.view` |  |
+| `POST` | `/v1/admin/ledgers/:kind/:id/adjustments` | admin token | ADMIN | `ledgers.adjust` |  |
 | `GET` | `/v1/admin/media` | admin token | ADMIN | `media.view` |  |
 | `POST` | `/v1/admin/media` | admin token | ADMIN | `media.manage` |  |
 | `DELETE` | `/v1/admin/media/:id` | admin token | ADMIN | `media.manage` |  |
@@ -212,6 +219,7 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `GET` | `/v1/admin/riders` | admin token | ADMIN | `riders.view` |  |
 | `GET` | `/v1/admin/riders/:id` | admin token | ADMIN | `riders.view` |  |
 | `PATCH` | `/v1/admin/riders/:id/cod` | admin token | ADMIN | `riders.manage` |  |
+| `POST` | `/v1/admin/riders/:id/cod-deposits` | admin token | ADMIN | `settlements.manage` |  |
 | `POST` | `/v1/admin/riders/:id/status` | admin token | ADMIN | `riders.approve` |  |
 | `GET` | `/v1/admin/roles` | admin token | ADMIN | `roles.view` |  |
 | `POST` | `/v1/admin/roles` | admin token | ADMIN | `roles.manage` |  |
@@ -222,6 +230,14 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `GET` | `/v1/admin/settings` | admin token | ADMIN | `config.view` |  |
 | `PUT` | `/v1/admin/settings` | admin token | ADMIN | `config.manage` |  |
 | `GET` | `/v1/admin/settings/history` | admin token | ADMIN | `config.view` |  |
+| `GET` | `/v1/admin/settlements` | admin token | ADMIN | `settlements.view` |  |
+| `GET` | `/v1/admin/settlements/:kind/:id` | admin token | ADMIN | `settlements.view` |  |
+| `POST` | `/v1/admin/settlements/:kind/:id/approve` | admin token | ADMIN | `settlements.manage` |  |
+| `POST` | `/v1/admin/settlements/:kind/:id/cancel` | admin token | ADMIN | `settlements.manage` |  |
+| `POST` | `/v1/admin/settlements/:kind/:id/fail` | admin token | ADMIN | `settlements.manage` |  |
+| `POST` | `/v1/admin/settlements/:kind/:id/paid` | admin token | ADMIN | `settlements.manage` |  |
+| `GET` | `/v1/admin/settlements/:kind/:id/statement.csv` | admin token | ADMIN | `settlements.view` |  |
+| `POST` | `/v1/admin/settlements/run` | admin token | ADMIN | `settlements.manage` |  |
 | `GET` | `/v1/admin/users` | admin token | ADMIN | `admins.view` |  |
 | `POST` | `/v1/admin/users` | admin token | ADMIN | `admins.manage` |  |
 | `GET` | `/v1/admin/users/:id` | admin token | ADMIN | `admins.view` |  |
@@ -270,10 +286,12 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `POST` | `/v1/restaurant/orders/:id/ready` | required | RESTAURANT | — |  |
 | `POST` | `/v1/restaurant/orders/:id/reject` | required | RESTAURANT | — |  |
 | `POST` | `/v1/restaurant/orders/:id/seen` | required | RESTAURANT | — |  |
+| `GET` | `/v1/restaurant/payouts` | required | RESTAURANT | — |  |
 | `POST` | `/v1/restaurant/products/:id/availability` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id/menu` | required | RESTAURANT | — |  |
 | `POST` | `/v1/rider/application/submit` | required | RIDER | — |  |
+| `POST` | `/v1/rider/cod-deposits` | required | RIDER | — |  |
 | `POST` | `/v1/rider/documents` | required | RIDER | — |  |
 | `GET` | `/v1/rider/earnings` | required | RIDER | — |  |
 | `POST` | `/v1/rider/locations` | required | RIDER | — |  |
@@ -290,6 +308,7 @@ _Generated from the route definitions by `pnpm docs:api` (195 endpoints). Do not
 | `POST` | `/v1/rider/trips/:id/picked-up` | required | RIDER | — |  |
 | `POST` | `/v1/rider/trips/:id/unassign` | required | RIDER | — |  |
 | `PUT` | `/v1/rider/vehicle` | required | RIDER | — |  |
+| `GET` | `/v1/rider/wallet` | required | RIDER | — |  |
 | `GET` | `/v1/rider/work` | required | RIDER | — |  |
 | `POST` | `/v1/webhooks/payments/:provider` | none | any | — |  |
 

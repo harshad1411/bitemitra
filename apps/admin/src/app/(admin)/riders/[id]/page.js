@@ -218,6 +218,11 @@ export default function RiderPage({ params }) {
               <span className="font-semibold tabular-nums">{formatPaise(r.cod.balancePaise)}</span>
             </p>
             <p className="text-muted-foreground">{r.cod.depositsNote}</p>
+            {can('settlements.view') ? (
+              <Link className="w-fit underline" href={`/ledgers/rider/${id}`}>
+                Open the ledger (earnings, cash, payouts)
+              </Link>
+            ) : null}
             <label className="flex items-center gap-2">
               <Switch
                 checked={c.enabled}

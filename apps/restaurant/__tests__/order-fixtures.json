@@ -158,5 +158,22 @@
       "firstName": "Demo",
       "atRestaurant": true
     }
+  },
+  "payouts": {
+    "balancePaise": 14814,
+    "schedule": "WEEKLY",
+    "nextSettlementDate": "2026-09-28",
+    "minPayoutPaise": 10000,
+    "pending": {
+      "orders": 1,
+      "foodSalesPaise": 18000,
+      "commissionPaise": 2700,
+      "commissionTaxPaise": 486,
+      "discountsPaise": 0,
+      "refundsPaise": 0,
+      "adjustmentsPaise": 0,
+      "netPaise": 14814
+    },
+    "settlements": []
   }
 }

@@ -1,10 +1,12 @@
-// Earnings (D-78): today or this week, per trip, with tips shown separately. Only the rider's own money.
+// Earnings (D-78): the partner's money position and deposits (D-90, D-91), then today or this week per trip,
+// with tips shown separately. Only the rider's own money.
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
 import { Button, Card, EmptyState, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { money, time } from '../lib/format';
+import { Wallet } from '../components/wallet';
 
 export default function Earnings() {
   const { api } = useJamzo();
@@ -16,6 +18,7 @@ export default function Earnings() {
   return (
     <Screen>
       <Text variant="title">Earnings</Text>
+      <Wallet />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button
           title="Today"
