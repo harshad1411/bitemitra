@@ -3,6 +3,20 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Phase 10 — Production hardening (2026-09-26) — built under OD-42
+
+### Added
+- DigitalOcean Spaces storage driver (S3-compatible; public renditions for the CDN, private documents private) — before this the API could not start in production (D-98).
+- `/ready` checks the database and stuck background jobs; `/metrics` (Prometheus, token-protected) with request latency and business gauges; response compression (D-99).
+- Load test (`pnpm load-test`) with a rush-hour mix and server-side timings; results in docs/PERFORMANCE.md (D-102).
+- Backups: `pnpm db:backup` and `pnpm db:restore-drill` (run: every table restored) (D-103).
+- Deployment: API/worker and admin Docker images, production Compose file with Caddy (automatic HTTPS), `deploy/deploy.sh` with readiness check and rollback, full runbook and launch checklist in docs/DEPLOYMENT.md (D-101).
+- CI: secret scan, dependency audit report, production image build with a database migration and readiness smoke test.
+
+### Changed
+- Rate limits count per signed-in user (not only per IP) — found by the load test (D-100).
+- Monitoring endpoints are never rate-limited; admin site gets HSTS and a CSP in production.
+
 ## Phase 9 — Admin operations (2026-09-25) — built under OD-42
 
 ### Added

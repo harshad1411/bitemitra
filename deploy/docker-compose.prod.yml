@@ -1,0 +1,35 @@
+# Production on the DigitalOcean Droplet (D-101, OD-40 Option 2). The database is DigitalOcean's managed
+# PostgreSQL (not in this file); files go to Spaces. Secrets live only in deploy/.env.production on the server
+# (never committed). Caddy gets and renews HTTPS certificates automatically.
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.production up -d
+name: jamzo
+services:
+  api:
+    image: ${JAMZO_API_IMAGE:-jamzo-api:latest}
+    env_file: .env.production
+    restart: unless-stopped
+    command: ['node', 'services/api/src/server.js']
+    expose: ['4000']
+  worker:
+    image: ${JAMZO_API_IMAGE:-jamzo-api:latest}
+    env_file: .env.production
+    restart: unless-stopped
+    command: ['node', 'services/workers/src/main.js']
+    stop_grace_period: 30s
+  admin:
+    image: ${JAMZO_ADMIN_IMAGE:-jamzo-admin:latest}
+    restart: unless-stopped
+    expose: ['3000']
+    depends_on: [api]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [api, admin]
+volumes:
+  caddy-data:
+  caddy-config:

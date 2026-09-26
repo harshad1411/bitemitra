@@ -1,0 +1,23 @@
+# Production images (D-101) need the workspace manifests, the packages and the services — not the mobile
+# apps' code, local data, git history or build output. App manifests stay so the lockfile still matches.
+**/node_modules
+**/.next
+**/.next-e2e
+**/dist
+**/.turbo
+**/test-results
+**/playwright-report
+.git
+.github
+var
+docs
+assets
+.env
+.env.*
+apps/customer/*
+!apps/customer/package.json
+apps/restaurant/*
+!apps/restaurant/package.json
+apps/rider/*
+!apps/rider/package.json
+apps/admin/e2e

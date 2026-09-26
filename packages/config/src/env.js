@@ -8,7 +8,12 @@ const base = {
   APP_ENV: z.enum(APP_ENVS).default('development'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  MEDIA_STORAGE_DRIVER: z.enum(['local']).default('local'),
+  MEDIA_STORAGE_DRIVER: z.enum(['local', 'spaces']).default('local'),
+  // DigitalOcean Spaces (D-98), required when MEDIA_STORAGE_DRIVER=spaces.
+  SPACES_ENDPOINT: z.preprocess((v) => (v === '' ? undefined : v), z.url().optional()),
+  SPACES_BUCKET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(3).optional()),
+  SPACES_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
+  SPACES_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
   // Relative to the service directory (services/api or services/workers), so both resolve to <repo>/var/media.
   MEDIA_LOCAL_DIR: z.string().default('../../var/media'),
 };
@@ -21,6 +26,17 @@ const paymentEnv = {
   RAZORPAY_KEY_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
   RAZORPAY_WEBHOOK_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
 };
+
+/**
+ * Spaces needs all four settings (D-98).
+ * @param {any} env
+ * @param {import('zod').RefinementCtx} ctx
+ */
+function checkStorageEnv(env, ctx) {
+  if (env.MEDIA_STORAGE_DRIVER !== 'spaces') return;
+  for (const k of ['SPACES_ENDPOINT', 'SPACES_BUCKET', 'SPACES_KEY', 'SPACES_SECRET'])
+    if (!env[k]) ctx.addIssue({ code: 'custom', path: [k], message: `${k} is required for Spaces storage` });
+}
 
 /**
  * @param {any} env
@@ -57,6 +73,8 @@ export const apiEnvSchema = z
   .object({
     ...base,
     HOST: z.string().default('0.0.0.0'),
+    // Bearer token for GET /metrics (D-99); without it the route does not exist.
+    METRICS_TOKEN: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(24).optional()),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
     TRUST_PROXY: bool.default(false),
     CORS_ORIGINS: z
@@ -99,6 +117,7 @@ export const apiEnvSchema = z
   .superRefine((env, ctx) => {
     const live = env.APP_ENV === 'staging' || env.APP_ENV === 'production';
     checkPaymentEnv(env, ctx);
+    checkStorageEnv(env, ctx);
     if (!live) return;
     // Development-only providers must never run where real users exist (DECISIONS D-21, D-23).
     if (env.SMS_PROVIDER === 'console')
@@ -141,6 +160,7 @@ export const workerEnvSchema = z
   })
   .superRefine((env, ctx) => {
     checkPaymentEnv(env, ctx);
+    checkStorageEnv(env, ctx);
     if ((env.APP_ENV === 'staging' || env.APP_ENV === 'production') && env.PUSH_PROVIDER === 'console')
       ctx.addIssue({
         code: 'custom',

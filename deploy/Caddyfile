@@ -1,0 +1,10 @@
+# HTTPS for the two public names (D-101). DNS at GoDaddy: A records api and admin → the Droplet's IP.
+api.jamzo.in {
+	encode zstd gzip
+	reverse_proxy api:4000
+}
+
+admin.jamzo.in {
+	encode zstd gzip
+	reverse_proxy admin:3000
+}

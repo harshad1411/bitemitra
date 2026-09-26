@@ -1,6 +1,7 @@
-// Storage interface (ARCHITECTURE §6, DECISIONS D-23). Phase 1 implements ONLY the local-filesystem
-// driver (development/test). An S3-compatible driver is required before production and is not built yet.
+// Storage interface (ARCHITECTURE §6, DECISIONS D-23, D-98): the local-filesystem driver for development and
+// tests, and an S3-compatible driver for DigitalOcean Spaces in staging/production.
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import path from 'node:path';
 
 /**
@@ -52,9 +53,68 @@ export function createLocalStorage({ root }) {
   };
 }
 
-/** @param {{ MEDIA_STORAGE_DRIVER: string, MEDIA_LOCAL_DIR: string }} env */
+/**
+ * DigitalOcean Spaces (S3-compatible, D-98). Library images are public-read so the Spaces CDN can serve them
+ * directly; anything under `private/` (KYC and rider documents) stays private and is read only via the API.
+ * @param {{ endpoint: string, bucket: string, key: string, secret: string, region?: string, forcePathStyle?: boolean }} o
+ * @returns {Storage}
+ */
+export function createSpacesStorage({
+  endpoint,
+  bucket,
+  key,
+  secret,
+  region = 'us-east-1',
+  forcePathStyle = false,
+}) {
+  const s3 = new S3Client({
+    endpoint,
+    region, // Spaces ignores the region; the SDK requires one
+    forcePathStyle,
+    credentials: { accessKeyId: key, secretAccessKey: secret },
+  });
+  return {
+    name: 'spaces',
+    async put(objectKey, body, contentType) {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: assertSafeKey(objectKey),
+          Body: body,
+          ContentType: contentType,
+          ACL: objectKey.startsWith('private/') ? 'private' : 'public-read',
+          CacheControl: objectKey.startsWith('private/')
+            ? 'private, no-store'
+            : 'public, max-age=31536000, immutable',
+        }),
+      );
+    },
+    async get(objectKey) {
+      try {
+        const r = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: assertSafeKey(objectKey) }));
+        return Buffer.from(await r.Body.transformToByteArray());
+      } catch (err) {
+        const e = /** @type {any} */ (err);
+        if (e.name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404) return null;
+        throw err;
+      }
+    },
+    async remove(objectKey) {
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: assertSafeKey(objectKey) }));
+    },
+  };
+}
+
+/** @param {any} env */
 export function createStorage(env) {
   if (env.MEDIA_STORAGE_DRIVER === 'local') return createLocalStorage({ root: env.MEDIA_LOCAL_DIR });
+  if (env.MEDIA_STORAGE_DRIVER === 'spaces')
+    return createSpacesStorage({
+      endpoint: env.SPACES_ENDPOINT,
+      bucket: env.SPACES_BUCKET,
+      key: env.SPACES_KEY,
+      secret: env.SPACES_SECRET,
+    });
   throw new Error(`Storage driver "${env.MEDIA_STORAGE_DRIVER}" is not implemented (DECISIONS D-23)`);
 }
 

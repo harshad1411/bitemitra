@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 accepted (2026-09-25); Phase 5 accepted (2026-09-25); Phase 6 accepted; Phases 7 (online payments), 8 (ledgers, settlements) and 9 (admin operations) complete; Phase 10 in progress (OD-42).** Decisions referenced as OD-/D-/CH- are
+Status: **Phase 0 approved; Phase 1 accepted (2026-09-24); Phase 2 accepted (2026-09-25); Phases 3 + 4 accepted (2026-09-25); Phase 5 accepted (2026-09-25); Phase 6 accepted; Phases 7–10 (payments, ledgers, admin operations, production hardening) built under OD-42, awaiting review.** Decisions referenced as OD-/D-/CH- are
 recorded in [DECISIONS.md](DECISIONS.md), which is authoritative.
 
 Related: [DATABASE](DATABASE.md) · [PRICING](PRICING.md) · [ORDERS](ORDERS.md) · [ORDER_FLOW](ORDER_FLOW.md) ·

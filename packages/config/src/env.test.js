@@ -43,4 +43,19 @@ describe('env', () => {
       /production needs a live Razorpay key/,
     );
   });
+
+  it('storage: Spaces needs its endpoint, bucket and keys; local disk is refused in production', () => {
+    expect(() => loadEnv(apiEnvSchema, { ...good, MEDIA_STORAGE_DRIVER: 'spaces' })).toThrow(
+      /SPACES_ENDPOINT is required[\s\S]*SPACES_SECRET is required/,
+    );
+    const env = loadEnv(apiEnvSchema, {
+      ...good,
+      MEDIA_STORAGE_DRIVER: 'spaces',
+      SPACES_ENDPOINT: 'https://blr1.digitaloceanspaces.com',
+      SPACES_BUCKET: 'jamzo-media',
+      SPACES_KEY: 'DO00EXAMPLEKEY',
+      SPACES_SECRET: 'example-secret-value',
+    });
+    expect(env.MEDIA_STORAGE_DRIVER).toBe('spaces');
+  });
 });

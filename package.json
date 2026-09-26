@@ -25,9 +25,13 @@
     "build": "turbo run build",
     "verify:schema": "node scripts/verify-schema.mjs",
     "check:docs": "node scripts/check-docs.mjs && node scripts/generate-api-docs.mjs --check",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm test",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm check:secrets && pnpm test",
     "assets:generate": "node scripts/generate-app-assets.mjs",
-    "docs:api": "node scripts/generate-api-docs.mjs"
+    "docs:api": "node scripts/generate-api-docs.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs",
+    "db:restore-drill": "node --env-file-if-exists=.env scripts/restore-drill.mjs",
+    "load-test": "node --env-file-if-exists=.env scripts/load-test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

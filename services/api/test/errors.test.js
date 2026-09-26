@@ -76,6 +76,8 @@ describe('standard error format (spec §71)', () => {
 
   it('health and readiness', async () => {
     expect((await ctx.app.inject({ method: 'GET', url: '/health' })).json()).toEqual({ status: 'ok' });
-    expect((await ctx.app.inject({ method: 'GET', url: '/ready' })).json()).toEqual({ status: 'ready' });
+    expect((await ctx.app.inject({ method: 'GET', url: '/ready' })).json()).toMatchObject({
+      status: 'ready',
+    });
   });
 });

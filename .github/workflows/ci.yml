@@ -37,9 +37,50 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm verify:schema
       - run: pnpm check:docs
+      - run: pnpm check:secrets
+      - name: Dependency audit (report only)
+        run: pnpm audit --prod --audit-level high || true
       - run: pnpm test
       - name: Admin production build
         run: pnpm --filter @jamzo/admin build
+
+  images:
+    name: Production images (build + API smoke test)
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API + worker image
+        run: docker build -f deploy/api.Dockerfile -t jamzo-api:ci .
+      - name: Build the admin image
+        run: docker build -f deploy/admin.Dockerfile -t jamzo-admin:ci .
+      - name: The API image migrates a real database and becomes ready
+        run: |
+          cat > ci.env <<'ENV'
+          APP_ENV=development
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
+          JWT_ACCESS_SECRET=ci-access-secret-that-is-long-enough-123456
+          OTP_PEPPER=ci-otp-pepper-that-is-long-enough-1234567890
+          FIELD_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+          MEDIA_LOCAL_DIR=/tmp/media
+          COOKIE_SECURE=false
+          ENV
+          docker run --rm --network host --env-file ci.env jamzo-api:ci node packages/database/scripts/prisma.mjs migrate deploy
+          docker run -d --name api --network host --env-file ci.env jamzo-api:ci
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4000/ready && exit 0; sleep 2; done
+          docker logs api; exit 1
+      - name: The admin image serves its login page
+        run: |
+          docker run -d --name admin -p 3000:3000 jamzo-admin:ci
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:3000/login && exit 0; sleep 2; done
+          docker logs admin; exit 1
 
   admin-e2e:
     name: Admin end-to-end (Playwright)

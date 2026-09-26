@@ -5,6 +5,8 @@ import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import compress from '@fastify/compress';
+import { createMetrics } from './core/metrics.js';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import { REDACT_PATHS } from '@jamzo/logger';
@@ -82,6 +84,16 @@ export async function buildApp(deps) {
 
   if (deps.onRoute) app.addHook('onRoute', deps.onRoute); // used by scripts/generate-api-docs.mjs
 
+  const metrics = createMetrics();
+  app.addHook('onResponse', async (request, reply) => {
+    metrics.observe(
+      request.method,
+      request.routeOptions.url ?? 'unmatched',
+      reply.statusCode,
+      reply.elapsedTime,
+    );
+  });
+
   const config = createConfigService(prisma, clock);
   const auth = createAuthService({
     prisma,
@@ -124,12 +136,20 @@ export async function buildApp(deps) {
   app.decorateRequest('client', null);
 
   await app.register(helmet, { crossOriginResourcePolicy: { policy: 'cross-origin' } });
+  // Smaller JSON over mobile networks (D-72); tiny responses are sent as they are.
+  await app.register(compress, { threshold: 1024, encodings: ['br', 'gzip'] });
   await app.register(cors, { origin: env.CORS_ORIGINS.length ? env.CORS_ORIGINS : false, credentials: true });
   await app.register(cookie);
   await app.register(multipart);
+  // Rate limits (D-100): signed-in requests count per user, others per IP. Indian mobile networks put many
+  // phones behind one IP (carrier-grade NAT), so per-IP limits alone would throttle real customers. The
+  // check runs at preHandler, after sign-in is verified (route-level hooks run after the auth hook).
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX,
     timeWindow: '1 minute',
+    hook: 'preHandler',
+    keyGenerator: (/** @type {any} */ request) =>
+      request.auth?.userId ? `user:${request.auth.userId}` : `ip:${request.ip}`,
     errorResponseBuilder: (_req, ctx) => {
       const err = new AppError('RATE_LIMITED', 'Too many requests. Please slow down.', {
         details: { retryAfterSec: Math.ceil(ctx.ttl / 1000) },
@@ -211,16 +231,67 @@ export async function buildApp(deps) {
 
   await app.register(authPlugin, { secret: env.JWT_ACCESS_SECRET });
 
-  app.get('/health', { config: { auth: 'none' } }, async () => ({ status: 'ok' }));
-  app.get('/ready', { config: { auth: 'none' } }, async (_req, reply) => {
+  app.get('/health', { config: { auth: 'none', rateLimit: false } }, async () => ({ status: 'ok' }));
+  // Readiness (D-99): the database answers and background work is not stuck (the worker is alive).
+  const OUTBOX_STUCK_MS = 5 * 60_000;
+  const oldestWaitingMs = async () => {
+    const [row] = await prisma.$queryRaw`SELECT MIN("availableAt") AS oldest FROM outbox_events
+      WHERE "publishedAt" IS NULL AND "failedAt" IS NULL AND "availableAt" <= now()`;
+    return row?.oldest ? Math.max(0, clock.now().getTime() - new Date(row.oldest).getTime()) : 0;
+  };
+  app.get('/ready', { config: { auth: 'none', rateLimit: false } }, async (_req, reply) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
-      return { status: 'ready' };
     } catch {
       reply.code(503);
-      return { status: 'unavailable' };
+      return { status: 'unavailable', reason: 'DATABASE' };
     }
+    const lag = await oldestWaitingMs();
+    if (lag > OUTBOX_STUCK_MS) {
+      reply.code(503);
+      return { status: 'degraded', reason: 'OUTBOX_STUCK', oldestWaitingSec: Math.round(lag / 1000) };
+    }
+    return { status: 'ready', oldestWaitingSec: Math.round(lag / 1000) };
   });
+
+  // Metrics (D-99): only with the METRICS_TOKEN bearer; the route does not exist without a token configured.
+  if (env.METRICS_TOKEN)
+    app.get('/metrics', { config: { auth: 'none', rateLimit: false } }, async (request, reply) => {
+      if (request.headers.authorization !== `Bearer ${env.METRICS_TOKEN}`) {
+        reply.code(401);
+        return {
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Metrics need the metrics token.',
+            requestId: request.id,
+          },
+        };
+      }
+      const [outbox] = await prisma.$queryRaw`SELECT
+          COUNT(*) FILTER (WHERE "publishedAt" IS NULL AND "failedAt" IS NULL AND "availableAt" <= now())::int AS waiting,
+          COUNT(*) FILTER (WHERE "failedAt" IS NOT NULL)::int AS parked
+        FROM outbox_events`;
+      const [paymentsWaiting, refundsFailed, settlementsToPay, attention] = await Promise.all([
+        prisma.payment.count({ where: { status: { in: ['INITIATED', 'PENDING'] } } }),
+        prisma.refund.count({ where: { status: 'FAILED' } }),
+        prisma.restaurantSettlement.count({ where: { status: { in: ['DRAFT', 'PROCESSING'] } } }),
+        prisma.order.count({ where: { needsAttention: true } }),
+      ]);
+      reply.header('content-type', 'text/plain; version=0.0.4');
+      return metrics.render([
+        ['jamzo_outbox_waiting', 'Background jobs due and not yet done', outbox.waiting],
+        ['jamzo_outbox_parked', 'Background jobs that failed too often (need a person)', outbox.parked],
+        [
+          'jamzo_outbox_oldest_waiting_seconds',
+          'Age of the oldest due background job',
+          Math.round((await oldestWaitingMs()) / 1000),
+        ],
+        ['jamzo_payments_waiting', 'Online payments not yet paid', paymentsWaiting],
+        ['jamzo_refunds_failed', 'Refunds that failed at the gateway', refundsFailed],
+        ['jamzo_restaurant_settlements_open', 'Restaurant settlements to approve or pay', settlementsToPay],
+        ['jamzo_orders_needing_attention', 'Orders flagged for operations', attention],
+      ]);
+    });
 
   await app.register(authRoutes);
   await app.register(configurationRoutes);

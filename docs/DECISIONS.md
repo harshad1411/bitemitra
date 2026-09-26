@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-25 (Phase 9 complete; Phase 10 next, OD-42).
+Last updated: 2026-09-26 (Phase 10 complete; all phases built, awaiting owner review — OD-42).
 
 ---
 
@@ -786,6 +786,61 @@ cities. Results are cached for 60 seconds. None of this is on the ordering path 
 The audit log (Phase 1) already records actor, action, entity, old and new values, IP and device. Phase 9
 adds, in Jamzo Admin, filters by action prefix and dates and a CSV export (`audit.view`, audited).
 Notification preferences (`notification_preferences`) stay LATER: there are no promotional messages yet.
+
+## 2h. Engineering decisions — Phase 10 (production hardening)
+
+### D-98. File storage on DigitalOcean Spaces
+Until now there was only a local-disk driver (refused in staging/production), so the API could not start in
+production. Phase 10 adds `MEDIA_STORAGE_DRIVER=spaces`, an S3-compatible driver (AWS SDK v3) with
+`SPACES_ENDPOINT` (e.g. `https://blr1.digitaloceanspaces.com`), `SPACES_BUCKET`, `SPACES_KEY` and
+`SPACES_SECRET`. Image renditions are uploaded public-read, so `MEDIA_PUBLIC_BASE_URL` can point at the Spaces
+CDN (speed, D-72). Private documents (`private/…`) stay private and are read only through the API. The driver
+is tested against a fake S3 server and is **not verified with DigitalOcean** until the owner creates the Space
+and its keys.
+
+### D-99. Health, readiness and metrics
+- `/health`: the process is up.
+- `/ready`: the database answers and the outbox is not stuck (oldest waiting job < 5 min); otherwise 503.
+- `/metrics`: Prometheus text behind `METRICS_TOKEN` — requests by route and status, a latency histogram,
+  outbox waiting / parked counts and age, payments waiting, refunds failed, settlements to pay.
+
+DigitalOcean's uptime checks and alerts watch `/ready` (launch runbook). Error reporting to a SaaS (Sentry) is
+not wired in: Q-11 is still open.
+
+### D-100. Security hardening
+- **Proxy:** `TRUST_PROXY` so client IPs are right behind the reverse proxy (for rate limits and audit IPs).
+- **Responses:** compression.
+- **Admin site:** security headers (HSTS, frame denial, no sniffing, a referrer policy and a CSP that allows
+  only this origin; inline scripts are allowed because Next.js needs them for hydration).
+- **Shutdown:** graceful — the API drains requests on SIGTERM, and the worker finishes its current batch.
+- **CI checks:** a secret scan (`pnpm check:secrets`: private keys, live gateway keys, cloud keys) and a
+  dependency audit report.
+
+Admin two-factor authentication waits for the owner's choice (Q-15). It must be built before production.
+
+### D-101. Deployment on DigitalOcean (Option 2)
+One Docker image holds the API and the worker (two commands), and a second holds the admin site. They run on
+the 2 GiB Droplet with Docker Compose behind **Caddy**, which gets and renews HTTPS certificates
+automatically:
+- `api.jamzo.in` → API;
+- `admin.jamzo.in` → admin site.
+
+Deploys run `prisma migrate deploy` (expand-only migrations) before the new containers start. Rollback means
+running the previous image tag. The images are built in CI; the Mac has no Docker. The runbook in
+DEPLOYMENT.md covers GoDaddy DNS, the managed database (SSL), Spaces, and the order of first-time steps.
+**Nothing is created or bought without the owner** (OD-40).
+
+### D-102. Load test and speed
+`pnpm load-test` runs a rush-hour mix: home, menus, cart quotes, order tracking and checkout, against an API
+with the seeded catalog. It reports p50 / p95 / p99 and throughput against D-72 (p95 < 300 ms). Phase 10 runs
+it on the development Mac. That is **not** DigitalOcean hardware, so the D-72 launch condition stays open
+until the same test runs on the staging Droplet.
+
+### D-103. Backups and restore
+- The managed PostgreSQL has daily backups and 7-day point-in-time restore (DigitalOcean).
+- In addition, `pnpm db:backup` writes a compressed `pg_dump`, which is uploaded to Spaces in production.
+- `pnpm db:restore-drill` restores the latest dump into a scratch database and compares table row counts.
+  It is run in Phase 10 on the development database; the launch runbook repeats it on staging.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 
