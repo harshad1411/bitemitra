@@ -103,14 +103,14 @@ export default function CartScreen() {
         borderTopColor: t.colors.border,
       }}
     >
-      <View>
-        <Text variant="title" style={{ fontSize: 20, lineHeight: 26 }}>
+      <View style={{ width: '25%' }}>
+        <Text variant="title" style={{ fontSize: 20, lineHeight: 26 }} numberOfLines={1} adjustsFontSizeToFit>
           {data?.bill ? money(data.bill.totalPayablePaise) : '—'}
         </Text>
         <Text variant="label">Total</Text>
       </View>
-      <View style={{ flex: 1 }} />
-      <View style={{ minWidth: 190 }}>
+      {/* The button takes three quarters of the bar, the total the rest (owner, 2026-09-27). */}
+      <View style={{ flex: 1 }}>
         <Button
           title="Checkout"
           size="lg"
