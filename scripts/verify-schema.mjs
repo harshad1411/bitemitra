@@ -476,5 +476,13 @@ async function checkGuarantees(db) {
   await db.exec(ticket('1'));
   await rejects('a second open ticket for the same order and issue', ticket('2'), UNIQUE);
   await rejects('a resolved ticket without a resolution', ticket('3', 'RESOLVED'), CHECK);
+
+  // Ratings and reviews (D-110)
+  const review = (rating, extra = '') =>
+    `insert into reviews (id, "orderId", "customerId", "restaurantId", "foodRating"${extra ? ', "isHidden"' : ''}) values ('${id()}', '${ids.order}', '${ids.customer}', '${ids.restaurant}', ${rating}${extra})`;
+  await rejects('a review above five stars', review(5.5), CHECK);
+  await rejects('a hidden review without a reason', review(4, ', true'), CHECK);
+  await db.exec(review(4));
+  await rejects('a second review of the same order', review(3), UNIQUE);
   console.log('✓ database-level guarantees hold');
 }

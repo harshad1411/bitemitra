@@ -499,6 +499,21 @@ const DEFINITIONS = [
     scopes: GEO_SCOPES,
     phase: 3,
   },
+  {
+    key: 'reviews',
+    section: 'Customer',
+    label: 'Ratings and reviews',
+    description:
+      'Customers rate the items and the delivery partner after delivery (D-110). Averages are shown to customers only from the minimum number of ratings.',
+    schema: z.object({
+      enabled: z.boolean(),
+      windowDays: z.number().int().min(1).max(30),
+      minCountToShow: z.number().int().min(1).max(100),
+    }),
+    default: { enabled: true, windowDays: 7, minCountToShow: 5 },
+    scopes: ['GLOBAL'],
+    phase: 10,
+  },
 ];
 
 const BY_KEY = new Map(DEFINITIONS.map((d) => [d.key, d]));

@@ -43,6 +43,14 @@ export default function Orders() {
           >
             {TIMELINE_LABEL[o.status] ?? o.status}
           </Badge>
+          {o.canReview ? (
+            <Button
+              title="Rate this order"
+              icon="star"
+              accessibilityHint={o.orderNumber}
+              onPress={() => router.push(`/orders/${o.id}`)}
+            />
+          ) : null}
           <Button
             title="View order"
             variant="secondary"

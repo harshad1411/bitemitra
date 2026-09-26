@@ -117,6 +117,17 @@ function ProductRow({ p, restaurant, orderable, last }) {
           {p.variants.length > 1 ? 'from ' : ''}
           {money(p.pricePaise)}
         </Text>
+        {p.rating?.average != null ? (
+          <View
+            accessibilityLabel={`Rated ${p.rating.average} from ${p.rating.count} ratings`}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+          >
+            <Icon name="star" size={13} color={t.colors.accent} />
+            <Text variant="small" style={{ color: t.colors.text }}>
+              {`${p.rating.average.toFixed(1)} (${p.rating.count})`}
+            </Text>
+          </View>
+        ) : null}
         {p.description ? (
           <Pressable
             accessibilityRole="button"

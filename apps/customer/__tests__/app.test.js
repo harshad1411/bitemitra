@@ -264,6 +264,48 @@ describe('customer app', () => {
     expect(screen.queryByText('Checked: not packed.')).toBeNull();
   });
 
+  it('rates a delivered order: stars for each item and the delivery partner, then shows the rating (D-110)', async () => {
+    // The delivered fixture plus the review fields the API now adds (their API behaviour is tested in
+    // services/api/test/reviews.test.js).
+    const base = fixtures.delivery.delivered;
+    const items = base.items.map((i, n) => ({ ...i, id: `item-${n}` }));
+    const deadline = new Date(Date.now() + 6 * 86_400_000).toISOString();
+    let order = {
+      ...base,
+      items,
+      review: { canReview: true, deadline, ratesDelivery: true, given: null },
+    };
+    let sent = null;
+    installFakeApi({
+      onRequest: (path, body) => {
+        if (path === `/v1/customer/orders/${base.id}`) return { body: order };
+        if (path === `/v1/customer/orders/${base.id}/review`) {
+          sent = body;
+          const given = { foodRating: 4, deliveryRating: 5, comment: 'Hot and crisp', items: body.items };
+          order = { ...order, review: { canReview: false, deadline: null, ratesDelivery: true, given } };
+          return { status: 201, body: given };
+        }
+        return null;
+      },
+    });
+    await renderRouter(routes, { initialUrl: `/orders/${base.id}` });
+    expect(await screen.findByText('Rate your order')).toBeTruthy();
+    // Nothing rated yet → the button waits.
+    expect(screen.getByLabelText('Submit rating').props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(screen.getByLabelText(`${items[0].name}: 4 stars`));
+    await fireEvent.press(screen.getByLabelText('Delivery: 5 stars'));
+    await fireEvent.changeText(screen.getByLabelText('Anything to add? (optional)'), ' Hot and crisp ');
+    await fireEvent.press(screen.getByLabelText('Submit rating'));
+    expect(await screen.findByText('Your rating')).toBeTruthy();
+    expect(sent).toEqual({
+      items: [{ orderItemId: 'item-0', rating: 4 }],
+      deliveryRating: 5,
+      comment: 'Hot and crisp',
+    });
+    expect(screen.getByText('“Hot and crisp”')).toBeTruthy();
+    expect(screen.queryByText('Rate your order')).toBeNull();
+  });
+
   describe('checkout and tracking (Phase 5)', () => {
     const placed = fixtures.orders.placed.order;
     const address = fixtures.orders.addresses.items[0];

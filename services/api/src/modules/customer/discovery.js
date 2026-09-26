@@ -9,8 +9,7 @@ import { resolvePoint } from '../geography/service.js';
 import { deliveryDistance } from '../delivery/distance.js';
 import { mediaUrls } from '../media/urls.js';
 import { loadRuleSet, ruleTargets } from '../pricing/service.js';
-
-const num = (d) => (d == null ? null : Number(d));
+import { publicRating } from '../reviews/service.js';
 
 /**
  * Resolves the customer's location from query/body: an owned saved address or lat/lng.
@@ -71,10 +70,11 @@ export async function discover(app, { point, restaurantIds, now }) {
   const city = place.city;
   const zone = place.zone;
   const ctx = { countryId: city.state.countryId, stateId: city.stateId, cityId: city.id, zoneId: zone.id };
-  const [distanceSetting, eta, ops] = await Promise.all([
+  const [distanceSetting, eta, ops, reviews] = await Promise.all([
     config.resolve('delivery.distance', ctx),
     config.resolve('delivery.eta', ctx),
     config.resolve('restaurants.operations', ctx),
+    config.resolve('reviews'),
   ]);
 
   const restaurants = await prisma.restaurant.findMany({
@@ -167,7 +167,7 @@ export async function discover(app, { point, restaurantIds, now }) {
         cuisines: r.cuisines,
         isPureVeg: r.isPureVeg,
         isPromoted: r.isPromoted,
-        rating: { average: num(r.ratingAvg), count: r.ratingCount },
+        rating: publicRating(r.ratingAvg, r.ratingCount, reviews.value.minCountToShow),
         area: b.area,
         logo: logo ? mediaUrls(logo, base) : null,
         cover: cover ? mediaUrls(cover, base) : null,
@@ -199,7 +199,8 @@ export function sortCards(cards, sort) {
       Number(b.isPromoted) - Number(a.isPromoted) || b.sortWeight - a.sortWeight || a.distanceM - b.distanceM,
     DISTANCE: (a, b) => a.distanceM - b.distanceM,
     DELIVERY_TIME: (a, b) => a.eta.minMinutes - b.eta.minMinutes,
-    RATING: (a, b) => b.rating.average - a.rating.average || b.rating.count - a.rating.count,
+    RATING: (a, b) =>
+      (b.rating.average ?? 0) - (a.rating.average ?? 0) || (b.rating.count ?? 0) - (a.rating.count ?? 0),
     DELIVERY_FEE: (a, b) => a.delivery.feePaise - b.delivery.feePaise,
   }[sort];
   return [...cards].sort(

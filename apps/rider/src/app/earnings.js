@@ -8,6 +8,7 @@ import { Button, Card, EmptyState, ErrorState, Header, LoadingState, Screen, Tex
 import { money, time } from '../lib/format';
 import { Wallet } from '../components/wallet';
 import { Stats } from '../components/stats';
+import { MyRating } from '../components/my-rating';
 
 export default function Earnings() {
   const { api } = useJamzo();
@@ -19,6 +20,7 @@ export default function Earnings() {
   return (
     <Screen header={<Header title="Earnings" />}>
       <Wallet />
+      <MyRating />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button
           title="Today"

@@ -66,6 +66,8 @@ export const PERMISSIONS = [
   { key: 'support.manage', description: 'Handle support tickets', phase: 9 },
   { key: 'reports.view', description: 'View reports', phase: 9 },
   { key: 'analytics.view', description: 'View analytics dashboards', phase: 9 },
+  { key: 'reviews.view', description: 'View ratings and reviews with their comments', phase: 10 },
+  { key: 'reviews.moderate', description: 'Hide or show reviews (with a reason)', phase: 10 },
 ];
 
 /** @type {string[]} */

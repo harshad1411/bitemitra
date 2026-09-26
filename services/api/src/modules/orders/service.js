@@ -17,6 +17,7 @@ export const ORDER_DETAIL_INCLUDE = {
   statusHistory: { orderBy: { createdAt: /** @type {const} */ ('asc') } },
   cancellation: true,
   restaurant: { include: { city: true } },
+  review: { include: { items: true } },
 };
 
 /** Engine errors → API errors (409 for state, 403 for actor, 400 for input). */

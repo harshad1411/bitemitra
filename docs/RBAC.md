@@ -40,6 +40,7 @@ Decisions: OD-13, OD-24, CH-9. Source of truth in code: `packages/auth/src/permi
 | `pricing.view`, `pricing.manage`, `pricing.surge`, `commissions.manage`, `taxes.manage` | commercial rules | 4 |
 | `promotions.manage`, `cms.manage`, `notifications.manage` | marketing & content | 3–5 |
 | `support.manage` | support queue: reply, internal notes, assign, resolve (city-scoped by the order's city) | 9 |
+| `reviews.view`, `reviews.moderate` | every review with comments and low-rating flags; hide/show a review with a reason (audited). Operations, City Manager and Support get both; Partner and Rider Managers view (D-110) | OD-45 |
 | `reports.view`, `analytics.view` | reporting; Analytics page (limited to the admin's cities) | 9 |
 
 ## 3. Admin roles (seeded system roles)

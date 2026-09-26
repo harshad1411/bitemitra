@@ -22,6 +22,7 @@ import { currentWindowsWhere } from '../catalog/service.js';
 import { createMenuPricer, loadRuleSet, ruleTargets } from '../pricing/service.js';
 import { customerAvailability, discover, locationFrom, sortCards } from './discovery.js';
 import { quoteCart } from './cart.js';
+import { publicRating } from '../reviews/service.js';
 
 const CUSTOMER = { apps: ['CUSTOMER'] };
 const BROWSE = { apps: ['CUSTOMER'], auth: 'optional' };
@@ -335,7 +336,7 @@ export default async function customerRoutes(app) {
               sortCards(
                 cards.map((c) => ({ ...c, sortWeight: 0 })),
                 'RATING',
-              ).filter((c) => c.rating.count > 0),
+              ).filter((c) => c.rating.average != null),
             );
             break;
           case 'OFFERS':
@@ -443,6 +444,7 @@ export default async function customerRoutes(app) {
       const { id } = parse(idParam, request.params);
       const q = parse(locationQuery, request.query);
       const now = app.clock.now();
+      const minRatings = (await config.resolve('reviews')).value.minCountToShow;
       const r = await prisma.restaurant.findFirst({
         where: { id, onboardingStatus: 'ACTIVE' },
         include: {
@@ -530,6 +532,7 @@ export default async function customerRoutes(app) {
             : price.item(p.basePricePaise, { ...keys, variantId: null }),
           isBestseller: p.isBestseller,
           isRecommended: p.isRecommended,
+          rating: publicRating(p.ratingAvg, p.ratingCount, minRatings),
           images: p.images.map((i) => mediaUrls(i.media, base)),
           variants,
           addonGroups: p.addonGroups.map((g) => ({
@@ -581,7 +584,7 @@ export default async function customerRoutes(app) {
           description: r.description,
           cuisines: r.cuisines,
           isPureVeg: r.isPureVeg,
-          rating: { average: Number(r.ratingAvg), count: r.ratingCount },
+          rating: publicRating(r.ratingAvg, r.ratingCount, minRatings),
           address: branch ? [branch.addressLine, branch.area].filter(Boolean).join(', ') : null,
           fssaiNumber: r.fssaiNumber,
           hours: (branch?.businessHours ?? [])

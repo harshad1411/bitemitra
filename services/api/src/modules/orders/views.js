@@ -28,6 +28,7 @@ export function customerOrderView(o, { canCancel }) {
     prepTimeMinutes: o.prepTimeMinutes,
     estimatedReadyAt: addMinutes(o.acceptedAt, o.prepTimeMinutes),
     items: o.items.map((i) => ({
+      id: i.id,
       name: i.productName,
       variantName: i.variantName,
       foodType: i.foodType,

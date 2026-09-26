@@ -39,6 +39,7 @@ import ledgerRoutes from './modules/ledgers/routes.js';
 import supportRoutes from './modules/support/routes.js';
 import savedViewRoutes from './modules/saved-views/routes.js';
 import analyticsRoutes from './modules/analytics/routes.js';
+import reviewRoutes from './modules/reviews/routes.js';
 import { createDispatch } from './modules/dispatch/service.js';
 import { createTrips } from './modules/dispatch/trips.js';
 import { createDistanceProvider } from './modules/delivery/distance.js';
@@ -317,6 +318,7 @@ export async function buildApp(deps) {
   await app.register(supportRoutes);
   await app.register(savedViewRoutes);
   await app.register(analyticsRoutes);
+  await app.register(reviewRoutes);
 
   return app;
 }

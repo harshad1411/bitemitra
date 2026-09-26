@@ -23,6 +23,7 @@ import { buildApp } from '@jamzo/api/app';
 import { createLocalStorage } from '@jamzo/api/media-storage';
 import { createOutboxRelay } from '../../../services/workers/src/outbox.js';
 import { createMediaUploadedHandler } from '../../../services/workers/src/handlers/media.js';
+import { deliveryCode } from '../../../services/api/src/modules/dispatch/otp.js';
 
 export const E2E_ADMIN = { email: 'e2e-super@jamzo.test', password: 'E2E-Super-Admin-1' };
 // A second API on the same database with admin sign-in codes required (D-106). The two-step test sends the
@@ -101,7 +102,7 @@ export default async function globalSetup() {
       createLedgerJobs({ prisma }),
     ),
   });
-  process.env.E2E_ORDERS = JSON.stringify(await placeDemoOrders(app, prisma, sms));
+  process.env.E2E_ORDERS = JSON.stringify(await placeDemoOrders(app, prisma, sms, fieldKey));
   const timer = setInterval(() => relay.tick().catch((e) => console.error('e2e worker', e)), 500);
 
   return async () => {
@@ -117,7 +118,7 @@ export default async function globalSetup() {
  * Real orders through the real API (E2E data only): Pizza Point is opened all day while they are placed, so
  * the run does not depend on the time of day, then its seeded hours are restored. Returns the order numbers.
  */
-async function placeDemoOrders(app, prisma, sms) {
+async function placeDemoOrders(app, prisma, sms, fieldKey) {
   const pizza = await prisma.restaurant.findUniqueOrThrow({
     where: { slug: 'pizza-point-unjha' },
     include: { branches: true },
@@ -218,7 +219,64 @@ async function placeDemoOrders(app, prisma, sms) {
     prepTimeMinutes: 20,
     version: 0,
   });
-  await prepareRiders({ app, call, login, h });
+  const partner = await prepareRiders({ app, call, login, h });
+  // Ratings (D-110): one more order goes all the way to delivery and the customer rates it low, so the
+  // Reviews page has a real review to show and to hide.
+  const rated = await place(1, null, 'UPI');
+  const ratedPay = await prisma.payment.findFirstOrThrow({ where: { orderId: rated.id } });
+  const ratedHook = app.services.payments.provider.simulate(ratedPay.providerOrderId, { outcome: 'success' });
+  await app.inject({
+    method: 'POST',
+    url: '/v1/webhooks/payments/fake',
+    headers: { 'content-type': 'application/json', ...ratedHook.headers },
+    payload: ratedHook.rawBody,
+  });
+  const ra = await call('POST', `/v1/restaurant/orders/${rated.id}/accept`, 'RESTAURANT', owner, {
+    prepTimeMinutes: 10,
+    version: (await prisma.order.findUniqueOrThrow({ where: { id: rated.id } })).version,
+  });
+  await call('POST', `/v1/restaurant/orders/${rated.id}/ready`, 'RESTAURANT', owner, { version: ra.version });
+  // The dispatcher starts looking for a partner (the worker does this in production; it starts later here).
+  await app.services.dispatch.handlers['order.accepted']({
+    id: crypto.randomUUID(),
+    eventType: 'order.accepted',
+    payload: { orderId: rated.id },
+  });
+  const adminLogin = await app.inject({
+    method: 'POST',
+    url: '/v1/admin/auth/login',
+    headers: h('ADMIN', null, { 'x-platform': 'WEB' }),
+    payload: E2E_ADMIN,
+  });
+  const adminToken = adminLogin.json().accessToken;
+  const partnerRow = await prisma.rider.findFirstOrThrow({ where: { user: { phone: '+919000000002' } } });
+  await call(
+    'POST',
+    `/v1/admin/orders/${rated.id}/assign`,
+    'ADMIN',
+    adminToken,
+    {
+      riderId: partnerRow.id,
+      reason: 'E2E data',
+    },
+    { 'x-platform': 'WEB' },
+  );
+  const work = await call('GET', '/v1/rider/work', 'RIDER', partner);
+  await call('POST', `/v1/rider/offers/${work.offer.assignmentId}/accept`, 'RIDER', partner);
+  await call('POST', `/v1/rider/trips/${rated.id}/at-restaurant`, 'RIDER', partner);
+  await call('POST', `/v1/rider/trips/${rated.id}/picked-up`, 'RIDER', partner, {
+    orderDigits: rated.orderNumber.slice(-4),
+  });
+  await call('POST', `/v1/rider/trips/${rated.id}/arrived`, 'RIDER', partner);
+  await call('POST', `/v1/rider/trips/${rated.id}/delivered`, 'RIDER', partner, {
+    otp: deliveryCode(fieldKey, rated.id),
+  });
+  const ratedView = await call('GET', `/v1/customer/orders/${rated.id}`, 'CUSTOMER', customer);
+  await call('POST', `/v1/customer/orders/${rated.id}/review`, 'CUSTOMER', customer, {
+    items: [{ orderItemId: ratedView.items[0].id, rating: 2 }],
+    deliveryRating: 1,
+    comment: 'Bread was cold and the rider was rude',
+  });
   // Back to the seeded hours: other specs check them, and the order screens do not need the restaurant open.
   await prisma.restaurantBusinessHours.deleteMany({ where: { branchId } });
   await prisma.restaurantBusinessHours.createMany({ data: originalHours });
@@ -227,6 +285,7 @@ async function placeDemoOrders(app, prisma, sms) {
     ready: ready.orderNumber,
     toCancel: toCancel.orderNumber,
     online: online.orderNumber,
+    rated: rated.orderNumber,
   };
 }
 
@@ -276,6 +335,7 @@ async function prepareRiders({ app, call, login, h }) {
     reference: 'UPI-E2E-4821',
     idempotencyKey: 'e2e-deposit-0001',
   });
+  return partner;
 }
 
 // 1×1 transparent PNG (E2E document uploads).

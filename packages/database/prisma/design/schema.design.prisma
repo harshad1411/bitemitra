@@ -1001,6 +1001,8 @@ model Product {
   stockQuantity        Int? // null = not stock-tracked
   sortOrder            Int           @default(0)
   searchText           String? // denormalised for Postgres full-text search
+  ratingAvg            Decimal       @default(0) @db.Decimal(3, 2) // from visible reviews (D-110)
+  ratingCount          Int           @default(0)
   version              Int           @default(0) // optimistic concurrency (D-37)
   createdAt            DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
@@ -1013,6 +1015,7 @@ model Product {
   images       ProductImage[]
   availability ProductAvailability[]
   schedules    ProductSchedule[]
+  reviewItems  ReviewItem[]
 
   @@index([restaurantId, status, isAvailable])
   @@index([menuCategoryId, sortOrder])
@@ -1124,6 +1127,8 @@ model Rider {
   bankAccountNumberEncrypted String?
   bankAccountLast4           String?
   bankIfsc                   String?
+  ratingAvg                  Decimal               @default(0) @db.Decimal(3, 2) // delivery stars (D-110)
+  ratingCount                Int                   @default(0)
   createdAt                  DateTime              @default(now()) @db.Timestamptz(3)
   updatedAt                  DateTime              @updatedAt @db.Timestamptz(3)
 
@@ -1139,6 +1144,7 @@ model Rider {
   ledger       RiderLedger?
   settlements  RiderSettlement[]
   codDeposits  RiderCodDeposit[]
+  reviews      Review[]
 
   @@index([cityId, onboardingStatus])
   @@map("riders")
@@ -1671,8 +1677,9 @@ model OrderItem {
   lineTotalPaise            Int // customer-facing line total incl. add-ons
   createdAt                 DateTime @default(now()) @db.Timestamptz(3)
 
-  order  Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  addons OrderItemAddon[]
+  order      Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  addons     OrderItemAddon[]
+  reviewItem ReviewItem?
 
   @@index([orderId])
   @@index([productId])
@@ -2090,23 +2097,50 @@ model PlatformLedgerEntry {
 
 // ───────────────────────────── Reviews & support ─────────────────────────────
 
+/// One review per delivered order (D-110): item stars, the delivery partner's stars, an optional comment.
+/// Customers only ever see averages; comments are for the restaurant and Jamzo.
 model Review {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  orderId        String   @unique @db.Uuid
-  customerId     String   @db.Uuid
-  restaurantId   String   @db.Uuid
-  foodRating     Int // 1–5
-  deliveryRating Int?
+  id             String    @id @default(uuid(7)) @db.Uuid
+  orderId        String    @unique @db.Uuid
+  customerId     String    @db.Uuid
+  restaurantId   String    @db.Uuid
+  riderId        String?   @db.Uuid // the partner who delivered it (rated), null when none
+  foodRating     Decimal   @db.Decimal(3, 2) // average of the item stars, 1–5
+  deliveryRating Int? // 1–5, only with a delivery partner
   comment        String?
-  isHidden       Boolean  @default(false)
-  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  isHidden       Boolean   @default(false) // hidden by Jamzo Admin: leaves every average
+  hiddenReason   String?
+  hiddenById     String?   @db.Uuid
+  hiddenAt       DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
 
-  order      Order      @relation(fields: [orderId], references: [id])
-  customer   Customer   @relation(fields: [customerId], references: [id])
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+  order      Order        @relation(fields: [orderId], references: [id])
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  restaurant Restaurant   @relation(fields: [restaurantId], references: [id])
+  rider      Rider?       @relation(fields: [riderId], references: [id])
+  items      ReviewItem[]
 
   @@index([restaurantId, createdAt])
+  @@index([riderId])
+  @@index([createdAt])
   @@map("reviews")
+}
+
+/// Stars for one item of a reviewed order (D-110). Feeds the dish's average on the menu.
+model ReviewItem {
+  id          String @id @default(uuid(7)) @db.Uuid
+  reviewId    String @db.Uuid
+  orderItemId String @unique @db.Uuid
+  productId   String @db.Uuid
+  rating      Int // 1–5
+
+  review    Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@index([reviewId])
+  @@index([productId])
+  @@map("review_items")
 }
 
 model SupportTicket {

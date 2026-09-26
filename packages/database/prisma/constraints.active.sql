@@ -65,6 +65,15 @@ ALTER TABLE coupons ADD CONSTRAINT coupons_shared_split CHECK (
   "fundingSource" <> 'SHARED' OR "restaurantShareBps" BETWEEN 0 AND 10000
 );
 
+
+ALTER TABLE reviews ADD CONSTRAINT reviews_food_rating_range CHECK ("foodRating" BETWEEN 1 AND 5);
+
+ALTER TABLE review_items ADD CONSTRAINT review_items_rating_range CHECK (rating BETWEEN 1 AND 5);
+
+ALTER TABLE reviews ADD CONSTRAINT reviews_hidden_reason CHECK (NOT "isHidden" OR "hiddenReason" IS NOT NULL);
+
+ALTER TABLE reviews ADD CONSTRAINT reviews_delivery_rating_range CHECK ("deliveryRating" IS NULL OR "deliveryRating" BETWEEN 1 AND 5);
+
 ALTER TABLE restaurant_business_hours ADD CONSTRAINT rbh_day_range CHECK ("dayOfWeek" BETWEEN 0 AND 6);
 
 ALTER TABLE product_schedules ADD CONSTRAINT ps_day_range CHECK ("dayOfWeek" BETWEEN 0 AND 6);

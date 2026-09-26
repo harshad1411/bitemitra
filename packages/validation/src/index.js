@@ -1140,6 +1140,28 @@ export const ticketUpdateBody = z
     message: 'Say how it was resolved',
     path: ['resolution'],
   });
+// ── Ratings and reviews (D-110) ──
+const stars = z.number().int().min(1, 'Choose 1 to 5 stars').max(5, 'Choose 1 to 5 stars');
+export const reviewBody = z.object({
+  items: z
+    .array(z.object({ orderItemId: uuid, rating: stars }))
+    .min(1, 'Rate at least one item')
+    .max(100),
+  deliveryRating: stars.optional(),
+  comment: z.string().trim().max(500).optional(),
+});
+export const reviewListQuery = pageQuery.extend({
+  restaurantId: uuid.optional(),
+  riderId: uuid.optional(),
+  low: z.enum(['true', 'false']).optional(),
+  hidden: z.enum(['true', 'false']).optional(),
+});
+export const reviewModerateBody = z
+  .object({ hidden: z.boolean(), reason: z.string().trim().min(3).max(300).optional() })
+  .refine((b) => !b.hidden || Boolean(b.reason), {
+    path: ['reason'],
+    message: 'Say why the review is hidden',
+  });
 export const ticketListQuery = pageQuery.extend({
   status: z.string().trim().max(120).optional(), // comma-separated
   mine: z.enum(['true', 'false']).optional(),

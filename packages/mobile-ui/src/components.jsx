@@ -538,3 +538,45 @@ export function Badge({ tone = 'neutral', children }) {
     </View>
   );
 }
+
+const STAR_WORDS = ['', 'Poor', 'Not good', 'Okay', 'Good', 'Loved it'];
+
+/**
+ * 1–5 star picker (D-110). Each star is a 44pt button; `value` 0 = not rated yet. Read-only when no
+ * `onChange` is given.
+ */
+export function Stars({ value = 0, onChange, label, size = 30 }) {
+  const t = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((n) => {
+        const star = (
+          <Icon
+            name={n <= value ? 'star' : 'star-outline'}
+            size={size}
+            color={n <= value ? t.colors.accent : t.colors.borderStrong}
+          />
+        );
+        return onChange ? (
+          <Pressable
+            key={n}
+            accessibilityRole="button"
+            accessibilityLabel={`${label}: ${n} star${n === 1 ? '' : 's'}`}
+            accessibilityState={{ selected: n === value }}
+            onPress={() => onChange(n)}
+            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            {star}
+          </Pressable>
+        ) : (
+          <View key={n}>{star}</View>
+        );
+      })}
+      {onChange && value ? (
+        <Text variant="small" style={{ marginLeft: 6 }}>
+          {STAR_WORDS[value]}
+        </Text>
+      ) : null}
+    </View>
+  );
+}

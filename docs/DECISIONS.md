@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-26 (brand kit, fonts and the new app look — OD-44).
+Last updated: 2026-09-27 (ratings and reviews — OD-45).
 
 ---
 
@@ -61,6 +61,7 @@ Last updated: 2026-09-26 (brand kit, fonts and the new app look — OD-44).
 | OD-42 | **Complete the remaining phases** (owner, 2026-09-25: "Complete remaininng phase"). Taken as acceptance of Phase 6 and as permission to build Phases 7–10 one after another **without stopping for review between them**. Each phase is still documented first, fully tested, committed and pushed separately, with its report. Payment gateway: **Razorpay** (already OD-11), built and tested in test mode and against a fake gateway only. No real money moves, and nothing is published to the stores. Things only the owner can do (keys, accounts, CA/legal answers, Xcode update) stay listed as open. |
 | OD-43 | **Admin sign-in code by email or SMS** (owner, 2026-09-26: "Code by email or sms"). Answers Q-15 / CH-8. After the password, the admin types a one-time code sent to their email — or by SMS when their admin account has a phone number. Required on staging and production (D-106). The owner also asked whether the coding is done: the real SMS (MSG91) and email senders were still missing, so they are built now (D-104, D-105). |
 | OD-44 | **Jamzo logo kit and a food-app look** (owner, 2026-09-26). The owner sent the Jamzo logo kit (v7: logos, J mark, app icons; colours midnight navy `#1B2250`, turmeric `#F2B21B`, leaf green `#2F8F6B`, cool white `#F4F5FB`; font Poppins) and asked for a very user-friendly look like Zomato or Swiggy, with back buttons, using Zomato screenshots as the reference ("looks very good but not ours"). Fonts: Poppins for titles and prices, Inter for text ("update fonts"). Answers Q-13. Implemented as D-107 … D-109, in steps with screenshots. |
+| OD-45 | **Ratings and reviews** (owner, 2026-09-27: "Customers can give review to delivery boy and items and customers can only see stars average"). The spec lists ratings/reviews for the customer app, but no phase had built them. Customers rate the **food items** and the **delivery partner** after delivery; **customers see only star averages**, never comments. Proposed defaults kept (not changed by the owner): restaurants cannot reply for now; a star average shows only after **5** ratings (a setting). Built as D-110. |
 
 
 ## 2. Engineering decisions
@@ -913,6 +914,27 @@ text):
 - **Account:** a profile card and grouped rows with icons and chevrons.
 - **Ratings stay hidden** until a restaurant has ratings (customers cannot rate orders yet).
 - Photos are optional: without them, cards fall back to a neat tinted box with the restaurant's initial.
+
+### D-110. Ratings and reviews (OD-45)
+- **When:** a customer can rate an order once, after it is **delivered**, within `reviews.windowDays` (default
+  7) days. Cancelled orders cannot be rated.
+- **What:** each item on the order 1–5 stars (at least one item), the **delivery partner** 1–5 stars (orders
+  delivered by a Jamzo partner), and an optional comment (≤ 500 characters). The restaurant's food rating
+  for the order is the average of its item stars.
+- **Who sees what:**
+  - **Customers:** only star averages — the restaurant (★ on cards and the menu) and each dish (★ on the menu
+    row). Never comments, never the partner's rating.
+  - **Restaurant partner app:** its average, the star spread, and recent reviews with item stars and comments
+    (no customer names or phone numbers).
+  - **Delivery partner app:** the partner's own average and count (no comments, no customer details).
+  - **Jamzo Admin** (`reviews.view`): every review with order, customer, restaurant and partner;
+    `reviews.moderate` hides a review with a reason (audited); hidden reviews leave every average.
+- **Averages** are recomputed from visible reviews in the same transaction as each new review or hide/unhide
+  (`restaurants`, `products` and `riders` keep `ratingAvg` + `ratingCount`). An average is shown to
+  customers only from `reviews.minCountToShow` (default 5) ratings, so one early rating does not define a
+  restaurant or a dish.
+- **Low ratings** (any 1–2★) are marked in the admin list, with a filter, for support to follow up.
+- Not built: restaurant replies (later), photos in reviews, public comments.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

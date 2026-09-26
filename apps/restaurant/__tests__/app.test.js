@@ -6,6 +6,7 @@ import Orders from '../src/app/orders';
 import OrderDetail from '../src/app/order/[id]';
 import Payouts from '../src/app/payouts';
 import Sales from '../src/app/sales';
+import Ratings from '../src/app/ratings';
 import ORDERS from './order-fixtures.json';
 import { Vibration } from 'react-native';
 import NotFound from '../src/app/+not-found';
@@ -35,7 +36,23 @@ const routes = {
   'order/[id]': OrderDetail,
   payouts: Payouts,
   sales: Sales,
+  ratings: Ratings,
   '+not-found': NotFound,
+};
+// Shape of GET /v1/restaurant/reviews (tested against the real API in services/api/test/reviews.test.js).
+const REVIEWS = {
+  rating: { average: 4.2, count: 5 },
+  spread: { 1: 0, 2: 0, 3: 1, 4: 2, 5: 2 },
+  items: [
+    {
+      id: 'rv1',
+      createdAt: '2026-09-28T08:00:00.000Z',
+      orderNumber: 'UNJ-260928-0001',
+      foodRating: 4,
+      comment: 'Hot and crisp',
+      items: [{ name: 'Garlic Bread', rating: 4 }],
+    },
+  ],
 };
 const OWNER_ME = {
   appId: 'RESTAURANT',
@@ -147,6 +164,7 @@ function partnerApi(role = 'OWNER') {
     if (path === '/v1/restaurant/restaurants/r1/menu') return { body: MENU };
     if (path === '/v1/restaurant/payouts') return { body: ORDERS.payouts };
     if (path === '/v1/restaurant/analytics') return { body: ORDERS.sales };
+    if (path === '/v1/restaurant/reviews') return { body: REVIEWS };
     if (path === '/v1/restaurant/products/p1/availability')
       return {
         body: product('p1', 'Gujarati Thali', {
@@ -216,6 +234,15 @@ describe('restaurant partner app', () => {
     expect(screen.getByText(`${a.topItems[0].quantity} sold`)).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('This month'));
     await waitFor(() => expect(calls.some((c) => c.url.includes('range=MONTH'))).toBe(true));
+  });
+
+  it('ratings: the average, the star spread and recent reviews with comments (D-110)', async () => {
+    await signIn(OWNER_ME, partnerApi('OWNER'));
+    await fireEvent.press(await screen.findByLabelText('Ratings'));
+    expect(await screen.findByText('4.2')).toBeTruthy();
+    expect(screen.getByText('5 ratings')).toBeTruthy();
+    expect(screen.getByText('“Hot and crisp”')).toBeTruthy();
+    expect(screen.getByText('Garlic Bread: 4★')).toBeTruthy();
   });
 
   it('staff do not see payouts', async () => {

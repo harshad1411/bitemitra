@@ -93,6 +93,9 @@ function riderApi(start) {
       return { body: next ?? F.tripDelivered };
     }
     if (path === '/v1/rider/earnings') return { body: F.earningsToday };
+    // Shape of GET /v1/rider/ratings (tested against the real API in services/api/test/reviews.test.js).
+    if (path === '/v1/rider/ratings')
+      return { body: { rating: { average: 4.4, count: 5 }, spread: { 1: 0, 2: 0, 3: 1, 4: 1, 5: 3 } } };
     if (path === '/v1/rider/wallet') return { body: s.wallet ?? F.wallet };
     if (path === '/v1/rider/analytics') return { body: F.stats };
     if (path === '/v1/rider/cod-deposits') {
@@ -231,6 +234,8 @@ describe('delivery partner app', () => {
     await signIn(api);
     await fireEvent.press(await screen.findByLabelText('Earnings'));
     expect(await screen.findByText(`₹${(F.earningsToday.totalPaise / 100).toFixed(2)}`)).toBeTruthy();
+    expect(await screen.findByText('Your rating from customers')).toBeTruthy();
+    expect(screen.getByText('4.4')).toBeTruthy();
     expect(screen.getByText(/1 deliveries · tips ₹20.00/)).toBeTruthy();
     // Own numbers (captured from the real API).
     const st = F.stats;

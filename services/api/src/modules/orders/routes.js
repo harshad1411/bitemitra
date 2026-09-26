@@ -62,6 +62,7 @@ import {
   customerOrderView,
   restaurantOrderView,
 } from './views.js';
+import { customerReviewState, reviewSettings } from '../reviews/service.js';
 
 const idParam = z.object({ id: uuid });
 const CUSTOMER = { apps: ['CUSTOMER'] };
@@ -139,6 +140,7 @@ export default async function orderRoutes(app) {
     ]);
     return {
       ...customerOrderView(o, { canCancel: allowed }),
+      review: customerReviewState(o, await reviewSettings(config), app.clock.now()),
       cancelTerms,
       delivery: await deliveryInfo(o),
       onlinePayment: customerPaymentView(payment, app.services.payments),
@@ -246,10 +248,18 @@ export default async function orderRoutes(app) {
         where: { ...page.where, customerId: customer.id },
         orderBy: page.orderBy,
         take: page.take,
-        include: { restaurant: true },
+        include: { restaurant: true, review: { select: { id: true } } },
       });
       const result = toPage(rows, q.limit);
-      return { ...result, items: result.items.map(customerOrderSummary) };
+      const settings = await reviewSettings(config);
+      const now = app.clock.now();
+      return {
+        ...result,
+        items: result.items.map((o) => ({
+          ...customerOrderSummary(o),
+          canReview: customerReviewState(o, settings, now).canReview,
+        })),
+      };
     },
   );
 

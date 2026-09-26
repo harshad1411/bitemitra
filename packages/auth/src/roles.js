@@ -21,6 +21,8 @@ const OPERATIONS = [
   'orders.assign_rider',
   'riders.view',
   'support.manage',
+  'reviews.view',
+  'reviews.moderate',
   'reports.view',
   'analytics.view',
 ];
@@ -100,6 +102,8 @@ export const SYSTEM_ROLES = [
       'payments.view',
       'refunds.create',
       'support.manage',
+      'reviews.view',
+      'reviews.moderate',
     ],
   },
   {
@@ -118,6 +122,7 @@ export const SYSTEM_ROLES = [
       'pricing.view',
       'orders.view',
       'settlements.view',
+      'reviews.view',
       'reports.view',
       'analytics.view',
     ],
@@ -135,6 +140,7 @@ export const SYSTEM_ROLES = [
       'orders.view',
       'orders.assign_rider',
       'settlements.view',
+      'reviews.view',
       'reports.view',
       'analytics.view',
     ],

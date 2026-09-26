@@ -149,11 +149,17 @@ raw parameterised SQL only for constraints and measured hot/report queries.
 | support_ticket_messages | The conversation; internal notes are never shown to the customer |
 | admin_saved_views | Named order filters, private or shared (D-94) |
 
-### 3.2 LATER PHASE (4 tables)
+### 3.1h CORE — ratings and reviews (2 tables, OD-45)
+
+| Table | Why |
+|---|---|
+| reviews | One review per delivered order: average item stars, the delivery partner's stars, optional comment, hidden by Jamzo Admin with a reason (database rule) (D-110) |
+| review_items | Stars per ordered item; they feed each dish's average (`products.ratingAvg`/`ratingCount`) |
+
+### 3.2 LATER PHASE (3 tables)
 
 | Phase | Tables | Why |
 |---|---|---|
-| 6+ — Ratings | reviews | Ratings of delivered orders (CH-20); built with the ratings flag |
 | After the CA's answer (Q-3, Q-12) | invoices, invoice_sequences | Tax invoices and credit notes: who issues which document is a tax decision (D-92) |
 | When promotional messages exist | notification_preferences | Per-topic opt-outs (order updates are always sent); nothing to opt out of yet (D-97) |
 

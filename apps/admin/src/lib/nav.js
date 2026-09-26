@@ -19,6 +19,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingBag,
+  Star,
   Tags,
   Truck,
   UserRound,
@@ -37,6 +38,7 @@ export const NAV = [
       { href: '/orders', label: 'Orders', icon: ShoppingBag, permission: 'orders.view' },
       { href: '/dispatch', label: 'Dispatch', icon: Truck, permission: 'orders.view' },
       { href: '/support', label: 'Support', icon: LifeBuoy, permission: 'support.manage' },
+      { href: '/reviews', label: 'Reviews', icon: Star, permission: 'reviews.view' },
     ],
   },
   {

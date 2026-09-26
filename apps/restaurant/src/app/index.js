@@ -186,6 +186,11 @@ function Store({ restaurantId }) {
         />
       ) : null}
       <Button
+        title="Ratings"
+        variant="secondary"
+        onPress={() => router.push({ pathname: '/ratings', params: { restaurantId } })}
+      />
+      <Button
         title="Menu & sold-out items"
         onPress={() => router.push({ pathname: '/menu', params: { restaurantId } })}
       />

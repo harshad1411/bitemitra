@@ -3,6 +3,16 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Ratings and reviews (2026-09-27) — OD-45
+
+### Added
+- Customers rate a delivered order within 7 days: stars for each item and for the delivery partner, plus an optional comment ("Rate your order" on the order, "Rate this order" in the orders list) (D-110).
+- Customers see only star averages — the restaurant's (cards, menu) and each dish's (menu rows) — and only from 5 ratings (setting `reviews`).
+- Restaurant partner app: Ratings screen with the average, the star spread and recent reviews with comments (no customer details).
+- Delivery partner app: their own rating on the Earnings screen.
+- Jamzo Admin: Reviews page (`reviews.view`) with a low-ratings tab; hide a review with a reason (`reviews.moderate`, audited), which takes it out of every average.
+- Database: `reviews` (now active) and `review_items`; rating averages on dishes and delivery partners; database rules for star ranges, one review per order and a reason for hidden reviews.
+
 ## Jamzo brand and food-app look (2026-09-26) — OD-44
 
 ### Added

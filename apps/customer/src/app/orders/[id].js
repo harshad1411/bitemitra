@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useJamzo, useRealtime, userMessage } from '@jamzo/mobile-foundation';
 import { Banner, Button, Card, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { VegMark } from '../../components/bits';
+import { RateOrder } from '../../components/rate-order';
 import { arrivalLabel, mapPinUrl, money } from '../../lib/format';
 import { CANCEL_REASONS, REFUND_TEXT, TIMELINE_LABEL, statusText } from '../../lib/order-status';
 import { payOnline } from '../../lib/pay';
@@ -134,6 +135,8 @@ export default function OrderScreen() {
           <Text variant="small">A live map inside the app follows once maps are switched on.</Text>
         </Card>
       ) : null}
+
+      <RateOrder order={o} />
 
       {!['CREATED', 'PAYMENT_PENDING'].includes(o.status) ? (
         <Button

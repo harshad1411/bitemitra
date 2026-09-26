@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (233 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (238 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -219,6 +219,8 @@ _Generated from the route definitions by `pnpm docs:api` (233 endpoints). Do not
 | `PATCH` | `/v1/admin/restaurants/:id/settings` | admin token | ADMIN | `restaurants.manage` |  |
 | `POST` | `/v1/admin/restaurants/:id/transitions` | admin token | ADMIN | `restaurants.view` |  |
 | `PUT` | `/v1/admin/restaurants/:id/zones` | admin token | ADMIN | `restaurants.manage` |  |
+| `GET` | `/v1/admin/reviews` | admin token | ADMIN | `reviews.view` |  |
+| `PATCH` | `/v1/admin/reviews/:id` | admin token | ADMIN | `reviews.moderate` |  |
 | `GET` | `/v1/admin/rider-documents/:id/file` | admin token | ADMIN | `riders.view` |  |
 | `POST` | `/v1/admin/rider-documents/:id/review` | admin token | ADMIN | `riders.approve` |  |
 | `GET` | `/v1/admin/riders` | admin token | ADMIN | `riders.view` |  |
@@ -276,6 +278,7 @@ _Generated from the route definitions by `pnpm docs:api` (233 endpoints). Do not
 | `POST` | `/v1/customer/orders/:id/cancel` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/orders/:id/payment` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/orders/:id/payment/verify` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/orders/:id/review` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants/:id` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/search` | optional | CUSTOMER | — |  |
@@ -307,6 +310,7 @@ _Generated from the route definitions by `pnpm docs:api` (233 endpoints). Do not
 | `POST` | `/v1/restaurant/products/:id/availability` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id` | required | RESTAURANT | — |  |
 | `GET` | `/v1/restaurant/restaurants/:id/menu` | required | RESTAURANT | — |  |
+| `GET` | `/v1/restaurant/reviews` | required | RESTAURANT | — |  |
 | `GET` | `/v1/rider/analytics` | required | RIDER | — |  |
 | `POST` | `/v1/rider/application/submit` | required | RIDER | — |  |
 | `POST` | `/v1/rider/cod-deposits` | required | RIDER | — |  |
@@ -318,6 +322,7 @@ _Generated from the route definitions by `pnpm docs:api` (233 endpoints). Do not
 | `POST` | `/v1/rider/offers/:id/accept` | required | RIDER | — |  |
 | `POST` | `/v1/rider/offers/:id/reject` | required | RIDER | — |  |
 | `POST` | `/v1/rider/proof` | required | RIDER | — |  |
+| `GET` | `/v1/rider/ratings` | required | RIDER | — |  |
 | `POST` | `/v1/rider/status` | required | RIDER | — |  |
 | `POST` | `/v1/rider/trips/:id/arrived` | required | RIDER | — |  |
 | `POST` | `/v1/rider/trips/:id/at-restaurant` | required | RIDER | — |  |

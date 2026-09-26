@@ -95,10 +95,10 @@ export function OfferTag({ text, style }) {
   );
 }
 
-/** Rating pill — only when the restaurant has ratings (customers cannot rate yet, D-109). */
+/** Rating pill — the API sends an average only from enough ratings (D-110). */
 export function Rating({ rating }) {
   const t = useTheme();
-  if (!rating?.count) return null;
+  if (rating?.average == null) return null; // shown only from enough ratings (D-110)
   return (
     <View
       accessibilityLabel={`Rated ${rating.average} from ${rating.count} ratings`}
@@ -113,7 +113,7 @@ export function Rating({ rating }) {
       }}
     >
       <Text style={{ fontFamily: t.fonts.semibold, fontSize: 12, color: t.colors.onAction }}>
-        {Number(rating.average).toFixed(1)}
+        {rating.average.toFixed(1)}
       </Text>
       <Icon name="star" size={10} color={t.colors.onAction} />
     </View>
