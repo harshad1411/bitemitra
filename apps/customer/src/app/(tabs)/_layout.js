@@ -1,10 +1,10 @@
-// Bottom tabs (D-108): Home, Search, Orders, Account. Every other screen opens on top with a back arrow.
+// Bottom tabs (D-108): Home, Orders, Account. Search is the bar at the top of Home (as in Zomato and
+// Swiggy); every other screen opens on top with a back arrow.
 import { Tabs } from 'expo-router';
 import { Icon, useTheme } from '@jamzo/mobile-ui';
 
 const TABS = [
   ['index', 'Home', 'home'],
-  ['search', 'Search', 'search'],
   ['orders', 'Orders', 'receipt'],
   ['account', 'Account', 'person'],
 ];

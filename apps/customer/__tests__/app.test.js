@@ -3,7 +3,7 @@ import RootLayout from '../src/app/_layout';
 import TabsLayout from '../src/app/(tabs)/_layout';
 import Home from '../src/app/(tabs)/index';
 import ChooseLocation from '../src/app/location';
-import Search from '../src/app/(tabs)/search';
+import Search from '../src/app/search';
 import RestaurantScreen from '../src/app/restaurant/[id]';
 import Customize from '../src/app/customize';
 import CartScreen from '../src/app/cart';
@@ -42,7 +42,7 @@ const routes = {
   '(tabs)/_layout': TabsLayout,
   '(tabs)/index': Home,
   location: ChooseLocation,
-  '(tabs)/search': Search,
+  search: Search,
   'restaurant/[id]': RestaurantScreen,
   customize: Customize,
   cart: CartScreen,
@@ -118,15 +118,15 @@ describe('customer app', () => {
 
     // Coupons: unknown code explained; valid code re-priced by the server.
     await fireEvent.changeText(screen.getByLabelText('Coupon code'), 'nope');
-    await fireEvent.press(screen.getByLabelText('Apply coupon'));
+    await fireEvent.press(screen.getByLabelText('Apply'));
     expect(await screen.findByText('NOPE: This coupon code does not exist.')).toBeTruthy();
     await fireEvent.changeText(screen.getByLabelText('Coupon code'), 'welcome50');
-    await fireEvent.press(screen.getByLabelText('Apply coupon'));
+    await fireEvent.press(screen.getByLabelText('Apply'));
     expect(await screen.findByText('WELCOME50: Coupon applied.')).toBeTruthy();
     expect(await screen.findAllByText('₹216')).toHaveLength(2);
 
     // Nothing blocks this cart, so checkout is open (sign-in is asked for there).
-    expect(screen.getByLabelText('Proceed to checkout').props.accessibilityState.disabled).toBe(false);
+    expect(screen.getByLabelText('Checkout').props.accessibilityState.disabled).toBe(false);
   });
 
   it('asks for sign-in only when needed (saved addresses)', async () => {

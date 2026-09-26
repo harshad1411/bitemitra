@@ -3,6 +3,12 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Customer app polish (2026-09-27)
+
+### Changed
+- Bottom tabs are Home, Orders and Account; search is the bar at the top of Home and opens its own screen with a back arrow (D-108).
+- Cart: coupon code and Apply on one line; a shorter Checkout button beside the total.
+
 ## Ratings and reviews (2026-09-27) — OD-45
 
 ### Added

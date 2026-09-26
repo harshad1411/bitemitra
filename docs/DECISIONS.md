@@ -896,7 +896,9 @@ TOTP apps (Google Authenticator) are not built; the owner chose email/SMS.
   and the partner apps' money screens (payouts, settlements, order money) keep `formatPaise` (always two decimals). Display only: money stays integer paise.
 
 ### D-108. Navigation: bottom tabs and back buttons (OD-44)
-- Customer app: bottom tabs **Home, Search, Orders, Account**. Every other screen opens on top of them.
+- Customer app: bottom tabs **Home, Orders, Account**. Search is the bar at the top of Home, as in Zomato and
+  Swiggy today (owner, 2026-09-27: "check more food delivery app and choose best thing"); it opens a search
+  screen with a back arrow. Every other screen opens on top of the tabs.
 - **Every screen that is not a tab has a back arrow** at the top left (shared `Header` in `@jamzo/mobile-ui`).
   If there is nothing to go back to (the screen was opened from a notification link), it goes to Home.
   iPhone swipe-back and the Android back button keep working.

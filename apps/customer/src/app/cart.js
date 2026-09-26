@@ -1,7 +1,7 @@
 // Cart: the bill is always the server's quote (D-46) — the app shows it, never computes it. Food-app
 // layout (D-109): items with steppers, coupon, tip and bill in cards, and the total pinned at the bottom.
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { userMessage } from '@jamzo/mobile-foundation';
 import {
@@ -18,7 +18,6 @@ import {
   Screen,
   Stepper,
   Text,
-  TextField,
   useTheme,
 } from '@jamzo/mobile-ui';
 import { VegMark } from '../components/bits';
@@ -110,9 +109,10 @@ export default function CartScreen() {
         </Text>
         <Text variant="label">Total</Text>
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} />
+      <View style={{ minWidth: 190 }}>
         <Button
-          title="Proceed to checkout"
+          title="Checkout"
           size="lg"
           disabled={!data?.canCheckout}
           accessibilityHint={data?.checkoutNote ?? undefined}
@@ -178,26 +178,39 @@ export default function CartScreen() {
 
       <Card>
         <CardTitle icon="pricetag-outline">Coupon</CardTitle>
-        <TextField
-          label="Coupon code"
-          value={code}
-          onChangeText={setCode}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          placeholder="WELCOME50"
-        />
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TextInput
+            accessibilityLabel="Coupon code"
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            placeholder="Enter coupon code"
+            placeholderTextColor={t.colors.textSubtle}
+            style={{
+              flex: 1,
+              height: 46,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: t.colors.borderStrong,
+              paddingHorizontal: 12,
+              fontFamily: t.fonts.medium,
+              fontSize: 15,
+              color: t.colors.text,
+              backgroundColor: t.colors.surface,
+            }}
+          />
+          {cart.couponCode && cart.couponCode === code.trim().toUpperCase() ? (
+            <Button title="Remove" variant="ghost" onPress={() => cart.setCoupon(null)} />
+          ) : (
             <Button
-              title="Apply coupon"
-              variant="secondary"
+              title="Apply"
+              variant="ghost"
+              accessibilityHint="Apply coupon"
               disabled={!code.trim()}
               onPress={() => cart.setCoupon(code.trim().toUpperCase())}
             />
-          </View>
-          {cart.couponCode ? (
-            <Button title="Remove coupon" variant="secondary" onPress={() => cart.setCoupon(null)} />
-          ) : null}
+          )}
         </View>
         {data?.coupon ? (
           <Banner tone={data.coupon.status === 'APPLIED' ? 'success' : 'warning'}>
