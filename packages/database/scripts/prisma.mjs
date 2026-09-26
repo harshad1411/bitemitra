@@ -7,5 +7,16 @@ import { existsSync } from 'node:fs';
 const cli = createRequire(import.meta.url).resolve('prisma/build/index.js');
 const envFile = new URL('../../../.env', import.meta.url).pathname;
 const nodeArgs = existsSync(envFile) ? [`--env-file=${envFile}`] : [];
-const r = spawnSync(process.execPath, [...nodeArgs, cli, ...process.argv.slice(2)], { stdio: 'inherit' });
+// The schema is always this package's, whatever the working directory (e.g. /app in the Docker image).
+const args = process.argv.slice(2);
+const needsSchema =
+  ['migrate', 'db', 'generate', 'validate', 'format'].includes(args[0]) && !args.includes('--schema');
+const schema = new URL('../prisma/schema.prisma', import.meta.url).pathname;
+const r = spawnSync(
+  process.execPath,
+  [...nodeArgs, cli, ...args, ...(needsSchema ? ['--schema', schema] : [])],
+  {
+    stdio: 'inherit',
+  },
+);
 process.exit(r.status ?? 1);
