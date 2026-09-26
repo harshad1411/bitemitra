@@ -13,8 +13,8 @@ const prisma = createPrismaClient({ url: env.DATABASE_URL });
 const app = await buildApp({
   env,
   prisma,
-  sms: createSmsProvider(env.SMS_PROVIDER, { logger: log }),
-  email: createEmailProvider(env.EMAIL_PROVIDER, { logger: log }),
+  sms: createSmsProvider(env.SMS_PROVIDER, { logger: log, env }),
+  email: createEmailProvider(env.EMAIL_PROVIDER, { logger: log, env }),
   storage: createStorage(env),
 });
 

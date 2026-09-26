@@ -42,6 +42,31 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
     if (appId === 'ADMIN')
       throw new AppError('AUTH_METHOD_DISABLED', 'Admin signs in with email and password.');
     await assertMethodEnabled(appId, CHANNEL_METHOD[channel]);
+    const minutes = await ttlMinutes();
+    return sendChallenge({
+      appId,
+      channel,
+      destination,
+      ip,
+      purpose: 'LOGIN',
+      smsPurpose: 'LOGIN_OTP',
+      subject: `Your ${BRAND.name} code`,
+      textFor: (code) =>
+        `${code} is your ${BRAND.name} verification code. It expires in ${minutes} minutes. Do not share it with anyone.`,
+    });
+  }
+
+  async function ttlMinutes() {
+    return Math.round((await config.resolve('auth.otp')).value.ttlSec / 60);
+  }
+
+  /**
+   * Creates a challenge (resend wait, hourly limit) and delivers its code. The row is withdrawn if delivery
+   * fails, so an undelivered code never counts as sent.
+   * @param {{ appId: string, channel: 'SMS' | 'EMAIL', destination: string, ip: string,
+   *   purpose: 'LOGIN' | 'ADMIN_2FA', smsPurpose: string, subject: string, textFor: (code: string) => string }} p
+   */
+  async function sendChallenge({ appId, channel, destination, ip, purpose, smsPurpose, subject, textFor }) {
     const policy = (await config.resolve('auth.otp')).value;
     const t = now();
 
@@ -72,6 +97,7 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
         channel,
         destination,
         appId,
+        purpose,
         codeHash: hashOtp(code, id, env.OTP_PEPPER),
         maxAttempts: policy.maxAttempts,
         expiresAt,
@@ -79,12 +105,10 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
         createdAt: t,
       },
     });
-    const minutes = Math.round(policy.ttlSec / 60);
-    const text = `${code} is your ${BRAND.name} verification code. It expires in ${minutes} minutes. Do not share it with anyone.`;
+    const text = textFor(code);
     try {
-      if (channel === 'SMS') await sms.send({ to: destination, text, purpose: 'LOGIN_OTP' });
-      else
-        await email.send({ to: destination, subject: `Your ${BRAND.name} code`, text, purpose: 'LOGIN_OTP' });
+      if (channel === 'SMS') await sms.send({ to: destination, text, vars: { code }, purpose: smsPurpose });
+      else await email.send({ to: destination, subject, text, purpose: smsPurpose });
     } catch (err) {
       await prisma.otpChallenge.delete({ where: { id } }).catch(() => {});
       log.error(
@@ -97,17 +121,13 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
   }
 
   /**
-   * Verifies an OTP and signs the person in to this app. Attempts are counted atomically.
-   * @param {{ appId: string, challengeId: string, code: string, platform: string | null, appVersion: string | null, ip: string, userAgent?: string }} input
+   * Checks a code against its challenge and consumes it. Attempts are counted atomically first, so parallel
+   * guesses cannot exceed maxAttempts; a code is consumed once.
+   * @param {any} challenge @param {string} code @param {Date} t
    */
-  async function verifyOtp(input) {
-    const t = now();
-    const challenge = await prisma.otpChallenge.findUnique({ where: { id: input.challengeId } });
-    if (!challenge || challenge.appId !== input.appId)
-      throw new AppError('OTP_INVALID', 'That code is not valid.');
+  async function checkCode(challenge, code, t) {
     if (challenge.consumedAt || challenge.expiresAt <= t)
       throw new AppError('OTP_EXPIRED', 'That code has expired. Request a new one.');
-
     // Count the attempt first, conditionally, so parallel guesses cannot exceed maxAttempts.
     const counted = await prisma.otpChallenge.updateMany({
       where: { id: challenge.id, consumedAt: null, attempts: { lt: challenge.maxAttempts } },
@@ -116,7 +136,7 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
     if (counted.count === 0)
       throw new AppError('OTP_ATTEMPTS_EXCEEDED', 'Too many incorrect attempts. Request a new code.');
 
-    if (!safeEqualHex(challenge.codeHash, hashOtp(input.code, challenge.id, env.OTP_PEPPER))) {
+    if (!safeEqualHex(challenge.codeHash, hashOtp(code, challenge.id, env.OTP_PEPPER))) {
       const remaining = Math.max(0, challenge.maxAttempts - challenge.attempts - 1);
       throw new AppError('OTP_INVALID', 'That code is not valid.', {
         details: { attemptsRemaining: remaining },
@@ -128,6 +148,19 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
     });
     if (consumed.count === 0)
       throw new AppError('OTP_EXPIRED', 'That code was already used. Request a new one.');
+  }
+
+  /**
+   * Verifies an OTP and signs the person in to this app. Attempts are counted atomically.
+   * @param {{ appId: string, challengeId: string, code: string, platform: string | null, appVersion: string | null, ip: string, userAgent?: string }} input
+   */
+  async function verifyOtp(input) {
+    const t = now();
+    const challenge = await prisma.otpChallenge.findUnique({ where: { id: input.challengeId } });
+    // Admin codes are only the second step after a password (D-106); they never sign anyone in here.
+    if (!challenge || challenge.appId !== input.appId || challenge.purpose !== 'LOGIN')
+      throw new AppError('OTP_INVALID', 'That code is not valid.');
+    await checkCode(challenge, input.code, t);
 
     const provider = CHANNEL_METHOD[challenge.channel];
     const user = await prisma.$transaction(async (tx) => {
@@ -304,7 +337,86 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
     }
     if (!admin.isActive || user.status !== 'ACTIVE')
       throw new AppError('ACCOUNT_SUSPENDED', 'This admin account is not active.');
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { failedLoginCount: 0, lockedUntil: null },
+    });
 
+    if (env.ADMIN_2FA !== 'required') return completeAdminLogin(request, user, admin);
+
+    // Step two (D-106): a code by SMS when the admin has a phone number, otherwise by email.
+    const channel = user.phone ? 'SMS' : 'EMAIL';
+    const destination = user.phone ?? user.email;
+    const minutes = await ttlMinutes();
+    const challenge = await sendChallenge({
+      appId: 'ADMIN',
+      channel,
+      destination,
+      ip: request.ip,
+      purpose: 'ADMIN_2FA',
+      smsPurpose: 'ADMIN_LOGIN_OTP',
+      subject: `Your ${BRAND.name} Admin sign-in code`,
+      textFor: (code) =>
+        `${code} is your ${BRAND.name} verification code. It expires in ${minutes} minutes. Do not share it with anyone.`,
+    });
+    await audit(
+      prisma,
+      request,
+      {
+        action: 'admin.login_code_sent',
+        entityType: 'admin_user',
+        entityId: admin.id,
+        newValue: { channel },
+      },
+      { actorType: 'ADMIN', userId: user.id },
+    );
+    return {
+      twoFactor: {
+        challengeId: challenge.challengeId,
+        channel,
+        sentTo: channel === 'SMS' ? maskPhone(destination) : maskEmail(destination),
+        expiresAt: challenge.expiresAt,
+      },
+    };
+  }
+
+  /**
+   * Second step of admin sign-in (D-106): the code from SMS or email. Wrong codes count toward the
+   * challenge's attempt limit; a new password sign-in sends a new code.
+   * @param {import('../../core/types.js').JamzoRequest} request
+   * @param {{ challengeId: string, code: string }} input
+   */
+  async function adminVerifyCode(request, input) {
+    const t = now();
+    const challenge = await prisma.otpChallenge.findUnique({ where: { id: input.challengeId } });
+    if (!challenge || challenge.appId !== 'ADMIN' || challenge.purpose !== 'ADMIN_2FA')
+      throw new AppError('OTP_INVALID', 'That code is not valid.');
+    const user = await prisma.user.findFirst({
+      where:
+        challenge.channel === 'SMS' ? { phone: challenge.destination } : { email: challenge.destination },
+      include: { adminUser: true },
+    });
+    const admin = user?.adminUser;
+    if (!user || !admin) throw new AppError('OTP_INVALID', 'That code is not valid.');
+    try {
+      await checkCode(challenge, input.code, t);
+    } catch (err) {
+      await audit(
+        prisma,
+        request,
+        { action: 'admin.login_code_failed', entityType: 'admin_user', entityId: admin.id },
+        { actorType: 'ADMIN', userId: user.id },
+      );
+      throw err;
+    }
+    if (!admin.isActive || user.status !== 'ACTIVE')
+      throw new AppError('ACCOUNT_SUSPENDED', 'This admin account is not active.');
+    return completeAdminLogin(request, user, admin);
+  }
+
+  /** @param {import('../../core/types.js').JamzoRequest} request @param {any} user @param {any} admin */
+  async function completeAdminLogin(request, user, admin) {
+    const t = now();
     await prisma.$transaction(async (tx) => {
       await tx.adminUser.update({
         where: { id: admin.id },
@@ -419,6 +531,7 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
     revokeFamily,
     revokeAllForUser,
     adminLogin,
+    adminVerifyCode,
     me,
     actorTypeFor: (appId) => ACTOR_TYPE_BY_APP[appId],
   };

@@ -1,7 +1,7 @@
 // Starts an isolated backend for the E2E run: embedded PostgreSQL → migrations → seed → API on :4100,
 // plus an in-process outbox worker (media renditions, order notifications and jobs), and a few real orders
 // placed through the API so the order screens have data (Phase 5).
-import { mkdtemp } from 'node:fs/promises';
+import { appendFile, mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { apiEnvSchema, loadEnv } from '@jamzo/config';
@@ -25,6 +25,10 @@ import { createOutboxRelay } from '../../../services/workers/src/outbox.js';
 import { createMediaUploadedHandler } from '../../../services/workers/src/handlers/media.js';
 
 export const E2E_ADMIN = { email: 'e2e-super@jamzo.test', password: 'E2E-Super-Admin-1' };
+// A second API on the same database with admin sign-in codes required (D-106). The two-step test sends the
+// sign-in requests to it; its emails are appended to this file so the test can read the code.
+export const E2E_2FA_API = 'http://127.0.0.1:4101';
+export const E2E_MAIL_FILE = path.join(os.tmpdir(), 'jamzo-e2e-admin-mail.jsonl');
 
 export default async function globalSetup() {
   const pg = await startPostgresServer({
@@ -66,6 +70,23 @@ export default async function globalSetup() {
   });
   await app.listen({ host: '127.0.0.1', port: 4100 });
 
+  await rm(E2E_MAIL_FILE, { force: true });
+  const twoStep = await buildApp({
+    env: { ...env, ADMIN_2FA: 'required' },
+    prisma,
+    sms,
+    email: {
+      name: 'e2e-file',
+      send: async (m) => {
+        await appendFile(E2E_MAIL_FILE, `${JSON.stringify(m)}\n`);
+        return { providerRef: 'e2e' };
+      },
+    },
+    storage,
+    logger: false,
+  });
+  await twoStep.listen({ host: '127.0.0.1', port: 4101 });
+
   const relay = createOutboxRelay({
     prisma,
     log: console,
@@ -86,6 +107,7 @@ export default async function globalSetup() {
   return async () => {
     clearInterval(timer);
     await app.close();
+    await twoStep.close();
     await prisma.$disconnect();
     await pg.stop();
   };

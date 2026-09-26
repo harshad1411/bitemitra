@@ -1,10 +1,13 @@
-// Channel provider interfaces (ARCHITECTURE §6, DECISIONS D-21). Phase 1 ships ONLY console providers,
-// which write the message to the log. They are refused in staging/production by the env schema.
+// Channel provider interfaces (ARCHITECTURE §6, DECISIONS D-21). Console providers write the message to the
+// log and are refused in staging/production by the env schema. Real providers: MSG91 SMS (D-104), SMTP email
+// (D-105), Expo push (D-69).
+import nodemailer from 'nodemailer';
 
 /**
  * @typedef {object} SmsProvider
  * @property {string} name
- * @property {(msg: { to: string, text: string, templateId?: string, purpose: string }) => Promise<{ providerRef: string }>} send
+ * @property {(msg: { to: string, text: string, vars?: Record<string, string>, purpose: string }) => Promise<{ providerRef: string }>} send
+ *   `text` is the full message (console provider); DLT providers send a registered template filled with `vars`.
  */
 
 /**
@@ -20,15 +23,15 @@ const ref = (prefix) => `${prefix}-${Date.now()}-${++counter}`;
  * Development/test SMS provider. Keeps the last messages in memory so tests and local developers can
  * read OTPs; logs them at info level. NOT a real delivery channel.
  * @param {{ logger?: { info: Function }, keep?: number }} [opts]
- * @returns {SmsProvider & { sent: { to: string, text: string, purpose: string }[] }}
+ * @returns {SmsProvider & { sent: { to: string, text: string, vars?: Record<string, string>, purpose: string }[] }}
  */
 export function createConsoleSmsProvider({ logger, keep = 50 } = {}) {
   const sent = [];
   return {
     name: 'console',
     sent,
-    async send({ to, text, purpose }) {
-      sent.push({ to, text, purpose });
+    async send({ to, text, vars, purpose }) {
+      sent.push({ to, text, vars, purpose });
       if (sent.length > keep) sent.shift();
       // Intentionally includes the text: this provider exists so developers can read OTPs locally.
       logger?.info(
@@ -62,21 +65,127 @@ export function createConsoleEmailProvider({ logger, keep = 50 } = {}) {
 }
 
 /**
- * @param {string} name
- * @param {{ logger?: { info: Function } }} deps
+ * MSG91 Flow API (https://docs.msg91.com — "Send SMS" flow, POST /api/v5/flow). India's DLT rules only allow
+ * registered templates, so this sends a template id per purpose plus its variables, never free text.
+ * **Tested only against a fake MSG91 server — not verified with MSG91 until the owner's account, DLT sender
+ * id and template exist (DECISIONS D-104, Q-6b).**
+ * @param {{ authKey: string, templates: Record<string, string>, otpVar?: string, endpoint?: string,
+ *   fetch?: typeof fetch, timeoutMs?: number }} opts templates: purpose → MSG91 template id
+ * @returns {SmsProvider}
  */
-export function createSmsProvider(name, deps) {
-  if (name === 'console') return createConsoleSmsProvider(deps);
-  throw new Error(`SMS provider "${name}" is not implemented (DECISIONS Q-6)`);
+export function createMsg91SmsProvider({
+  authKey,
+  templates,
+  otpVar = 'otp',
+  endpoint = 'https://control.msg91.com/api/v5/flow',
+  fetch: doFetch = globalThis.fetch,
+  timeoutMs = 10_000,
+}) {
+  if (!authKey) throw new Error('MSG91 needs an auth key');
+  return {
+    name: 'msg91',
+    async send({ to, vars, purpose }) {
+      const templateId = templates[purpose];
+      if (!templateId) throw new Error(`No MSG91 template for SMS purpose ${purpose}`);
+      if (!/^\+\d{8,15}$/.test(to)) throw new Error('SMS destination must be an E.164 number');
+      const recipient = { mobiles: to.slice(1) };
+      if (vars?.code) recipient[otpVar] = vars.code;
+      for (const [k, v] of Object.entries(vars ?? {})) if (k !== 'code') recipient[k] = v;
+      const res = await doFetch(endpoint, {
+        method: 'POST',
+        headers: { authkey: authKey, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ template_id: templateId, short_url: '0', recipients: [recipient] }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const body = /** @type {{ type?: string, message?: unknown, request_id?: string } | null} */ (
+        await res.json().catch(() => null)
+      );
+      if (!res.ok || body?.type !== 'success') {
+        // MSG91's message can echo the request; keep only the status and its error text.
+        throw new Error(
+          `MSG91 refused the SMS (HTTP ${res.status}): ${String(body?.message ?? '').slice(0, 200)}`,
+        );
+      }
+      return { providerRef: String(body.message ?? body.request_id ?? '') };
+    },
+  };
+}
+
+/**
+ * Plain-text email over SMTP with nodemailer (DECISIONS D-105). Port 465 uses TLS from the start; other ports
+ * upgrade with STARTTLS, which is required unless `requireTls` is false (local test servers only).
+ * @param {{ host: string, port: number, user?: string, pass?: string, from: string, requireTls?: boolean,
+ *   timeoutMs?: number }} opts
+ * @returns {EmailProvider & { close: () => void }}
+ */
+export function createSmtpEmailProvider({
+  host,
+  port,
+  user,
+  pass,
+  from,
+  requireTls = true,
+  timeoutMs = 15_000,
+}) {
+  const transport = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    requireTLS: requireTls && port !== 465,
+    ignoreTLS: !requireTls,
+    auth: user ? { user, pass } : undefined,
+    connectionTimeout: timeoutMs,
+    greetingTimeout: timeoutMs,
+    socketTimeout: timeoutMs,
+  });
+  return {
+    name: 'smtp',
+    async send({ to, subject, text }) {
+      const info = await transport.sendMail({ from, to, subject, text });
+      if (info.rejected?.length) throw new Error('The mail server refused the recipient');
+      return { providerRef: info.messageId };
+    },
+    close: () => transport.close(),
+  };
 }
 
 /**
  * @param {string} name
- * @param {{ logger?: { info: Function } }} deps
+ * @param {{ logger?: { info: Function }, env?: Record<string, any>, fetch?: typeof fetch }} deps
+ */
+export function createSmsProvider(name, deps) {
+  if (name === 'console') return createConsoleSmsProvider(deps);
+  if (name === 'msg91') {
+    const env = deps.env ?? {};
+    return createMsg91SmsProvider({
+      authKey: env.MSG91_AUTH_KEY,
+      // One DLT template serves both sign-in codes; the purposes stay separate so they can diverge later.
+      templates: { LOGIN_OTP: env.MSG91_OTP_TEMPLATE_ID, ADMIN_LOGIN_OTP: env.MSG91_OTP_TEMPLATE_ID },
+      otpVar: env.MSG91_OTP_VAR,
+      fetch: deps.fetch,
+    });
+  }
+  throw new Error(`SMS provider "${name}" is not implemented`);
+}
+
+/**
+ * @param {string} name
+ * @param {{ logger?: { info: Function }, env?: Record<string, any> }} deps
  */
 export function createEmailProvider(name, deps) {
   if (name === 'console') return createConsoleEmailProvider(deps);
-  throw new Error(`Email provider "${name}" is not implemented (DECISIONS Q-6)`);
+  if (name === 'smtp') {
+    const env = deps.env ?? {};
+    return createSmtpEmailProvider({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+      from: env.EMAIL_FROM,
+      requireTls: env.SMTP_REQUIRE_TLS ?? true,
+    });
+  }
+  throw new Error(`Email provider "${name}" is not implemented`);
 }
 
 /**

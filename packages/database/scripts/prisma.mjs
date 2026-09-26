@@ -10,7 +10,9 @@ const nodeArgs = existsSync(envFile) ? [`--env-file=${envFile}`] : [];
 // The schema is always this package's, whatever the working directory (e.g. /app in the Docker image).
 const args = process.argv.slice(2);
 const needsSchema =
-  ['migrate', 'db', 'generate', 'validate', 'format'].includes(args[0]) && !args.includes('--schema');
+  ['migrate', 'db', 'generate', 'validate', 'format'].includes(args[0]) &&
+  args[1] !== 'diff' && // migrate diff takes its schemas as --from-/--to- options
+  !args.includes('--schema');
 const schema = new URL('../prisma/schema.prisma', import.meta.url).pathname;
 const r = spawnSync(
   process.execPath,

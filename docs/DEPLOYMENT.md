@@ -90,12 +90,19 @@ TRUST_PROXY=true   COOKIE_SECURE=true   CORS_ORIGINS=https://admin.jamzo.in
 MEDIA_STORAGE_DRIVER=spaces  SPACES_ENDPOINT=https://blr1.digitaloceanspaces.com  SPACES_BUCKET=…  SPACES_KEY=…  SPACES_SECRET=…
 MEDIA_PUBLIC_BASE_URL=https://<space>.blr1.cdn.digitaloceanspaces.com
 PAYMENT_PROVIDER=razorpay  RAZORPAY_KEY_ID=rzp_live_…  RAZORPAY_KEY_SECRET=…  RAZORPAY_WEBHOOK_SECRET=…
-SMS_PROVIDER=…  EMAIL_PROVIDER=…  PUSH_PROVIDER=expo  EXPO_ACCESS_TOKEN=…
+SMS_PROVIDER=msg91  MSG91_AUTH_KEY=…  MSG91_OTP_TEMPLATE_ID=… (DLT-approved OTP template)
+EMAIL_PROVIDER=smtp  SMTP_HOST=…  SMTP_PORT=587  SMTP_USER=…  SMTP_PASS=…  EMAIL_FROM=Jamzo <no-reply@jamzo.in>
+ADMIN_2FA=required   PUSH_PROVIDER=expo  EXPO_ACCESS_TOKEN=…
 GOOGLE_MAPS_API_KEY=…   METRICS_TOKEN=… (24+ random chars)
 ```
 
-The API refuses to start with development-only providers, local file storage, test gateway keys or insecure
-cookies in production.
+The API refuses to start with development-only providers, local file storage, test gateway keys, insecure
+cookies or admin sign-in codes turned off in production.
+
+**Before the first admin sign-in on staging/production:** send one test sign-in code to your own phone
+(MSG91) and one to your email (SMTP) and check both arrive. Add the SPF and DKIM records your email service
+gives you at GoDaddy, or codes may land in spam. Admins get their code by SMS if their account has a phone
+number, otherwise by email (D-106).
 
 ## 7. Deploy, rollback, incidents
 
@@ -114,7 +121,8 @@ cookies in production.
 - [ ] Owner: DigitalOcean price confirmed at launch (OD-40); accounts: Razorpay (KYC), MSG91 + DLT, Expo,
       Apple Developer, Google Play, Google Maps key.
 - [ ] CA answers on tax (Q-3) and legal pages / markup (Q-4, Q-12); placeholder amounts replaced (A-16).
-- [ ] Admin two-factor sign-in built (Q-15 — the owner chooses the method).
+- [x] Admin two-factor sign-in built: code by email or SMS (OD-43, D-106).
+- [ ] Test sign-in codes arrive on staging by SMS (MSG91 template approved) and email (SPF/DKIM set).
 - [ ] Staging load test on the Droplet meets p95 < 300 ms (docs/PERFORMANCE.md §4); home < 2 s on 4G.
 - [ ] Restore drill on staging; uptime alert tested by stopping the worker once.
 - [ ] Razorpay test payments, refunds and webhooks verified on staging with test keys; then live keys.

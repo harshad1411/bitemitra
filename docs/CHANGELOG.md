@@ -3,6 +3,16 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Sign-in codes (2026-09-26) — OD-43
+
+### Added
+- SMS through MSG91's Flow API with a DLT template (D-104). Tested against a fake MSG91 server only until the owner's MSG91 account and template exist.
+- Email over SMTP (nodemailer), tested against a local SMTP server (D-105).
+- Admin two-step sign-in: after the password, a code by SMS (if the admin has a phone) or email; required in staging and production (D-106). New endpoint `POST /v1/admin/auth/verify`; the admin sign-in page has a second step.
+
+### Fixed
+- `prisma.mjs` added `--schema` to `migrate diff`, which does not accept it.
+
 ## Phase 10 — Production hardening (2026-09-26) — built under OD-42
 
 ### Added

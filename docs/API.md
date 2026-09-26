@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (232 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (233 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -105,6 +105,7 @@ _Generated from the route definitions by `pnpm docs:api` (232 endpoints). Do not
 | `GET` | `/v1/admin/audit-logs` | admin token | ADMIN | `audit.view` |  |
 | `GET` | `/v1/admin/audit-logs/export.csv` | admin token | ADMIN | `audit.view` |  |
 | `POST` | `/v1/admin/auth/login` | none | ADMIN | — | auth limit/min |
+| `POST` | `/v1/admin/auth/verify` | none | ADMIN | — | 2× auth limit/min |
 | `PATCH` | `/v1/admin/branches/:id` | admin token | ADMIN | `restaurants.manage` |  |
 | `PUT` | `/v1/admin/branches/:id/delivery-area` | admin token | ADMIN | `restaurants.manage` |  |
 | `PUT` | `/v1/admin/branches/:id/hours` | admin token | ADMIN | `restaurants.manage` |  |

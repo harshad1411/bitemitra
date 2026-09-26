@@ -12,7 +12,7 @@ import { useAuth } from '@/lib/auth';
 import { errorMessage } from '@/lib/api';
 
 function LoginForm() {
-  const { status, login } = useAuth();
+  const { status, login, verifyCode } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get('next')?.startsWith('/') ? params.get('next') : '/';
@@ -20,6 +20,8 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [twoFactor, setTwoFactor] = useState(null); // { challengeId, channel, sentTo, expiresAt }
+  const [code, setCode] = useState('');
 
   useEffect(() => {
     if (status === 'authenticated') router.replace(next);
@@ -30,7 +32,14 @@ function LoginForm() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      if (twoFactor) await verifyCode(twoFactor.challengeId, code);
+      else {
+        const res = await login(email, password);
+        if (res.twoFactor) {
+          setTwoFactor(res.twoFactor);
+          setPassword('');
+        }
+      }
     } catch (err) {
       setError(err);
     } finally {
@@ -48,7 +57,11 @@ function LoginForm() {
           J
         </div>
         <CardTitle className="text-xl">Sign in to {ADMIN_APP.displayName}</CardTitle>
-        <CardDescription>For Jamzo staff only. Every action is recorded.</CardDescription>
+        <CardDescription>
+          {twoFactor
+            ? `We sent a 6-digit code ${twoFactor.channel === 'SMS' ? 'by SMS to' : 'to'} ${twoFactor.sentTo}.`
+            : 'For Jamzo staff only. Every action is recorded.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="grid gap-4" noValidate>
@@ -62,36 +75,68 @@ function LoginForm() {
               </AlertDescription>
             </Alert>
           ) : null}
-          <FormField id="email" label="Email" errors={error?.fieldErrors?.email}>
-            {(a) => (
-              <Input
-                {...a}
-                type="email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            )}
-          </FormField>
-          <FormField id="password" label="Password" errors={error?.fieldErrors?.password}>
-            {(a) => (
-              <Input
-                {...a}
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            )}
-          </FormField>
-          <Button type="submit" disabled={busy || !email || !password}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Two-factor authentication is not enabled yet (required before production — DECISIONS Q-15).
-          </p>
+          {twoFactor ? (
+            <>
+              <FormField id="code" label="Sign-in code" errors={error?.fieldErrors?.code}>
+                {(a) => (
+                  <Input
+                    {...a}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    autoFocus
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  />
+                )}
+              </FormField>
+              <Button type="submit" disabled={busy || code.length !== 6}>
+                {busy ? 'Checking…' : 'Verify'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setTwoFactor(null);
+                  setCode('');
+                  setError(null);
+                }}
+              >
+                Start again (sends a new code)
+              </Button>
+            </>
+          ) : (
+            <>
+              <FormField id="email" label="Email" errors={error?.fieldErrors?.email}>
+                {(a) => (
+                  <Input
+                    {...a}
+                    type="email"
+                    autoComplete="username"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                )}
+              </FormField>
+              <FormField id="password" label="Password" errors={error?.fieldErrors?.password}>
+                {(a) => (
+                  <Input
+                    {...a}
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                )}
+              </FormField>
+              <Button type="submit" disabled={busy || !email || !password}>
+                {busy ? 'Signing in…' : 'Sign in'}
+              </Button>
+            </>
+          )}
         </form>
       </CardContent>
     </Card>

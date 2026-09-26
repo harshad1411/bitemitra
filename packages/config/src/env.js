@@ -100,8 +100,22 @@ export const apiEnvSchema = z
     // Road distances from Google (D-81); only used when Jamzo Admin sets maps.provider to GOOGLE. Server-side only.
     GOOGLE_MAPS_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(20).optional()),
     ...paymentEnv,
-    SMS_PROVIDER: z.enum(['console']).default('console'),
-    EMAIL_PROVIDER: z.enum(['console']).default('console'),
+    // SMS through MSG91 (D-104) and email over SMTP (D-105). Server-side only.
+    SMS_PROVIDER: z.enum(['console', 'msg91']).default('console'),
+    MSG91_AUTH_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(8).optional()),
+    MSG91_OTP_TEMPLATE_ID: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(4).optional()),
+    MSG91_OTP_VAR: z
+      .string()
+      .regex(/^[A-Za-z0-9_]+$/)
+      .default('otp'),
+    EMAIL_PROVIDER: z.enum(['console', 'smtp']).default('console'),
+    SMTP_HOST: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    SMTP_USER: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+    SMTP_PASS: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+    EMAIL_FROM: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(3).optional()),
+    // Admin sign-in code after the password (D-106). Unset = required in staging/production, off elsewhere.
+    ADMIN_2FA: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['required', 'off']).optional()),
     COOKIE_SECURE: bool.default(true),
     ADMIN_COOKIE_PATH: z.string().startsWith('/').default('/api/v1'),
     MEDIA_PUBLIC_BASE_URL: z.string().default('/v1/media/files'),
@@ -118,7 +132,19 @@ export const apiEnvSchema = z
     const live = env.APP_ENV === 'staging' || env.APP_ENV === 'production';
     checkPaymentEnv(env, ctx);
     checkStorageEnv(env, ctx);
+    if (env.SMS_PROVIDER === 'msg91')
+      for (const k of ['MSG91_AUTH_KEY', 'MSG91_OTP_TEMPLATE_ID'])
+        if (!env[k]) ctx.addIssue({ code: 'custom', path: [k], message: `${k} is required for MSG91` });
+    if (env.EMAIL_PROVIDER === 'smtp')
+      for (const k of ['SMTP_HOST', 'EMAIL_FROM'])
+        if (!env[k]) ctx.addIssue({ code: 'custom', path: [k], message: `${k} is required for SMTP email` });
     if (!live) return;
+    if (env.ADMIN_2FA === 'off')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ADMIN_2FA'],
+        message: 'admin sign-in codes cannot be turned off in staging/production',
+      });
     // Development-only providers must never run where real users exist (DECISIONS D-21, D-23).
     if (env.SMS_PROVIDER === 'console')
       ctx.addIssue({
@@ -144,7 +170,12 @@ export const apiEnvSchema = z
         path: ['COOKIE_SECURE'],
         message: 'cookies must be Secure in staging/production',
       });
-  });
+  })
+  .transform((env) => ({
+    ...env,
+    ADMIN_2FA:
+      env.ADMIN_2FA ?? (env.APP_ENV === 'staging' || env.APP_ENV === 'production' ? 'required' : 'off'),
+  }));
 
 export const workerEnvSchema = z
   .object({

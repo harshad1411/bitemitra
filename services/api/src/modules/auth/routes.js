@@ -2,6 +2,7 @@
 // httpOnly SameSite=Strict cookie instead (DECISIONS D-22).
 import {
   adminLoginBody,
+  adminVerifyBody,
   deviceRegisterBody,
   otpRequestBody,
   otpVerifyBody,
@@ -136,6 +137,21 @@ export default async function authRoutes(app) {
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request, reply) => {
       const body = parse(adminLoginBody, request.body);
       const result = await auth.adminLogin(request, body);
+      // Two-step sign-in (D-106): no tokens until the code is checked.
+      if ('twoFactor' in result) return { twoFactor: result.twoFactor };
+      reply.setCookie(ADMIN_REFRESH_COOKIE, result.refreshToken, cookieOptions);
+      return { accessToken: result.accessToken, expiresIn: result.expiresIn, me: result.me };
+    },
+  );
+
+  app.post(
+    '/v1/admin/auth/verify',
+    {
+      config: { auth: 'none', rateLimit: { max: env.AUTH_RATE_LIMIT_PER_MIN * 2, timeWindow: '1 minute' } },
+    },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request, reply) => {
+      const body = parse(adminVerifyBody, request.body);
+      const result = await auth.adminVerifyCode(request, body);
       reply.setCookie(ADMIN_REFRESH_COOKIE, result.refreshToken, cookieOptions);
       return { accessToken: result.accessToken, expiresIn: result.expiresIn, me: result.me };
     },

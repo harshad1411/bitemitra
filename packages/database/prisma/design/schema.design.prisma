@@ -65,6 +65,7 @@ enum OtpChannel {
 enum OtpPurpose {
   LOGIN
   PHONE_CHANGE
+  ADMIN_2FA // second step of admin sign-in (OD-43)
 }
 
 enum ConfigScope {

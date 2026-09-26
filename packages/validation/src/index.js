@@ -128,6 +128,7 @@ export const otpChannel = z.enum(values(OTP_CHANNELS));
 export const otpVerifyBody = z.object({ challengeId: uuid, code: otpCode });
 export const refreshBody = z.object({ refreshToken: z.string().min(20).max(200).optional() });
 export const adminLoginBody = z.object({ email, password: z.string().min(1).max(128) });
+export const adminVerifyBody = z.object({ challengeId: uuid, code: otpCode });
 export const deviceRegisterBody = z.object({
   platform: z.enum(['IOS', 'ANDROID']),
   pushToken: z.string().min(10).max(300),

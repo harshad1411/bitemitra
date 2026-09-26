@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { E2E_2FA_API, E2E_ADMIN, E2E_MAIL_FILE } from './global-setup.js';
 import { expectToast, nav, shot, signIn } from './helpers.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -11,6 +13,42 @@ test('rejects a wrong password with a clear message', async ({ page }) => {
   await signIn(page, { email: 'e2e-super@jamzo.test', password: 'wrong-password' }, { expectSuccess: false });
   await expect(page.getByRole('alert').filter({ hasText: 'Email or password is incorrect.' })).toBeVisible();
   await shot(page, '01-login-error');
+});
+
+test('two-step sign-in: password, then the emailed code (D-106)', async ({ page }) => {
+  // Sign-in requests go to the second test API, which requires codes; everything else stays on the first.
+  await page.route('**/api/v1/admin/auth/**', async (route) => {
+    const url = new URL(route.request().url());
+    const response = await route.fetch({ url: `${E2E_2FA_API}${url.pathname.replace(/^\/api/, '')}` });
+    await route.fulfill({ response });
+  });
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(E2E_ADMIN.email);
+  await page.getByLabel('Password').fill(E2E_ADMIN.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText(/We sent a 6-digit code to e/)).toBeVisible();
+  await expect(page.getByLabel('Password')).toHaveCount(0);
+  await shot(page, '01b-login-code');
+
+  const mails = (await readFile(E2E_MAIL_FILE, 'utf8'))
+    .trim()
+    .split('\n')
+    .map((l) => JSON.parse(l));
+  const mail = mails.at(-1);
+  expect(mail.to).toBe(E2E_ADMIN.email);
+  const code = /(\d{6})/.exec(mail.text)[1];
+
+  await page.getByLabel('Sign-in code').fill(code === '000000' ? '111111' : '000000');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'That code is not valid.' })).toBeVisible();
+
+  await page.getByLabel('Sign-in code').fill(code);
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByRole('heading', { name: /Welcome/ })).toBeVisible();
+  // The session cookie from the second step works with the main API too: a reload keeps you signed in.
+  await page.unroute('**/api/v1/admin/auth/**');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /Welcome/ })).toBeVisible();
 });
 
 test('signs in and shows an honest dashboard', async ({ page }) => {

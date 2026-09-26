@@ -40,9 +40,22 @@ export function AuthProvider({ children }) {
       { email, password },
       { auth: false, idempotencyKey: false },
     );
+    // Two-step sign-in (D-106): the caller asks for the code, then calls verifyCode.
+    if (res.twoFactor) return { twoFactor: res.twoFactor };
     setAccessToken(res.accessToken);
     setState({ status: 'authenticated', me: res.me });
-    return res.me;
+    return { me: res.me };
+  }, []);
+
+  const verifyCode = useCallback(async (challengeId, code) => {
+    const res = await api.post(
+      '/v1/admin/auth/verify',
+      { challengeId, code },
+      { auth: false, idempotencyKey: false },
+    );
+    setAccessToken(res.accessToken);
+    setState({ status: 'authenticated', me: res.me });
+    return { me: res.me };
   }, []);
 
   const logout = useCallback(async () => {
@@ -59,12 +72,13 @@ export function AuthProvider({ children }) {
     return {
       ...state,
       login,
+      verifyCode,
       logout,
       reload: loadMe,
       /** UI convenience only — the API enforces every permission (RBAC.md §1). */
       can: (p) => perms.has(p),
     };
-  }, [state, login, logout, loadMe]);
+  }, [state, login, verifyCode, logout, loadMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

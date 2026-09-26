@@ -11,13 +11,15 @@ by the setting `auth.methods`:
 
 | Provider | Phase 1 status |
 |---|---|
-| `PHONE_OTP` | **implemented**; SMS sent through `SmsProvider` — **console provider only** until a DLT provider is chosen (Q-6) |
-| `EMAIL_OTP` | **implemented**; `EmailProvider` — **console provider only** (Q-6) |
+| `PHONE_OTP` | **implemented**; SMS through `SmsProvider`: console (development) or **MSG91** with a DLT template (D-104; tested against a fake MSG91 only until the owner's account exists) |
+| `EMAIL_OTP` | **implemented**; `EmailProvider`: console (development) or **SMTP** (D-105) |
 | `GOOGLE`, `APPLE` | **slots only**: configuration + routes exist, return `AUTH_METHOD_UNAVAILABLE`; ID-token verification needs client ids (Q-6b) |
 | `PASSWORD` | **implemented for admin** (argon2id) with lockout |
 
 Defaults: customer, restaurant and rider apps → phone OTP (email OTP available, off); admin → password.
-**Admin 2FA is deferred** (CH-8, Q-15): Admin must not be exposed to the public internet until it ships.
+**Admin two-step sign-in** (OD-43, D-106): after the password, a 6-digit code goes by SMS if the admin has a
+phone number, otherwise by email. It is required in staging and production (`ADMIN_2FA`; the API will not
+start with it off there) and can be off in development and tests.
 
 Authentication never implies approval: restaurant/rider features additionally require an approved
 membership/profile ([RBAC.md §4](RBAC.md#4-non-admin-actors)).

@@ -20,6 +20,32 @@ describe('env', () => {
     expect(() => loadEnv(apiEnvSchema, {})).toThrow(/DATABASE_URL[\s\S]*JWT_ACCESS_SECRET[\s\S]*OTP_PEPPER/);
   });
 
+  it('SMS, email and admin sign-in codes (D-104..D-106)', () => {
+    expect(loadEnv(apiEnvSchema, good).ADMIN_2FA).toBe('off');
+    expect(loadEnv(apiEnvSchema, { ...good, ADMIN_2FA: 'required' }).ADMIN_2FA).toBe('required');
+    expect(() => loadEnv(apiEnvSchema, { ...good, SMS_PROVIDER: 'msg91' })).toThrow(
+      /MSG91_AUTH_KEY is required[\s\S]*MSG91_OTP_TEMPLATE_ID is required/,
+    );
+    expect(() => loadEnv(apiEnvSchema, { ...good, EMAIL_PROVIDER: 'smtp' })).toThrow(
+      /SMTP_HOST is required[\s\S]*EMAIL_FROM is required/,
+    );
+    const live = {
+      ...good,
+      APP_ENV: 'production',
+      SMS_PROVIDER: 'msg91',
+      MSG91_AUTH_KEY: 'msg91-key-123',
+      MSG91_OTP_TEMPLATE_ID: 'tmpl-123',
+      EMAIL_PROVIDER: 'smtp',
+      SMTP_HOST: 'smtp.example.com',
+      EMAIL_FROM: 'Jamzo <no-reply@jamzo.in>',
+    };
+    // Production defaults to required and refuses "off", whatever the other problems are.
+    expect(() => loadEnv(apiEnvSchema, { ...live, ADMIN_2FA: 'off' })).toThrow(
+      /ADMIN_2FA: admin sign-in codes/,
+    );
+    expect(() => loadEnv(apiEnvSchema, live)).not.toThrow(/ADMIN_2FA|SMS_PROVIDER|EMAIL_PROVIDER|MSG91|SMTP/);
+  });
+
   it('refuses development-only providers in production', () => {
     expect(() => loadEnv(apiEnvSchema, { ...good, APP_ENV: 'production' })).toThrow(/console SMS provider/);
   });

@@ -2,8 +2,8 @@
 
 Food-delivery platform launching in **Unjha, Gujarat**, built for many cities (jamzo.in).
 
-> **Status: Phases 0–10 built (OD-42).** Launch still needs the owner's accounts, the CA's tax answers,
-> admin two-factor sign-in (Q-15) and the staging load test — see [docs/DEPLOYMENT.md §8](docs/DEPLOYMENT.md#8-launch-checklist). Decisions and open
+> **Status: Phases 0–10 built (OD-42), plus MSG91 SMS, SMTP email and admin sign-in codes (OD-43).** Launch
+> still needs the owner's accounts, the CA's tax answers and the staging load test — see [docs/DEPLOYMENT.md §8](docs/DEPLOYMENT.md#8-launch-checklist). Decisions and open
 > questions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Products
