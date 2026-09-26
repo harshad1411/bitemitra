@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   ErrorState,
+  Header,
   LoadingState,
   Screen,
   Text,
@@ -48,7 +49,7 @@ export default function Ticket() {
   if (q.isPending) return <LoadingState label="Loading your conversation" />;
   if (q.isError)
     return (
-      <Screen>
+      <Screen header={<Header title="Help" />}>
         <ErrorState message={userMessage(q.error)} onRetry={() => q.refetch()} />
       </Screen>
     );
@@ -74,8 +75,7 @@ export default function Ticket() {
     }
   };
   return (
-    <Screen>
-      <Text variant="small">{t.ticketNumber}</Text>
+    <Screen header={<Header title="Help" subtitle={t.ticketNumber} />}>
       <Text variant="title" accessibilityRole="header">
         {ISSUES.find(([c]) => c === t.issueType)?.[1] ?? 'Help'}
       </Text>

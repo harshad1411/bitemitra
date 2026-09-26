@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Badge, Banner, Button, Card, Screen, Text, TextField } from '@jamzo/mobile-ui';
+import { Badge, Banner, Button, Card, Header, Screen, Text, TextField } from '@jamzo/mobile-ui';
 import { DEMO_POINT, useLocation } from '../lib/location';
 import { useAddresses } from '../lib/queries';
 
@@ -85,16 +85,14 @@ export default function Addresses() {
   const [adding, setAdding] = useState(false);
   if (!signedIn)
     return (
-      <Screen>
-        <Text variant="title">Saved addresses</Text>
+      <Screen header={<Header title="Saved addresses" />}>
         <Text variant="muted">Sign in to save addresses.</Text>
         <Button title="Sign in" onPress={() => router.push('/sign-in')} />
       </Screen>
     );
   const refresh = () => qc.invalidateQueries({ queryKey: ['addresses'] });
   return (
-    <Screen>
-      <Text variant="title">Saved addresses</Text>
+    <Screen header={<Header title="Saved addresses" />}>
       {(q.data?.items ?? []).map((a) => (
         <Card key={a.id}>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>

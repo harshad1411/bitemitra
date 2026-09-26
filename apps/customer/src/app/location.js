@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useJamzo } from '@jamzo/mobile-foundation';
-import { Banner, Button, Card, Screen, Text } from '@jamzo/mobile-ui';
+import { Banner, Button, Card, Header, Screen, Text } from '@jamzo/mobile-ui';
 import { DEMO_POINT, useLocation } from '../lib/location';
 import { useAddresses } from '../lib/queries';
 
@@ -16,8 +16,7 @@ export default function ChooseLocation() {
   const addresses = useAddresses(signedIn);
   const done = () => (router.canGoBack() ? router.back() : router.replace('/'));
   return (
-    <Screen>
-      <Text variant="title">Delivery location</Text>
+    <Screen header={<Header title="Delivery location" />}>
       {error ? <Banner tone="warning">{error}</Banner> : null}
       <Button
         title="Use my current location"

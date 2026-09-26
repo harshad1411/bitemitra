@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   ErrorState,
+  Header,
   LoadingState,
   Screen,
   Text,
@@ -85,8 +86,7 @@ export default function Apply() {
   const docs = r?.documents;
   const byKind = new Map((docs?.items ?? []).map((d) => [d.kind, d]));
   return (
-    <Screen>
-      <Text variant="title">Deliver with Jamzo</Text>
+    <Screen header={<Header title="Deliver with Jamzo" />}>
       <Text variant="muted">Fill in your details, choose your vehicle and add photos of your documents.</Text>
       {error ? <Banner tone="critical">{error}</Banner> : null}
 

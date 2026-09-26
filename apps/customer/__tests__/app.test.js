@@ -1,17 +1,18 @@
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import RootLayout from '../src/app/_layout';
-import Home from '../src/app/index';
+import TabsLayout from '../src/app/(tabs)/_layout';
+import Home from '../src/app/(tabs)/index';
 import ChooseLocation from '../src/app/location';
-import Search from '../src/app/search';
+import Search from '../src/app/(tabs)/search';
 import RestaurantScreen from '../src/app/restaurant/[id]';
 import Customize from '../src/app/customize';
 import CartScreen from '../src/app/cart';
-import Account from '../src/app/account';
+import Account from '../src/app/(tabs)/account';
 import Addresses from '../src/app/addresses';
 import SignIn from '../src/app/sign-in';
 import CmsPage from '../src/app/page/[slug]';
 import Checkout from '../src/app/checkout';
-import OrdersList from '../src/app/orders/index';
+import OrdersList from '../src/app/(tabs)/orders';
 import OrderScreen from '../src/app/orders/[id]';
 import NewTicket from '../src/app/support/new';
 import TicketScreen from '../src/app/support/[id]';
@@ -38,18 +39,19 @@ jest.mock('expo-constants', () => ({
 
 const routes = {
   _layout: RootLayout,
-  index: Home,
+  '(tabs)/_layout': TabsLayout,
+  '(tabs)/index': Home,
   location: ChooseLocation,
-  search: Search,
+  '(tabs)/search': Search,
   'restaurant/[id]': RestaurantScreen,
   customize: Customize,
   cart: CartScreen,
-  account: Account,
+  '(tabs)/account': Account,
   addresses: Addresses,
   'sign-in': SignIn,
   'page/[slug]': CmsPage,
   checkout: Checkout,
-  'orders/index': OrdersList,
+  '(tabs)/orders': OrdersList,
   'orders/[id]': OrderScreen,
   'support/new': NewTicket,
   'support/[id]': TicketScreen,
@@ -86,20 +88,20 @@ describe('customer app', () => {
     expect(screen.getByText(fixtures.restaurant.pricesInclude)).toBeTruthy();
 
     // Margherita has sizes and a required crust → the customise screen.
-    const addButtons = screen.getAllByLabelText('Add');
-    await fireEvent.press(addButtons[0]);
+    await fireEvent.press(screen.getByLabelText('Add Margherita'));
     expect(await screen.findByText('Crust')).toBeTruthy();
-    expect(screen.getByText('Required · choose 1')).toBeTruthy();
-    expect(screen.getByText('Choose: Crust')).toBeTruthy();
+    expect(screen.getAllByText('Required · choose 1')).toHaveLength(2); // size and crust
+    expect(screen.getByLabelText('Choose Crust')).toBeTruthy(); // the add button says what is missing
     await fireEvent.press(screen.getByLabelText('Medium 10"'));
     await fireEvent.press(screen.getByLabelText('Cheese burst'));
     // ₹242 (medium) + ₹66 (cheese burst) — menu prices, for guidance only.
-    await fireEvent.press(await screen.findByLabelText('Add 1 · ₹308.00'));
+    await fireEvent.press(await screen.findByLabelText('Add item · ₹308'));
 
-    await fireEvent.press(await screen.findByLabelText('View cart · 1 item from Pizza Point'));
+    await fireEvent.press(await screen.findByLabelText('View cart · 1 item added from Pizza Point'));
     expect(await screen.findByText('Bill details')).toBeTruthy();
     expect(await screen.findByText('To pay')).toBeTruthy();
-    expect(screen.getByText('₹321.00')).toBeTruthy(); // total from the captured server quote
+    // Total from the captured server quote, in the bill and in the bar at the bottom.
+    expect(screen.getAllByText('₹321')).toHaveLength(2);
     expect(screen.getByText('Offer: Pizza Point: 10% off')).toBeTruthy();
     expect(
       screen.getByText('Tax amounts are provisional pending confirmation of GST treatment.'),
@@ -121,7 +123,7 @@ describe('customer app', () => {
     await fireEvent.changeText(screen.getByLabelText('Coupon code'), 'welcome50');
     await fireEvent.press(screen.getByLabelText('Apply coupon'));
     expect(await screen.findByText('WELCOME50: Coupon applied.')).toBeTruthy();
-    expect(await screen.findByText('₹216.00')).toBeTruthy();
+    expect(await screen.findAllByText('₹216')).toHaveLength(2);
 
     // Nothing blocks this cart, so checkout is open (sign-in is asked for there).
     expect(screen.getByLabelText('Proceed to checkout').props.accessibilityState.disabled).toBe(false);
@@ -315,7 +317,7 @@ describe('customer app', () => {
         screen.getByLabelText('Note for the restaurant (optional)'),
         'Less spicy please',
       );
-      await fireEvent.press(await screen.findByLabelText('Place order · ₹321.00'));
+      await fireEvent.press(await screen.findByLabelText('Place order · ₹321'));
 
       await waitFor(() => expect(calls.orders.checkouts).toHaveLength(1));
       expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();
@@ -353,7 +355,7 @@ describe('customer app', () => {
       installFakeApi({ withAddress: true });
       await renderRouter(routes, { initialUrl: '/checkout' });
       await signInFromCheckout();
-      await fireEvent.press(await screen.findByLabelText('Place order · ₹321.00'));
+      await fireEvent.press(await screen.findByLabelText('Place order · ₹321'));
       await fireEvent.press(await screen.findByLabelText('Cancel order'));
       await fireEvent.press(screen.getByLabelText('I changed my mind'));
       expect(await screen.findByText('You cancelled this order.')).toBeTruthy();
@@ -381,7 +383,7 @@ describe('customer app', () => {
           'A secure payment page opens after you place the order. The restaurant gets your order once the payment is confirmed.',
         ),
       ).toBeTruthy();
-      await fireEvent.press(await screen.findByLabelText('Place order and pay · ₹321.00'));
+      await fireEvent.press(await screen.findByLabelText('Place order and pay · ₹321'));
       expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();
       expect(sent).toMatchObject({ paymentMethod: 'UPI', expectedTotalPaise: 32_100 });
       const { openAuthSessionAsync } = require('expo-web-browser');
@@ -427,7 +429,7 @@ describe('customer app', () => {
           'Pizza Point could not take this order. Your payment is refunded in full automatically.',
         ),
       ).toBeTruthy();
-      expect(screen.getByText('₹321.00 — refunded (banks usually take 5–7 working days)')).toBeTruthy();
+      expect(screen.getByText('₹321 — refunded (banks usually take 5–7 working days)')).toBeTruthy();
     });
 
     it('prices changed: shows the new total and starts a new attempt; a network error retries with the same key', async () => {
@@ -472,12 +474,12 @@ describe('customer app', () => {
       });
       await renderRouter(routes, { initialUrl: '/checkout' });
       await signInFromCheckout();
-      await fireEvent.press(await screen.findByLabelText('Place order · ₹321.00'));
-      expect(await screen.findByText(/Prices changed\. The new total is ₹330\.00/)).toBeTruthy();
+      await fireEvent.press(await screen.findByLabelText('Place order · ₹321'));
+      expect(await screen.findByText(/Prices changed\. The new total is ₹330/)).toBeTruthy();
       // Second attempt: the network drops once; the client retries by itself with the same key.
       // The press waits for the request, and the client's retry back-off runs on (fake) timers: start the press,
       // advance time, then let it finish.
-      const pressing = fireEvent.press(screen.getByLabelText('Place order · ₹321.00'));
+      const pressing = fireEvent.press(screen.getByLabelText('Place order · ₹321'));
       await act(() => jest.advanceTimersByTimeAsync(10_000));
       await pressing;
       expect(await screen.findByRole('header', { name: 'Order placed' })).toBeTruthy();

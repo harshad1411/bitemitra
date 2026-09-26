@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { formatPaise } from '@jamzo/ui';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Button, Card, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import { Button, Card, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { useResource } from '../lib/use-resource';
 
 const RANGES = [
@@ -34,10 +34,7 @@ export default function Sales() {
   );
   const a = q.data;
   return (
-    <Screen>
-      <Text variant="title" accessibilityRole="header">
-        Sales
-      </Text>
+    <Screen header={<Header title="Sales" />}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {RANGES.map(([v, l]) => (
           <Button

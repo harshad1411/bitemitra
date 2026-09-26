@@ -4,7 +4,17 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Badge, Banner, Button, Card, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import {
+  Badge,
+  Banner,
+  Button,
+  Card,
+  ErrorState,
+  Header,
+  LoadingState,
+  Screen,
+  Text,
+} from '@jamzo/mobile-ui';
 import { formatPaise } from '@jamzo/ui';
 import { CANCEL_REASONS, KITCHEN_LABEL, itemLine, riderLine, timeText } from '../../lib/orders';
 import { useResource } from '../../lib/use-resource';
@@ -26,7 +36,7 @@ export default function OrderDetail() {
   if (o.status === 'loading') return <LoadingState label="Loading the order" />;
   if (o.status === 'error' && !o.data)
     return (
-      <Screen>
+      <Screen header={<Header title="Order" />}>
         <ErrorState message={userMessage(o.error)} onRetry={o.reload} />
       </Screen>
     );
@@ -53,8 +63,7 @@ export default function OrderDetail() {
   };
   const canCancel = ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(d.restaurantStatus);
   return (
-    <Screen>
-      <Text variant="title">{`Order #${d.shortNumber}`}</Text>
+    <Screen header={<Header title={`Order #${d.shortNumber}`} />}>
       <Text variant="small">{d.orderNumber}</Text>
       <Badge tone="info">{KITCHEN_LABEL[d.restaurantStatus]}</Badge>
       {d.rider ? <Banner tone={d.rider.atRestaurant ? 'success' : 'info'}>{riderLine(d)}</Banner> : null}

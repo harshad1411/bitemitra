@@ -16,7 +16,7 @@ export const BRAND = Object.freeze({
  * @property {string} displayName store/home-screen name (proposal A-20)
  * @property {string} bundleId    Android applicationId and iOS bundle identifier (production)
  * @property {string} scheme      deep-link URL scheme
- * @property {string} color       placeholder brand colour for icon/splash (D-16/D-17)
+ * @property {string} color       brand colour for icon background, splash and notifications (D-107)
  * @property {boolean} universalLinks whether https://<domain> links should open this app
  */
 
@@ -28,7 +28,7 @@ export const MOBILE_APPS = Object.freeze({
     displayName: 'Jamzo',
     bundleId: 'in.jamzo.customer',
     scheme: 'jamzo',
-    color: '#5B2A86',
+    color: '#1B2250',
     universalLinks: true,
   }),
   RESTAURANT: Object.freeze({
@@ -37,7 +37,7 @@ export const MOBILE_APPS = Object.freeze({
     displayName: 'Jamzo Restaurant Partner',
     bundleId: 'in.jamzo.restaurant',
     scheme: 'jamzo-restaurant',
-    color: '#0F766E',
+    color: '#1B2250',
     universalLinks: false,
   }),
   RIDER: Object.freeze({
@@ -46,7 +46,7 @@ export const MOBILE_APPS = Object.freeze({
     displayName: 'Jamzo Delivery Partner',
     bundleId: 'in.jamzo.rider',
     scheme: 'jamzo-rider',
-    color: '#F2A516',
+    color: '#1B2250',
     universalLinks: false,
   }),
 });

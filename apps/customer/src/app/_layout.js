@@ -3,8 +3,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { AppGate, JamzoProvider, OfflineBanner, useJamzo } from '@jamzo/mobile-foundation';
-import { LoadingState, Screen } from '@jamzo/mobile-ui';
+import { AppGate, JamzoProvider, Navigation, OfflineBanner, useJamzo } from '@jamzo/mobile-foundation';
+import { LoadingState, Screen, useJamzoFonts } from '@jamzo/mobile-ui';
 import { CartProvider } from '../lib/cart';
 import { LocationProvider } from '../lib/location';
 
@@ -20,13 +20,29 @@ function Root() {
     );
   }
   // Guests can browse (setting customer.guestBrowsing, A-11); sign-in is asked for when it is needed.
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      {/* Dish options slide up over the menu (D-108). */}
+      <Stack.Screen
+        name="customize"
+        options={{
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.75, 1],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 20,
+        }}
+      />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } }),
   );
+  const fontsReady = useJamzoFonts();
+  if (!fontsReady) return null; // the splash screen stays up for the moment the fonts take
   return (
     <JamzoProvider appId="CUSTOMER" accent={APP.color}>
       <QueryClientProvider client={queryClient}>
@@ -35,7 +51,9 @@ export default function RootLayout() {
             <StatusBar style="dark" />
             <OfflineBanner />
             <AppGate>
-              <Root />
+              <Navigation>
+                <Root />
+              </Navigation>
             </AppGate>
           </CartProvider>
         </LocationProvider>

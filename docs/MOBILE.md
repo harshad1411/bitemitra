@@ -17,7 +17,7 @@ All identifiers come from **`packages/config/src/apps.js`** (D-15) — never typ
 | Variant suffixes | `.dev`, `.preview`, none for production | same | same |
 | URL scheme | `jamzo` | `jamzo-restaurant` | `jamzo-rider` |
 | Universal / App Links | `https://jamzo.in/...` (config ready; needs the `apple-app-site-association` / `assetlinks.json` files on jamzo.in before it works) | — | — |
-| Icon / splash | **placeholder** "J" monogram, plum `#5B2A86` (D-16) | **placeholder**, teal `#0F766E` | **placeholder**, saffron `#F2A516` |
+| Icon / splash | Jamzo logo kit icon; navy splash with the white logo (D-107) | same | same |
 | Push | own Expo project → own FCM/APNs credentials | own; high-priority order channel (Phase 5) | own; offer channel (Phase 6) |
 | Permissions declared now | notifications | notifications | notifications, **foreground + background location** (requested after an in-app disclosure when going online, Phase 6), camera/photos (documents, proof) |
 | Version | own `package.json` `version` (1.0.0 dev) | own | own |

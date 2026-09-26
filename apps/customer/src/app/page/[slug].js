@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { EmptyState, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import { EmptyState, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 
 export default function CmsPage() {
   const { slug } = useLocalSearchParams();
@@ -15,7 +15,7 @@ export default function CmsPage() {
   if (q.isPending) return <LoadingState label="Loading" />;
   if (q.isError)
     return (
-      <Screen>
+      <Screen header={<Header />}>
         {q.error?.code === 'NOT_FOUND' ? (
           <EmptyState title="Not published yet" message="This page will be available soon." />
         ) : (
@@ -25,7 +25,7 @@ export default function CmsPage() {
     );
   // Plain text rendering of the Markdown body; a Markdown renderer is a later polish item.
   return (
-    <Screen>
+    <Screen header={<Header />}>
       <Text variant="title">{q.data.title}</Text>
       {q.data.body.split(/\n{2,}/).map((para, i) => (
         <Text key={i}>{para.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</Text>

@@ -1,9 +1,11 @@
-// A single or multiple choice row (radio / checkbox) with a large touch target.
+// A single or multiple choice row (radio / checkbox) with a large touch target; label left, price and the
+// control on the right, as in food apps (D-109).
 import { Pressable, View } from 'react-native';
-import { Text, useTheme } from '@jamzo/mobile-ui';
+import { Icon, Text, useTheme } from '@jamzo/mobile-ui';
 
-export function Option({ label, detail, selected, onPress, disabled, multi }) {
+export function Option({ label, detail, selected, onPress, disabled, multi, leading }) {
   const t = useTheme();
+  const color = selected ? t.colors.action : t.colors.borderStrong;
   return (
     <Pressable
       accessibilityRole={multi ? 'checkbox' : 'radio'}
@@ -15,22 +17,45 @@ export function Option({ label, detail, selected, onPress, disabled, multi }) {
         flexDirection: 'row',
         alignItems: 'center',
         gap: t.spacing[2],
-        minHeight: t.minTouchTarget,
+        minHeight: 48,
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <View
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: multi ? 4 : 10,
-          borderWidth: 2,
-          borderColor: t.colors.primary,
-          backgroundColor: selected ? t.colors.primary : 'transparent',
-        }}
-      />
+      {leading}
       <Text style={{ flex: 1 }}>{label}</Text>
-      {detail ? <Text variant="small">{detail}</Text> : null}
+      {detail ? <Text variant="muted">{detail}</Text> : null}
+      {multi ? (
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: color,
+            backgroundColor: selected ? t.colors.action : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {selected ? <Icon name="checkmark" size={15} color={t.colors.onAction} /> : null}
+        </View>
+      ) : (
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            borderWidth: 2,
+            borderColor: color,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {selected ? (
+            <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: t.colors.action }} />
+          ) : null}
+        </View>
+      )}
     </Pressable>
   );
 }

@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { formatPaise } from '@jamzo/ui';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Badge, Card, EmptyState, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import { Badge, Card, EmptyState, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { useResource } from '../lib/use-resource';
 
 const SCHEDULE = {
@@ -41,16 +41,13 @@ export default function Payouts() {
   if (q.status === 'loading') return <LoadingState label="Loading payouts" />;
   if (q.status === 'error' && !q.data)
     return (
-      <Screen>
+      <Screen header={<Header title="Payouts" />}>
         <ErrorState message={userMessage(q.error)} onRetry={q.reload} />
       </Screen>
     );
   const p = q.data;
   return (
-    <Screen>
-      <Text variant="title" accessibilityRole="header">
-        Payouts
-      </Text>
+    <Screen header={<Header title="Payouts" />}>
       <Card>
         <Text variant="heading">{`Jamzo owes you ${formatPaise(p.balancePaise)}`}</Text>
         <Text variant="small">

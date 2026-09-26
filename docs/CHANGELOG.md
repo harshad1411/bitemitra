@@ -3,6 +3,20 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Jamzo brand and food-app look (2026-09-26) — OD-44
+
+### Added
+- The owner's Jamzo logo kit (`assets/brand/`): app icons, Android adaptive and themed icons, navy splash screen with the logo, notification icon, admin favicon and logos (`pnpm assets:generate`, D-107).
+- Brand colours (midnight navy, turmeric, leaf green, cool white) and fonts (Poppins for titles and prices, Inter for text) in all three apps and the admin.
+- Customer app: bottom tabs (Home, Search, Orders, Account); a back arrow on every other screen in all three apps (D-108).
+- Customer app, in the style of the owner's reference screenshots (D-109): navy home header with the logo, address and search; round food categories; large restaurant cards with offer tags; menu with dish photos on the right, ADD buttons that turn into − 1 + steppers, Veg and Bestseller filters and search inside the menu; dish options as a bottom sheet; a green "items added · View cart" bar; cart with steppers and the total pinned at the bottom; account as a profile card and grouped rows.
+
+### Changed
+- Customer prices show whole rupees without ".00" (`₹180`, `₹180.50`).
+
+### Fixed
+- The dish options screen was wider than the phone, cutting off its right side.
+
 ## Sign-in codes (2026-09-26) — OD-43
 
 ### Added

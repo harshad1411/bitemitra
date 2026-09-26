@@ -15,6 +15,9 @@
     "prebuild:check": "expo prebuild --no-install --clean"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "catalog:",
+    "@expo-google-fonts/poppins": "catalog:",
+    "@expo/vector-icons": "catalog:",
     "@jamzo/config": "workspace:*",
     "@jamzo/mobile-foundation": "workspace:*",
     "@jamzo/mobile-ui": "workspace:*",
@@ -24,6 +27,7 @@
     "expo-audio": "catalog:",
     "expo-constants": "catalog:",
     "expo-device": "catalog:",
+    "expo-font": "catalog:",
     "expo-linking": "catalog:",
     "expo-notifications": "catalog:",
     "expo-router": "catalog:",

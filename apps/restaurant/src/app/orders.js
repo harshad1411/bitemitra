@@ -12,6 +12,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  Header,
   LoadingState,
   Screen,
   Text,
@@ -190,8 +191,7 @@ export default function Orders() {
 
   const items = list.data?.items ?? [];
   return (
-    <Screen>
-      <Text variant="title">Orders</Text>
+    <Screen header={<Header title="Orders" />}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {VIEWS.map(([v, label]) => (
           <Button

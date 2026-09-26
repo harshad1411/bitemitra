@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { PhoneSignIn, useJamzo } from '@jamzo/mobile-foundation';
+import { Header } from '@jamzo/mobile-ui';
 
 export default function SignIn() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function SignIn() {
   }, [session.status, router]);
   return (
     <PhoneSignIn
+      header={<Header />}
       title="Sign in to Jamzo"
       subtitle="Use your mobile number. We’ll send you a one-time code."
     />

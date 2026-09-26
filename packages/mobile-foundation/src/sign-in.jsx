@@ -6,7 +6,7 @@ import { Button, Screen, Text, TextField } from '@jamzo/mobile-ui';
 import { retryAfterSec, userMessage } from './core/index.js';
 import { useJamzo } from './provider.jsx';
 
-export function PhoneSignIn({ title, subtitle }) {
+export function PhoneSignIn({ title, subtitle, header, logo }) {
   const { session } = useJamzo();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -55,7 +55,8 @@ export function PhoneSignIn({ title, subtitle }) {
   }
 
   return (
-    <Screen>
+    <Screen header={header}>
+      {logo}
       <Text variant="title">{title}</Text>
       <Text variant="muted">{subtitle}</Text>
       {!challenge ? (

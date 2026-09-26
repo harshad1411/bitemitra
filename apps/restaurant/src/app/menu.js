@@ -2,7 +2,7 @@
 // in Phase 2 (DECISIONS D-39).
 import { useState } from 'react';
 import { View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { formatPaise } from '@jamzo/ui';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
 import {
@@ -12,6 +12,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  Header,
   LoadingState,
   Screen,
   Text,
@@ -84,7 +85,6 @@ function ProductItem({ product, timeZone, canToggle, onUpdated }) {
 
 export default function Menu() {
   const { api } = useJamzo();
-  const router = useRouter();
   const { restaurantId } = useLocalSearchParams();
   const menu = useResource(() => api.get(`/v1/restaurant/restaurants/${restaurantId}/menu`), [restaurantId]);
   const store = useResource(() => api.get(`/v1/restaurant/restaurants/${restaurantId}`), [restaurantId]);
@@ -92,13 +92,13 @@ export default function Menu() {
 
   if (menu.status === 'loading')
     return (
-      <Screen scroll={false}>
+      <Screen scroll={false} header={<Header title="Menu" />}>
         <LoadingState label="Loading the menu" />
       </Screen>
     );
   if (menu.status === 'error' && !menu.data)
     return (
-      <Screen>
+      <Screen header={<Header title="Menu" />}>
         <ErrorState message={userMessage(menu.error)} onRetry={menu.reload} />
       </Screen>
     );
@@ -120,9 +120,7 @@ export default function Menu() {
     .flatMap((g) => g.products)
     .filter((p) => !p.availability.available && p.status === 'ACTIVE').length;
   return (
-    <Screen>
-      <Button title="‹ Back" variant="secondary" onPress={() => router.back()} />
-      <Text variant="title">Menu</Text>
+    <Screen header={<Header title="Menu" />}>
       <Text variant="muted">
         {m.restaurant.name} · {m.productCount} items{soldOut ? ` · ${soldOut} unavailable now` : ''}
       </Text>

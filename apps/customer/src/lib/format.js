@@ -1,6 +1,7 @@
-import { formatPaise } from '@jamzo/ui';
+import { formatPrice } from '@jamzo/ui';
 
-export const money = (paise) => formatPaise(paise);
+/** Customer prices: "₹180", "₹180.50" (D-107). */
+export const money = (paise) => formatPrice(paise);
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const time12 = (hhmm) => {
   const [h, m] = hhmm.split(':').map(Number);

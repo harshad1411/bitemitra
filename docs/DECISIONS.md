@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-26 (all phases built; SMS, email and admin sign-in code added — OD-43).
+Last updated: 2026-09-26 (brand kit, fonts and the new app look — OD-44).
 
 ---
 
@@ -60,6 +60,7 @@ Last updated: 2026-09-26 (all phases built; SMS, email and admin sign-in code ad
 | OD-41 | **Start Phase 6 — Riders** (owner, 2026-09-25: "next phase start"). Taken as acceptance of Phase 5. Phase 6 = §78: rider app, location, assignment, pickup, delivery, COD; tested. Maps: Google Maps behind a provider switch in Jamzo Admin (owner's suggestion accepted in principle; key from the owner). Open for later phases: CH-8/Q-15 (admin login), CH-12 approval mode, Q-13 asset upload, Q-3/Q-4 tax and markup confirmations, commission GST payer, rider payout style. |
 | OD-42 | **Complete the remaining phases** (owner, 2026-09-25: "Complete remaininng phase"). Taken as acceptance of Phase 6 and as permission to build Phases 7–10 one after another **without stopping for review between them**. Each phase is still documented first, fully tested, committed and pushed separately, with its report. Payment gateway: **Razorpay** (already OD-11), built and tested in test mode and against a fake gateway only. No real money moves, and nothing is published to the stores. Things only the owner can do (keys, accounts, CA/legal answers, Xcode update) stay listed as open. |
 | OD-43 | **Admin sign-in code by email or SMS** (owner, 2026-09-26: "Code by email or sms"). Answers Q-15 / CH-8. After the password, the admin types a one-time code sent to their email — or by SMS when their admin account has a phone number. Required on staging and production (D-106). The owner also asked whether the coding is done: the real SMS (MSG91) and email senders were still missing, so they are built now (D-104, D-105). |
+| OD-44 | **Jamzo logo kit and a food-app look** (owner, 2026-09-26). The owner sent the Jamzo logo kit (v7: logos, J mark, app icons; colours midnight navy `#1B2250`, turmeric `#F2B21B`, leaf green `#2F8F6B`, cool white `#F4F5FB`; font Poppins) and asked for a very user-friendly look like Zomato or Swiggy, with back buttons, using Zomato screenshots as the reference ("looks very good but not ours"). Fonts: Poppins for titles and prices, Inter for text ("update fonts"). Answers Q-13. Implemented as D-107 … D-109, in steps with screenshots. |
 
 
 ## 2. Engineering decisions
@@ -146,14 +147,14 @@ literal appears anywhere else in source.
 ### D-16. Placeholder Jamzo icons and splash screens
 No Jamzo logo exists yet. Each app gets a **generated, clearly-labelled placeholder** icon/splash
 (wordmark-free "J" monogram on per-app colour) produced by `scripts/generate-app-assets.mjs`. The previous
-BiteMitra logo kit is kept in `assets/legacy/bitemitra-logo-kit/` and is **not used**. Final assets: Q-13.
+BiteMitra logo kit is kept in `assets/legacy/bitemitra-logo-kit/` and is **not used**. Final assets: Q-13. **Superseded by D-107** (real logo kit, OD-44).
 
 ### D-17. Provisional Jamzo colour palette
 Until brand guidelines exist, tokens in `@jamzo/ui` use a provisional palette (deep plum primary
 `#5B2A86`, saffron accent `#F2A516`, neutral greys, semantic success/warning/critical/info) chosen to be
 distinct from Shopify's green and from competitors' reds/oranges. All colour lives in tokens, so the final
 palette is a one-file change. Per-app accents: customer plum, restaurant partner teal `#0F766E`,
-delivery partner saffron. (Q-13)
+delivery partner saffron. (Q-13) **Superseded by D-107.**
 
 ### D-18. Schema split: active vs design (OD-20)
 `packages/database/prisma/schema.prisma` contains **only migrated (active) tables**.
@@ -878,6 +879,41 @@ without them. Tested against a local SMTP server in the test suite; the real ser
 
 TOTP apps (Google Authenticator) are not built; the owner chose email/SMS.
 
+### D-107. Brand: logo kit, colours and fonts (OD-44, replaces D-16 and D-17)
+- **Logo files** live in `assets/brand/jamzo-logo-kit/` (the owner's kit, unchanged). App icons, Android
+  adaptive icons, splash screens and the admin favicon are copied from it by `scripts/brand-assets.mjs`.
+- **Colours** (`@jamzo/ui` tokens): primary = midnight navy `#1B2250` (headers, titles), accent = turmeric
+  `#F2B21B` (offers, highlights, the logo smile), action = leaf green. White text on the kit's leaf green
+  `#2F8F6B` is only 3.99:1, below WCAG AA (4.5:1), so buttons and green text use a darker leaf `#267A5B`
+  (5.23:1); `#2F8F6B` stays for icons and veg marks. Background = cool white `#F4F5FB`.
+- **All three apps use the same Jamzo icon** (the kit has one). The partner apps are told apart by their
+  names on the phone ("Jamzo Restaurant Partner", "Jamzo Delivery Partner") and a label on their sign-in screens.
+- **Fonts:** Poppins (titles, prices, buttons) and Inter (reading text), both SIL Open Font License, bundled in
+  the apps (`@expo-google-fonts/*`) and served by `next/font` in the admin. Hind Vadodara is the planned
+  Gujarati font if the apps are translated.
+- **Prices in the apps** show whole rupees without ".00" (`₹180`, `₹180.50`) through `formatPrice`. The admin
+  and the partner apps' money screens (payouts, settlements, order money) keep `formatPaise` (always two decimals). Display only: money stays integer paise.
+
+### D-108. Navigation: bottom tabs and back buttons (OD-44)
+- Customer app: bottom tabs **Home, Search, Orders, Account**. Every other screen opens on top of them.
+- **Every screen that is not a tab has a back arrow** at the top left (shared `Header` in `@jamzo/mobile-ui`).
+  If there is nothing to go back to (the screen was opened from a notification link), it goes to Home.
+  iPhone swipe-back and the Android back button keep working.
+- Dish options open as a **bottom sheet** over the menu (iOS form sheet), closed by swiping down or ✕.
+
+### D-109. Customer screens in the food-app style (OD-44)
+Patterns taken from the owner's Zomato screenshots, in Jamzo's colours and words (no copied images, names or
+text):
+- **Menu rows:** veg mark, bestseller tag, name, price, two-line description with "more"; the dish photo on
+  the right with an **ADD** button overlapping its bottom edge; after adding, the button becomes a − 1 +
+  stepper. Dishes without a photo show the button without a photo box.
+- **Cart bar:** a green bar pinned to the bottom, "2 items added · ₹360 · View cart".
+- **Cart:** header with the restaurant, delivery time and address; item steppers; "Add more items"; coupon,
+  tip and bill in cards; a pinned bottom bar with the total and the next step.
+- **Account:** a profile card and grouped rows with icons and chevrons.
+- **Ratings stay hidden** until a restaurant has ratings (customers cannot rate orders yet).
+- Photos are optional: without them, cards fall back to a neat tinted box with the restaurant's initial.
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 
@@ -951,6 +987,7 @@ TOTP apps (Google Authenticator) are not built; the owner chose email/SMS.
 | Q-19 | Add-on markup rounding | Round add-ons too (OD-39, D-59) |
 | Q-7 | Commission basis | After restaurant-funded discounts (OD-39) |
 | Q-6 | SMS/OTP provider | MSG91; Google/Apple sign-in later (OD-39) |
+| Q-13 | Brand assets | Jamzo logo kit v7, Poppins + Inter (OD-44, D-107). The legacy BiteMitra kit stays unused |
 | Q-15 | Admin 2FA method | Code by email, or SMS if the admin has a phone (OD-43, D-106) |
 | Q-20 | Cancellation money | OD-38 / D-70 (rider compensation with Phase 6) |
 | Q-16 | GitHub push | Pushed 2026-09-24 using `https://harshad1411@github.com/harshad1411/bitemitra.git` (the username in the URL selects the right saved credential) |
@@ -964,7 +1001,6 @@ TOTP apps (Google Authenticator) are not built; the owner chose email/SMS.
 ### Open — needed for later phases or real-device testing
 - **Q-6b** MSG91 account, DLT sender id and the OTP template (owner) — the code is built (D-104). Email: which SMTP service, and SPF/DKIM at GoDaddy (D-105). Google/Apple sign-in later.
 - **Q-11** Hosting decided: DigitalOcean Bangalore, Option 2 (OD-40, D-72). Still open: SaaS processors such as Sentry for error reports.
-- **Q-13** Jamzo brand assets: logo, colours, typography (placeholders in use — D-16, D-17). Should the legacy BiteMitra kit be deleted?
 - **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
 - **Q-17 (toolchains)** — install **approved** (OD-39). Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
 - **Q-21** Masked calling provider for customer ↔ rider calls (Exotel, Knowlarity, …) — until then calls go to Jamzo support (D-80).

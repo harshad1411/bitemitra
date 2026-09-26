@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { colors, formatPaise, paiseToRupeeInput, parseRupeesToPaise, statusTones } from './index.js';
+import {
+  colors,
+  formatPaise,
+  formatPrice,
+  paiseToRupeeInput,
+  parseRupeesToPaise,
+  statusTones,
+} from './index.js';
 
 /** WCAG relative luminance contrast. */
 function contrast(a, b) {
@@ -27,6 +34,21 @@ describe('tokens', () => {
     expect(formatPaise(47_900)).toBe('₹479.00');
     expect(formatPaise(12_345_678)).toBe('₹1,23,456.78');
     expect(() => formatPaise(1.5)).toThrow();
+  });
+
+  it('customer prices drop ".00" but keep real paise (D-107)', () => {
+    expect(formatPrice(18_000)).toBe('₹180');
+    expect(formatPrice(18_050)).toBe('₹180.50');
+    expect(formatPrice(18_005)).toBe('₹180.05');
+    expect(formatPrice(12_345_600)).toBe('₹1,23,456');
+    expect(formatPrice(0)).toBe('₹0');
+    expect(() => formatPrice(1.5)).toThrow();
+  });
+
+  it('brand action colours meet WCAG AA with white text', () => {
+    expect(contrast(colors.onAction, colors.action)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.textMuted, colors.background)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.onAccent, colors.accent)).toBeGreaterThanOrEqual(4.5);
   });
 });
 

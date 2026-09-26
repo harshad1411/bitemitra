@@ -2,7 +2,7 @@
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import { Button, EmptyState, ErrorState, Header, LoadingState, Screen } from '@jamzo/mobile-ui';
 
 export default function Tickets() {
   const router = useRouter();
@@ -11,15 +11,12 @@ export default function Tickets() {
   if (q.isPending) return <LoadingState label="Loading" />;
   if (q.isError)
     return (
-      <Screen>
+      <Screen header={<Header title="Help" />}>
         <ErrorState message={userMessage(q.error)} onRetry={() => q.refetch()} />
       </Screen>
     );
   return (
-    <Screen>
-      <Text variant="title" accessibilityRole="header">
-        Help
-      </Text>
+    <Screen header={<Header title="Help" />}>
       {q.data.items.length ? (
         q.data.items.map((t) => (
           <Button

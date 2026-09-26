@@ -1,13 +1,33 @@
 import { useEffect, useState } from 'react';
+import { Image } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { AppGate, JamzoProvider, OfflineBanner, PhoneSignIn, useJamzo } from '@jamzo/mobile-foundation';
-import { LoadingState, Screen } from '@jamzo/mobile-ui';
+import {
+  AppGate,
+  JamzoProvider,
+  Navigation,
+  OfflineBanner,
+  PhoneSignIn,
+  useJamzo,
+} from '@jamzo/mobile-foundation';
+import { LoadingState, Screen, useJamzoFonts } from '@jamzo/mobile-ui';
 import { enqueueAndFlush, setLocationSender } from '../lib/location';
 
 const APP = MOBILE_APPS.RIDER;
+
+/** The Jamzo logo above the sign-in form, with the partner app's name under it (D-107). */
+function SignInLogo() {
+  return (
+    <Image
+      source={require('../../assets/logo-on-light.png')}
+      accessibilityLabel="Jamzo"
+      resizeMode="contain"
+      style={{ width: 150, height: 46, marginBottom: 8 }}
+    />
+  );
+}
 
 function Root() {
   const { session, api } = useJamzo();
@@ -30,6 +50,7 @@ function Root() {
   if (session.status === 'signedOut') {
     return (
       <PhoneSignIn
+        logo={<SignInLogo />}
         title={APP.displayName}
         subtitle="Sign in or sign up with your mobile number to deliver with Jamzo."
       />
@@ -42,13 +63,17 @@ export default function RootLayout() {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { staleTime: 5_000, retry: 1 } } }),
   );
+  const fontsReady = useJamzoFonts();
+  if (!fontsReady) return null; // the splash screen stays up for the moment the fonts take
   return (
     <JamzoProvider appId="RIDER" accent={APP.color}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="dark" />
         <OfflineBanner />
         <AppGate>
-          <Root />
+          <Navigation>
+            <Root />
+          </Navigation>
         </AppGate>
       </QueryClientProvider>
     </JamzoProvider>

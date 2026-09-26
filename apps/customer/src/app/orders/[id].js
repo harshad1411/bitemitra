@@ -5,7 +5,7 @@ import { Linking, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useJamzo, useRealtime, userMessage } from '@jamzo/mobile-foundation';
-import { Banner, Button, Card, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import { Banner, Button, Card, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { VegMark } from '../../components/bits';
 import { arrivalLabel, mapPinUrl, money } from '../../lib/format';
 import { CANCEL_REASONS, REFUND_TEXT, TIMELINE_LABEL, statusText } from '../../lib/order-status';
@@ -40,7 +40,7 @@ export default function OrderScreen() {
   if (q.isPending) return <LoadingState label="Loading your order" />;
   if (q.isError)
     return (
-      <Screen>
+      <Screen header={<Header title="Order" />}>
         <ErrorState message={userMessage(q.error)} onRetry={() => q.refetch()} />
       </Screen>
     );
@@ -76,8 +76,7 @@ export default function OrderScreen() {
     }
   };
   return (
-    <Screen>
-      <Text variant="small">{o.orderNumber}</Text>
+    <Screen header={<Header title="Order" subtitle={o.orderNumber} />}>
       <Text variant="title" accessibilityRole="header">
         {s.title}
       </Text>

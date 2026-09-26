@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Button, Card, EmptyState, ErrorState, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
+import { Button, Card, EmptyState, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { money, time } from '../lib/format';
 import { Wallet } from '../components/wallet';
 import { Stats } from '../components/stats';
@@ -17,8 +17,7 @@ export default function Earnings() {
     queryFn: () => api.get('/v1/rider/earnings', { range }),
   });
   return (
-    <Screen>
-      <Text variant="title">Earnings</Text>
+    <Screen header={<Header title="Earnings" />}>
       <Wallet />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button

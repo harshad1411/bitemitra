@@ -50,12 +50,7 @@ function LoginForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <div
-          className="mb-2 grid size-10 place-items-center rounded-lg bg-primary text-lg font-bold text-primary-foreground"
-          aria-hidden
-        >
-          J
-        </div>
+        <img src="/jamzo-logo.svg" alt="Jamzo" className="mb-3 h-10 w-auto self-start" />
         <CardTitle className="text-xl">Sign in to {ADMIN_APP.displayName}</CardTitle>
         <CardDescription>
           {twoFactor

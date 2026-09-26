@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Header,
   LoadingState,
   Screen,
   Text,
@@ -46,7 +47,7 @@ export default function Checkout() {
 
   if (!signedIn)
     return (
-      <Screen>
+      <Screen header={<Header title="Checkout" />}>
         <EmptyState
           title="Sign in to place your order"
           message="Your cart is saved. Sign in with your mobile number to continue."
@@ -56,7 +57,7 @@ export default function Checkout() {
     );
   if (!cart.count)
     return (
-      <Screen>
+      <Screen header={<Header title="Checkout" />}>
         <EmptyState title="Your cart is empty" message="Add dishes first." />
       </Screen>
     );
@@ -130,8 +131,7 @@ export default function Checkout() {
   };
 
   return (
-    <Screen>
-      <Text variant="title">Checkout</Text>
+    <Screen header={<Header title="Checkout" />}>
       <Text variant="muted">{cart.restaurant.name}</Text>
 
       <Card>

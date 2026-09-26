@@ -87,14 +87,9 @@ function NavList({ onNavigate }) {
 
 function Brand() {
   return (
-    <Link href="/" className="flex items-center gap-2 px-4 py-3 font-semibold">
-      <span
-        className="grid size-7 place-items-center rounded-md bg-primary text-sm text-primary-foreground"
-        aria-hidden
-      >
-        J
-      </span>
-      {ADMIN_APP.displayName}
+    <Link href="/" className="flex items-center gap-2 px-4 py-3" aria-label={ADMIN_APP.displayName}>
+      <img src="/jamzo-logo.svg" alt="" className="h-7 w-auto" />
+      <span className="font-heading text-sm font-medium text-muted-foreground">Admin</span>
     </Link>
   );
 }

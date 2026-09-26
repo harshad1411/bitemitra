@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useJamzo, userMessage } from '@jamzo/mobile-foundation';
-import { Banner, Button, Card, Screen, Text, TextField } from '@jamzo/mobile-ui';
+import { Banner, Button, Card, Header, Screen, Text, TextField } from '@jamzo/mobile-ui';
 import { Option } from '../../components/option';
 
 export const ISSUES = [
@@ -43,10 +43,7 @@ export default function NewTicket() {
     }
   };
   return (
-    <Screen>
-      <Text variant="title" accessibilityRole="header">
-        Get help
-      </Text>
+    <Screen header={<Header title="Get help" />}>
       {orderNumber ? <Text variant="muted">{`Order ${orderNumber}`}</Text> : null}
       <Card>
         <Text variant="heading">What went wrong?</Text>

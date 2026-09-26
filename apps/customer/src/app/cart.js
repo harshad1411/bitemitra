@@ -1,4 +1,5 @@
-// Cart: the bill is always the server's quote (D-46) — the app shows it, never computes it.
+// Cart: the bill is always the server's quote (D-46) — the app shows it, never computes it. Food-app
+// layout (D-109): items with steppers, coupon, tip and bill in cards, and the total pinned at the bottom.
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -8,10 +9,14 @@ import {
   Banner,
   Button,
   Card,
+  Chip,
   EmptyState,
   ErrorState,
+  Header,
+  Icon,
   LoadingState,
   Screen,
+  Stepper,
   Text,
   TextField,
   useTheme,
@@ -24,9 +29,21 @@ import { useQuote } from '../lib/queries';
 
 function Row({ label, value, strong }) {
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
-      <Text style={strong ? { fontWeight: '700' } : undefined}>{label}</Text>
-      <Text style={strong ? { fontWeight: '700' } : undefined}>{value}</Text>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, gap: 12 }}>
+      <Text variant={strong ? 'subheading' : 'muted'} style={{ flexShrink: 1 }}>
+        {label}
+      </Text>
+      <Text variant={strong ? 'subheading' : 'body'}>{value}</Text>
+    </View>
+  );
+}
+
+function CardTitle({ icon, children }) {
+  const t = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {icon ? <Icon name={icon} size={18} color={t.colors.textMuted} /> : null}
+      <Text variant="subheading">{children}</Text>
     </View>
   );
 }
@@ -42,7 +59,7 @@ export default function CartScreen() {
 
   if (!cart.count)
     return (
-      <Screen>
+      <Screen header={<Header title="Cart" />}>
         <EmptyState
           title="Your cart is empty"
           message="Add dishes from a restaurant to see your bill."
@@ -52,21 +69,60 @@ export default function CartScreen() {
     );
   if (!place)
     return (
-      <Screen>
+      <Screen header={<Header title={cart.restaurant.name} />}>
         <Banner tone="info">Choose your delivery location to see the bill.</Banner>
         <Button title="Choose location" onPress={() => router.push('/location')} />
       </Screen>
     );
   const data = q.data;
   const issueFor = (key) => data?.issues.find((i) => i.lineKey === key);
-  return (
-    <Screen>
-      <Text variant="title">{cart.restaurant.name}</Text>
-      <Text variant="small">
-        Delivering to {place.label}
-        {data?.delivery?.eta ? ` · ${etaLabel(data.delivery.eta)}` : ''}
+  const eta = data?.delivery?.eta ? etaLabel(data.delivery.eta) : null;
+  const header = (
+    <Header>
+      <Text variant="subheading" numberOfLines={1}>
+        {cart.restaurant.name}
       </Text>
-
+      <Text variant="small" numberOfLines={1}>
+        {eta ? (
+          <Text variant="small" style={{ color: t.colors.action, fontFamily: t.fonts.semibold }}>
+            {`${eta} · `}
+          </Text>
+        ) : null}
+        {`Delivering to ${place.label}`}
+      </Text>
+    </Header>
+  );
+  const footer = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: t.spacing[3],
+        padding: t.spacing[4],
+        backgroundColor: t.colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: t.colors.border,
+      }}
+    >
+      <View>
+        <Text variant="title" style={{ fontSize: 20, lineHeight: 26 }}>
+          {data?.bill ? money(data.bill.totalPayablePaise) : '—'}
+        </Text>
+        <Text variant="label">Total</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Button
+          title="Proceed to checkout"
+          size="lg"
+          disabled={!data?.canCheckout}
+          accessibilityHint={data?.checkoutNote ?? undefined}
+          onPress={() => router.push('/checkout')}
+        />
+      </View>
+    </View>
+  );
+  return (
+    <Screen header={header} footer={footer}>
       <Card>
         {cart.lines.map((l) => {
           const priced = data?.lines?.find((x) => x.key === l.key);
@@ -76,53 +132,52 @@ export default function CartScreen() {
               key={l.key}
               style={{
                 gap: 4,
-                paddingVertical: t.spacing[2],
+                paddingVertical: t.spacing[3],
                 borderBottomWidth: 1,
                 borderBottomColor: t.colors.border,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <VegMark type={l.foodType} />
-                <Text style={{ flex: 1, fontWeight: '600' }}>{l.name}</Text>
-                <Text>{priced ? money(priced.lineTotalPaise) : '—'}</Text>
-              </View>
-              {l.variantName || l.addonNames?.length ? (
-                <Text variant="small">
-                  {[l.variantName, ...(l.addonNames ?? [])].filter(Boolean).join(', ')}
-                </Text>
-              ) : null}
-              {issue ? (
-                <Text variant="small" style={{ color: t.colors.critical }}>
-                  {issue.message}
-                </Text>
-              ) : null}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Button
-                  title="−"
-                  variant="secondary"
-                  accessibilityHint={`One less ${l.name}`}
-                  onPress={() => cart.setQuantity(l.key, l.quantity - 1)}
-                />
-                <Text accessibilityLabel={`${l.name} quantity ${l.quantity}`}>{l.quantity}</Text>
-                <Button
-                  title="+"
-                  variant="secondary"
-                  accessibilityHint={`One more ${l.name}`}
-                  onPress={() => cart.setQuantity(l.key, l.quantity + 1)}
-                />
+              <View style={{ flexDirection: 'row', gap: t.spacing[3] }}>
+                <View style={{ paddingTop: 4 }}>
+                  <VegMark type={l.foodType} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text variant="strong">{l.name}</Text>
+                  {l.variantName || l.addonNames?.length ? (
+                    <Text variant="small">
+                      {[l.variantName, ...(l.addonNames ?? [])].filter(Boolean).join(', ')}
+                    </Text>
+                  ) : null}
+                  {issue ? (
+                    <Text variant="small" style={{ color: t.colors.critical }}>
+                      {issue.message}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <Stepper value={l.quantity} label={l.name} onChange={(n) => cart.setQuantity(l.key, n)} />
+                  <Text variant="price">{priced ? money(priced.lineTotalPaise) : '—'}</Text>
+                </View>
               </View>
             </View>
           );
         })}
-        <Button
-          title="Add more items"
-          variant="secondary"
-          onPress={() => router.push(`/restaurant/${cart.restaurant.id}`)}
-        />
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+          <Chip
+            label="Add more items"
+            icon={<Icon name="add" size={16} color={t.colors.action} />}
+            onPress={() => router.push(`/restaurant/${cart.restaurant.id}`)}
+          />
+          <Chip
+            label="Clear cart"
+            icon={<Icon name="trash-outline" size={15} color={t.colors.textMuted} />}
+            onPress={cart.clear}
+          />
+        </View>
       </Card>
 
       <Card>
-        <Text variant="heading">Coupon</Text>
+        <CardTitle icon="pricetag-outline">Coupon</CardTitle>
         <TextField
           label="Coupon code"
           value={code}
@@ -158,14 +213,14 @@ export default function CartScreen() {
 
       {data?.tips?.enabled ? (
         <Card>
-          <Text variant="heading">Tip your delivery partner</Text>
+          <CardTitle icon="heart-outline">Tip your delivery partner</CardTitle>
           <Text variant="small">The full tip goes to your delivery partner.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {[0, ...data.tips.presetsPaise].map((p) => (
-              <Button
+              <Chip
                 key={p}
-                title={p === 0 ? 'No tip' : money(p)}
-                variant={cart.tipPaise === p ? 'primary' : 'secondary'}
+                label={p === 0 ? 'No tip' : money(p)}
+                selected={cart.tipPaise === p}
                 onPress={() => cart.setTip(p)}
               />
             ))}
@@ -174,7 +229,7 @@ export default function CartScreen() {
       ) : null}
 
       <Card>
-        <Text variant="heading">Bill details</Text>
+        <CardTitle icon="receipt-outline">Bill details</CardTitle>
         {q.isPending ? (
           <LoadingState label="Working out your bill" />
         ) : q.isError ? (
@@ -205,14 +260,7 @@ export default function CartScreen() {
           ))}
       </Card>
 
-      <Button
-        title="Proceed to checkout"
-        disabled={!data?.canCheckout}
-        accessibilityHint={data?.checkoutNote ?? undefined}
-        onPress={() => router.push('/checkout')}
-      />
-      {data?.checkoutNote ? <Text variant="small">{data.checkoutNote}</Text> : null}
-      <Button title="Clear cart" variant="secondary" onPress={cart.clear} />
+      {data?.checkoutNote ? <Banner tone="info">{data.checkoutNote}</Banner> : null}
     </Screen>
   );
 }

@@ -84,8 +84,8 @@ export function buildExpoConfig({
         'expo-splash-screen',
         {
           image: './assets/splash-icon.png',
-          imageWidth: 160,
-          backgroundColor: '#FFFFFF',
+          imageWidth: 220,
+          backgroundColor: id.color, // navy, with the white Jamzo logo (D-107)
           resizeMode: 'contain',
         },
       ],

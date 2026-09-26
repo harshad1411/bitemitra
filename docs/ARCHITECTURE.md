@@ -79,6 +79,7 @@ jamzo/  (repository: bitemitra)
 │   ├── mobile-foundation/ shared RN foundations: session, secure storage, API binding, version gate,
 │   │                      remote config, push registration, network state, errors, lifecycle, logging, analytics
 │   └── api-client/        fetch client: version headers, idempotency keys, retries, token refresh, errors
+├── assets/brand/          the owner's Jamzo logo kit (D-107); scripts/brand-assets.mjs copies app icons from it
 ├── assets/legacy/         previous BiteMitra logo kit — not used (D-16)
 ├── scripts/               repo tooling (schema verification, docs check, asset generation)
 └── docs/

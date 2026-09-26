@@ -12,10 +12,10 @@ import {
   Text,
   TextField,
 } from '@jamzo/mobile-ui';
-import { CartBar, DishRow, RestaurantCard } from '../components/bits';
-import { notServedLabel } from '../lib/format';
-import { useLocation } from '../lib/location';
-import { useSearch } from '../lib/queries';
+import { CartBar, DishRow, RestaurantCard } from '../../components/bits';
+import { notServedLabel } from '../../lib/format';
+import { useLocation } from '../../lib/location';
+import { useSearch } from '../../lib/queries';
 
 export default function Search() {
   const router = useRouter();

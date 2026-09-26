@@ -9,11 +9,12 @@ describe('product registry', () => {
     expect(MOBILE_APPS.RIDER.bundleId).toBe('in.jamzo.rider');
   });
 
-  it('gives every app a unique id, scheme and colour', () => {
+  it('gives every app a unique id, scheme and name; all share the Jamzo navy (D-107)', () => {
     const apps = Object.values(MOBILE_APPS);
-    for (const field of ['bundleId', 'scheme', 'slug', 'displayName', 'color']) {
+    for (const field of ['bundleId', 'scheme', 'slug', 'displayName']) {
       expect(new Set(apps.map((a) => a[field])).size).toBe(apps.length);
     }
+    expect(new Set(apps.map((a) => a.color))).toEqual(new Set(['#1B2250']));
   });
 
   it('suffixes non-production variants so they can be installed side by side', () => {

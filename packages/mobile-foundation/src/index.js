@@ -2,6 +2,7 @@ export * from './core/index.js';
 export { JamzoProvider, useJamzo } from './provider.jsx';
 export { AppGate } from './gate.jsx';
 export { PhoneSignIn } from './sign-in.jsx';
+export { Navigation } from './navigation.jsx';
 export { registerForPush } from './push.js';
 export { useNetwork, OfflineBanner } from './network.jsx';
 export { useAppLifecycle } from './lifecycle.js';

@@ -26,7 +26,7 @@
     "verify:schema": "node scripts/verify-schema.mjs",
     "check:docs": "node scripts/check-docs.mjs && node scripts/generate-api-docs.mjs --check",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm check:secrets && pnpm test",
-    "assets:generate": "node scripts/generate-app-assets.mjs",
+    "assets:generate": "node scripts/brand-assets.mjs",
     "docs:api": "node scripts/generate-api-docs.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs",

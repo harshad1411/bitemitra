@@ -1,7 +1,24 @@
-// Jamzo design tokens (spec §61). PROVISIONAL palette until brand guidelines exist (DECISIONS D-17, Q-13).
+// Jamzo design tokens (spec §61). Brand colours and fonts from the Jamzo logo kit (DECISIONS D-107).
 // All colour/typography/spacing used by the admin and mobile apps must come from here.
 
 export const palette = Object.freeze({
+  // Jamzo logo kit v7: midnight navy #1B2250, turmeric #F2B21B, leaf green #2F8F6B, cool white #F4F5FB.
+  navy: {
+    50: '#EEF0F8',
+    100: '#DADEF0',
+    200: '#B3BADD',
+    300: '#8791C4',
+    400: '#5A64A0',
+    500: '#38417A',
+    600: '#1B2250',
+    700: '#151A40',
+    800: '#0F1330',
+    900: '#0A0D20',
+  },
+  turmeric: { 50: '#FEF6E1', 100: '#FDEAB8', 300: '#F7C94E', 500: '#F2B21B', 700: '#A87808', 800: '#7A5600' },
+  // Leaf 600 is the kit colour (icons, veg marks). White text needs leaf 700 for WCAG AA (D-107).
+  leaf: { 50: '#E8F5EF', 100: '#C9E8D9', 600: '#2F8F6B', 700: '#267A5B', 800: '#1D5E46' },
+  coolWhite: '#F4F5FB',
   plum: {
     50: '#F6F1FA',
     100: '#EADCF3',
@@ -59,23 +76,30 @@ export const palette = Object.freeze({
 
 /** Semantic colours (light theme). Pairs meet WCAG AA contrast for text on their background. */
 export const colors = Object.freeze({
-  primary: palette.plum[600],
-  primaryHover: palette.plum[700],
+  primary: palette.navy[600],
+  primaryHover: palette.navy[700],
   onPrimary: palette.neutral[0],
-  accent: palette.saffron[500],
-  background: palette.neutral[50],
+  accent: palette.turmeric[500],
+  onAccent: palette.navy[600],
+  /** Main actions (Add, View cart, Place order): leaf green, like the food apps customers know. */
+  action: palette.leaf[700],
+  actionSoft: palette.leaf[50],
+  onAction: palette.neutral[0],
+  background: palette.coolWhite,
   surface: palette.neutral[0],
-  surfaceMuted: palette.neutral[100],
-  border: palette.neutral[200],
-  borderStrong: palette.neutral[300],
-  text: palette.neutral[900],
-  textMuted: palette.neutral[600],
-  textSubtle: palette.neutral[500],
-  focus: palette.plum[500],
-  success: palette.green[600],
+  surfaceMuted: palette.navy[50],
+  border: '#E3E5EF',
+  borderStrong: '#C9CCDD',
+  text: palette.navy[600],
+  textMuted: '#5A6080',
+  textSubtle: '#7C8199',
+  focus: palette.navy[400],
+  success: palette.leaf[700],
+  veg: palette.leaf[600],
   warning: palette.amber[600],
   critical: palette.red[600],
   info: palette.blue[600],
+  offer: palette.blue[600],
 });
 
 /** Status badge tones: background + foreground. */
@@ -85,21 +109,32 @@ export const statusTones = Object.freeze({
   success: { bg: palette.green[50], fg: palette.green[700] },
   warning: { bg: palette.amber[50], fg: palette.amber[700] },
   critical: { bg: palette.red[50], fg: palette.red[700] },
-  accent: { bg: palette.plum[50], fg: palette.plum[700] },
+  accent: { bg: palette.turmeric[50], fg: palette.turmeric[800] },
 });
 
-/** Per-app accent (placeholder icon/splash colours come from @jamzo/config apps registry). */
+/** Per-app accent: all apps share the Jamzo navy (D-107). */
 export const appAccents = Object.freeze({
-  CUSTOMER: palette.plum[600],
-  RESTAURANT: palette.teal[600],
-  RIDER: palette.saffron[500],
-  ADMIN: palette.plum[600],
+  CUSTOMER: palette.navy[600],
+  RESTAURANT: palette.navy[600],
+  RIDER: palette.navy[600],
+  ADMIN: palette.navy[600],
 });
 
 export const typography = Object.freeze({
+  // Poppins for titles, prices and buttons; Inter for reading text (D-107). Both SIL Open Font License.
   fontFamily: {
+    display: 'Poppins, Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
     sans: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+  },
+  /** Font names as loaded in the mobile apps (@expo-google-fonts), one family per weight. */
+  native: {
+    display: 'Poppins_600SemiBold',
+    displayBold: 'Poppins_700Bold',
+    displayMedium: 'Poppins_500Medium',
+    regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
+    semibold: 'Inter_600SemiBold',
   },
   size: { xs: 12, sm: 13, md: 14, lg: 16, xl: 18, '2xl': 22, '3xl': 28 },
   weight: { regular: '400', medium: '500', semibold: '600', bold: '700' },
@@ -120,6 +155,22 @@ export const iconSize = Object.freeze({ sm: 16, md: 20, lg: 24 });
 export const minTouchTarget = 44;
 
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+
+const inrWhole = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+
+/**
+ * Customer-facing price, as food apps show it (D-107): whole rupees without ".00", paise only when there are
+ * some. 18000 → "₹180", 18050 → "₹180.50". Display only — never used to compute money.
+ * @param {number} paise integer
+ */
+export function formatPrice(paise) {
+  if (!Number.isSafeInteger(paise)) throw new TypeError('formatPrice expects integer paise');
+  return paise % 100 === 0 ? inrWhole.format(paise / 100) : inr.format(paise / 100);
+}
 
 /**
  * Display helper only — never used to compute money. 12345 → "₹123.45".
