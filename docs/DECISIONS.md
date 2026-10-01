@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-09-27 (ratings and reviews — OD-45).
+Last updated: 2026-10-01 (charge switches — OD-46).
 
 ---
 
@@ -62,6 +62,7 @@ Last updated: 2026-09-27 (ratings and reviews — OD-45).
 | OD-43 | **Admin sign-in code by email or SMS** (owner, 2026-09-26: "Code by email or sms"). Answers Q-15 / CH-8. After the password, the admin types a one-time code sent to their email — or by SMS when their admin account has a phone number. Required on staging and production (D-106). The owner also asked whether the coding is done: the real SMS (MSG91) and email senders were still missing, so they are built now (D-104, D-105). |
 | OD-44 | **Jamzo logo kit and a food-app look** (owner, 2026-09-26). The owner sent the Jamzo logo kit (v7: logos, J mark, app icons; colours midnight navy `#1B2250`, turmeric `#F2B21B`, leaf green `#2F8F6B`, cool white `#F4F5FB`; font Poppins) and asked for a very user-friendly look like Zomato or Swiggy, with back buttons, using Zomato screenshots as the reference ("looks very good but not ours"). Fonts: Poppins for titles and prices, Inter for text ("update fonts"). Answers Q-13. Implemented as D-107 … D-109, in steps with screenshots. |
 | OD-45 | **Ratings and reviews** (owner, 2026-09-27: "Customers can give review to delivery boy and items and customers can only see stars average"). The spec lists ratings/reviews for the customer app, but no phase had built them. Customers rate the **food items** and the **delivery partner** after delivery; **customers see only star averages**, never comments. Proposed defaults kept (not changed by the owner): restaurants cannot reply for now; a star average shows only after **5** ratings (a setting). Built as D-110. |
+| OD-46 | **The owner controls every customer charge from the admin** (owner, 2026-10-01: "I want do not take GST an all right now … you give me settings on backend of everything I will handle it"). The owner may stop charging GST and fees for now and will decide each one. Built as D-111: on/off switches per charge. **Advised in chat before building:** food-delivery apps generally must collect and pay 5% GST on restaurant food from the first order (Section 9(5)); switching taxes off may leave Jamzo owing it — the owner's decision with their CA (Q-3). Switches default to on; nothing was switched off by the developer. |
 
 
 ## 2. Engineering decisions
@@ -937,6 +938,20 @@ text):
   restaurant or a dish.
 - **Low ratings** (any 1–2★) are marked in the admin list, with a filter, for support to follow up.
 - Not built: restaurant replies (later), photos in reviews, public comments.
+
+### D-111. On/off switches for every customer charge (OD-46)
+Setting `pricing.charges` (Admin → Configuration → Pricing → "Charges to customers (on/off)"):
+`taxes`, `platformFee`, `deliveryFee`, `packaging`, `smallOrderFee`, `surge`. All **on** by default.
+- Scope: everywhere, or one country, state, city or zone (the most specific wins, like every setting).
+- Audited: a reason is required and kept in the configuration history.
+- **Off** means the customer pays nothing for that charge; the amounts themselves still come from the rules in
+  Admin → Pricing, so switching back on restores them unchanged.
+- **Delivery fee off:** restaurant cards say "Free delivery" and the bill line reads "Delivery fee (free)".
+  The delivery partner is **still paid** by Jamzo (rider earning rules are separate).
+- **Taxes off:** no GST on food or on any charge on the customer's bill. GST on Jamzo's commission to
+  restaurants (a business-to-business tax) is not affected and stays under the tax rules.
+- The pricing engine applies the switches in one place (`quote.js`), with tests per switch; everything else
+  (menu prices, markup, commission, promotions) is unchanged.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

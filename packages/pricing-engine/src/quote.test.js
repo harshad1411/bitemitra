@@ -854,3 +854,32 @@ describe('final rider pay (D-78)', () => {
     });
   });
 });
+
+describe("owner's charge switches (setting pricing.charges, D-111)", () => {
+  const off = (key) => run({ settings: { charges: { [key]: false } } });
+  const golden = run();
+
+  it('taxes off: no tax on food or on any charge, and the bill still adds up', () => {
+    const q = off('taxes');
+    expect(q.totals.taxExclusivePaise).toBe(0);
+    expect(q.lines[0].tax.amountPaise).toBe(0);
+    expect(q.issues.filter((i) => i.code === 'TAX_RULE_MISSING')).toEqual([]);
+    // Golden 47 940 before rounding, less its 2 840 of exclusive tax.
+    expect(q.totals.beforeRoundingPaise).toBe(47_940 - 2_840);
+  });
+
+  it('platform fee, packaging, delivery fee and surcharges switch off one by one', () => {
+    expect(off('platformFee').totals.platformFeePaise).toBe(0);
+    expect(off('packaging').totals.packagingPaise).toBe(0);
+    const noDelivery = off('deliveryFee');
+    expect(noDelivery.totals.deliveryFeePaise).toBe(0);
+    expect(noDelivery.delivery.freeReason).toBe('SWITCHED_OFF');
+    // The delivery partner is still paid by Jamzo when customers pay no delivery fee.
+    expect(noDelivery.rider.estimatedEarningPaise).toBe(golden.rider.estimatedEarningPaise);
+    expect(off('surge').totals.surchargePaise).toBe(0);
+  });
+
+  it('everything on is the default', () => {
+    expect(run({ settings: { charges: {} } }).totals).toEqual(golden.totals);
+  });
+});

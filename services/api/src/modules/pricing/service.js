@@ -68,13 +68,14 @@ export async function loadRuleSet(prisma, targets, now, types = QUOTE_RULE_TYPES
 
 /** Engine settings for a context: settings registry values + server-evaluated feature flags. */
 export async function engineSettings(config, ctx, who) {
-  const [rounding, surcharges, tips, disclosure, gateway, flags] = await Promise.all([
+  const [rounding, surcharges, tips, disclosure, gateway, flags, charges] = await Promise.all([
     config.resolve('pricing.finalRounding', ctx),
     config.resolve('pricing.surcharges', ctx),
     config.resolve('tips', ctx),
     config.resolve('pricing.markupDisclosure', ctx),
     config.resolve('payments.gatewayFees'),
     config.flagMap(who),
+    config.resolve('pricing.charges', ctx),
   ]);
   return {
     finalRounding: rounding.value,
@@ -85,6 +86,7 @@ export async function engineSettings(config, ctx, who) {
     flags,
     gatewayFees: gateway.value,
     markupDisclosure: disclosure.value,
+    charges: charges.value,
   };
 }
 

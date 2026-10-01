@@ -64,6 +64,8 @@ Every key below exists in `packages/config/src/settings-registry.js` with a zod 
 | Pricing | `pricing.finalRounding` | Final bill rounding | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required | `{"mode": "NEAREST_1", "direction": "HALF_UP", "absorbedBy": "PLATFORM"}` |
 | Pricing | `pricing.markupDisclosure` | Markup disclosure | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required, **legal review** | `"NONE"` |
 | Pricing | `pricing.surcharges` | Surcharge cap and promotion stacking | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | **placeholder** | `{"maxTotalPaise": 5000, "promotionStacking": "ONE_PROMO_ONE_COUPON"}` |
+| Customer | `reviews` | Ratings on/off, rating window, minimum ratings before averages show (D-110) | GLOBAL | 10 |  | `{"enabled": true, "windowDays": 7, "minCountToShow": 5}` |
+| Pricing | `pricing.charges` | Charges to customers on/off: taxes, platform fee, delivery fee, packaging, small-order fee, surge (D-111) | GLOBAL, COUNTRY, STATE, CITY, ZONE | 10 | critical | all `true` |
 | Pricing | `tips` | Tips | GLOBAL, COUNTRY, STATE, CITY, ZONE | 4 | reason required | `{"enabled": true, "riderShareBps": 10000, "presetsPaise": [1000, 2000, 3000]}` |
 | Settlements | `settlements.restaurants` | Restaurant settlements | GLOBAL, COUNTRY, STATE, CITY, ZONE, RESTAURANT, BRANCH | 8 | reason required, **placeholder** | `{"schedule": "WEEKLY", "weeklyRunDay": "MONDAY", "minPayoutPaise": 10000, "reservePercentBps": 0}` |
 | Settlements | `settlements.riders` | Delivery partner payouts | GLOBAL, COUNTRY, STATE, CITY, ZONE | 8 | reason required, **placeholder** | `{"schedule": "WEEKLY", "minPayoutPaise": 10000}` |

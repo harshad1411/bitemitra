@@ -106,7 +106,7 @@ test('configuration: override a setting for one city, then see it in history', a
   await page.getByRole('option', { name: 'City: Unjha' }).click();
   const row = page.locator('li', { hasText: 'Order limits' });
   await row.getByRole('button', { name: 'Override' }).click();
-  await page.getByLabel('minOrderPaise').fill('9900');
+  await page.getByLabel('Min order (paise)').fill('9900');
   await expect(page.getByText('currently ₹99.00')).toBeVisible();
   await page.getByRole('button', { name: 'Save' }).click();
   await expectToast(page, 'Order limits saved');
@@ -188,4 +188,28 @@ test('session survives a reload (httpOnly refresh cookie) and sign-out ends it',
   await expect(page).toHaveURL(/\/login/);
   await page.goto('/cities');
   await expect(page).toHaveURL(/\/login\?next=%2Fcities/);
+});
+
+test('charges: switch GST off for everyone with a reason, then back on (D-111)', async ({ page }) => {
+  await signIn(page);
+  await nav(page, 'Configuration');
+  const row = page.locator('li', { hasText: 'Charges to customers (on/off)' }).first();
+  await row.getByRole('button', { name: 'Edit' }).click();
+  const taxes = page.getByRole('switch', { name: 'Taxes' });
+  await expect(taxes).toBeChecked();
+  await expect(page.getByRole('switch', { name: 'Platform fee' })).toBeChecked();
+  await expect(page.getByRole('switch', { name: 'Small order fee' })).toBeChecked();
+  await taxes.click();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled(); // a reason is required
+  await page.getByLabel('Reason (required)').fill('Launch offer: no GST on bills (owner, CA asked)');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expectToast(page, 'Charges to customers (on/off) saved');
+  await expect(row).toContainText('TaxesOff');
+  await shot(page, '09-charges-off');
+  // Back on, so the other tests see the normal bill.
+  await row.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('switch', { name: 'Taxes' }).click();
+  await page.getByLabel('Reason (required)').fill('E2E: restore');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expectToast(page, 'Charges to customers (on/off) saved');
 });

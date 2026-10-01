@@ -70,11 +70,12 @@ export async function discover(app, { point, restaurantIds, now }) {
   const city = place.city;
   const zone = place.zone;
   const ctx = { countryId: city.state.countryId, stateId: city.stateId, cityId: city.id, zoneId: zone.id };
-  const [distanceSetting, eta, ops, reviews] = await Promise.all([
+  const [distanceSetting, eta, ops, reviews, charges] = await Promise.all([
     config.resolve('delivery.distance', ctx),
     config.resolve('delivery.eta', ctx),
     config.resolve('restaurants.operations', ctx),
     config.resolve('reviews'),
+    config.resolve('pricing.charges', ctx),
   ]);
 
   const restaurants = await prisma.restaurant.findMany({
@@ -174,7 +175,10 @@ export async function discover(app, { point, restaurantIds, now }) {
         distanceM: dist.distanceM,
         distanceSource: dist.source,
         eta: { minMinutes: etaMin, maxMinutes: etaMin + eta.value.rangeMinutes, estimate: true },
-        delivery: { feePaise: fee.feePaise, freeAboveSubtotalPaise: dp.freeAboveSubtotalPaise ?? null },
+        // The owner's delivery-fee switch (D-111) shows here too, so the card matches the bill.
+        delivery: charges.value.deliveryFee
+          ? { feePaise: fee.feePaise, freeAboveSubtotalPaise: dp.freeAboveSubtotalPaise ?? null }
+          : { feePaise: 0, freeAboveSubtotalPaise: null },
         open: {
           isOpen: open.open,
           reason: open.reason,

@@ -3,6 +3,14 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Charge switches (2026-10-01) — OD-46
+
+### Added
+- Admin → Configuration → "Charges to customers (on/off)": switch GST, platform fee, delivery fee, packaging, small-order fee and surge on or off, for all cities or one city or zone, with a required reason (D-111). All on by default.
+
+### Changed
+- Configuration shows readable labels and values ("Platform fee: On") instead of raw keys; nested values no longer show "[object Object]".
+
 ## Customer app polish (2026-09-27)
 
 ### Changed

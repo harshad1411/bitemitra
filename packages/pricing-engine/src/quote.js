@@ -249,8 +249,19 @@ function fundingSplit(amount, offer) {
  * }} settings
  * @param {{ promotions?: any[], coupon?: any | null, tipPaise?: number, now: Date }} extra
  */
+/** Owner's on/off switches per customer charge (setting `pricing.charges`, D-111). All on by default. */
+export const CHARGES_ON = Object.freeze({
+  taxes: true,
+  platformFee: true,
+  deliveryFee: true,
+  packaging: true,
+  smallOrderFee: true,
+  surge: true,
+});
+
 export function quote(cart, ctx, rules, settings, extra) {
   const { now } = extra;
+  const sw = { ...CHARGES_ON, ...settings.charges };
   const tz = ctx.timeZone;
   const issues = [];
   const rulesUsed = new Map();
@@ -315,7 +326,7 @@ export function quote(cart, ctx, rules, settings, extra) {
       markup: markupRule
         ? { ruleId: markupRule.id, type: p.type, value: p.type === 'PERCENTAGE' ? p.valueBps : p.valuePaise }
         : null,
-      packagingLinePaise: (l.packagingPaise ?? 0) * l.quantity,
+      packagingLinePaise: sw.packaging ? (l.packagingPaise ?? 0) * l.quantity : 0,
     };
   });
   const foodBase = sum(lines.map((l) => l.lineBasePaise));
@@ -443,7 +454,11 @@ export function quote(cart, ctx, rules, settings, extra) {
   const standardDeliveryFee = delivery.feePaise;
   let deliveryCharged = standardDeliveryFee;
   let freeReason = null;
-  if (
+  if (!sw.deliveryFee) {
+    // Switched off by the owner: customers pay no delivery fee; the partner is still paid by Jamzo.
+    deliveryCharged = 0;
+    freeReason = 'SWITCHED_OFF';
+  } else if (
     settings.flags.free_delivery &&
     dp.freeAboveSubtotalPaise != null &&
     foodAfterDiscount >= dp.freeAboveSubtotalPaise
@@ -484,13 +499,15 @@ export function quote(cart, ctx, rules, settings, extra) {
 
   // ── 8. Small-order fee ──
   const smallOrder =
-    dp.smallOrder && foodAfterDiscount < dp.smallOrder.belowSubtotalPaise ? dp.smallOrder.feePaise : 0;
+    sw.smallOrderFee && dp.smallOrder && foodAfterDiscount < dp.smallOrder.belowSubtotalPaise
+      ? dp.smallOrder.feePaise
+      : 0;
 
   // ── 9. Surcharges ──
   /** @type {any[]} */
   const surcharges = [];
   for (const kind of ['NIGHT', 'DEMAND', 'WEATHER', 'MANUAL']) {
-    const flagOk = kind === 'NIGHT' ? settings.flags.night_pricing : settings.flags.surge;
+    const flagOk = sw.surge && (kind === 'NIGHT' ? settings.flags.night_pricing : settings.flags.surge);
     const rule = resolve('SURGE', rules.surge, deliveryCtx, (r) => r.kind === kind);
     if (!rule || rule.isEnabled === false || !flagOk) continue;
     const sp = rule.params;
@@ -518,7 +535,7 @@ export function quote(cart, ctx, rules, settings, extra) {
   // ── 10. Platform fee ──
   const pfRule = resolve('PLATFORM_FEE', rules.platformFee, deliveryCtx);
   let platformFee = 0;
-  if (pfRule?.params.enabled) {
+  if (sw.platformFee && pfRule?.params.enabled) {
     const sch = pfRule.params.schedule;
     const inSchedule =
       !sch || (sch.days.includes(localTime(now, tz).dayOfWeek) && inWindow(sch.window, now, tz));
@@ -530,13 +547,16 @@ export function quote(cart, ctx, rules, settings, extra) {
   }
 
   // ── 6 + 11. Taxes ──
+  // Taxes switched off by the owner (D-111): no tax lines on the bill. Jamzo may still owe GST — the owner's
+  // decision with their CA, recorded in DECISIONS.md.
   const lineTaxes = lines.map((l, i) => {
+    if (!sw.taxes) return taxOn(0, null);
     const rule = taxRuleFor('FOOD', l.lineCtx);
     if (!rule) issues.push({ code: 'TAX_RULE_MISSING', charge: 'FOOD', productId: l.productId });
     return taxOn(l.lineDisplayPaise - lineDiscount[i], rule, l.taxInclusive ?? undefined);
   });
   const chargeTax = (charge, amount, scopeCtx) => {
-    if (amount <= 0) return taxOn(0, null);
+    if (amount <= 0 || !sw.taxes) return taxOn(0, null);
     const rule = taxRuleFor(charge, scopeCtx);
     if (!rule) issues.push({ code: 'TAX_RULE_MISSING', charge });
     return taxOn(amount, rule);
@@ -740,7 +760,12 @@ export function quote(cart, ctx, rules, settings, extra) {
   if (packaging) bill.push({ code: 'PACKAGING', label: 'Packaging', amountPaise: packaging });
   bill.push({
     code: 'DELIVERY_FEE',
-    label: freeReason === 'THRESHOLD' ? 'Delivery fee (free above threshold)' : 'Delivery fee',
+    label:
+      freeReason === 'THRESHOLD'
+        ? 'Delivery fee (free above threshold)'
+        : freeReason === 'SWITCHED_OFF'
+          ? 'Delivery fee (free)'
+          : 'Delivery fee',
     amountPaise: deliveryCharged,
   });
   if (deliveryDiscountPaise)

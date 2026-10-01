@@ -500,6 +500,32 @@ const DEFINITIONS = [
     phase: 3,
   },
   {
+    key: 'pricing.charges',
+    section: 'Pricing',
+    label: 'Charges to customers (on/off)',
+    description:
+      'Switch each customer charge on or off, for all cities or one city or zone (D-111). Off = the customer pays nothing for it; amounts still come from the rules in Pricing. Delivery partners are paid either way. Taxes off means no GST on the bill — check with your CA first.',
+    schema: z.object({
+      taxes: z.boolean(),
+      platformFee: z.boolean(),
+      deliveryFee: z.boolean(),
+      packaging: z.boolean(),
+      smallOrderFee: z.boolean(),
+      surge: z.boolean(),
+    }),
+    default: {
+      taxes: true,
+      platformFee: true,
+      deliveryFee: true,
+      packaging: true,
+      smallOrderFee: true,
+      surge: true,
+    },
+    scopes: GEO_SCOPES,
+    phase: 10,
+    critical: true,
+  },
+  {
     key: 'reviews',
     section: 'Customer',
     label: 'Ratings and reviews',

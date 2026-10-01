@@ -8,6 +8,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
+/** "platformFee" → "Platform fee", "minOrderPaise" → "Min order (₹ in paise)": readable labels for the owner. */
+export function humanize(key) {
+  const money = /Paise$/.test(key);
+  const base = key.replace(/Paise$|Bps$/, '');
+  const words = base.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+  const label = words.charAt(0).toUpperCase() + words.slice(1);
+  if (money) return `${label} (paise)`;
+  if (/Bps$/.test(key)) return `${label} (basis points)`;
+  return label;
+}
+
 /** Field hint derived from naming conventions (DATABASE.md §2): *Paise = money, *Bps = basis points. */
 function hint(key, value) {
   if (/Paise$/.test(key) && Number.isInteger(value))
@@ -63,8 +74,8 @@ function Field({ name, value, onChange, fieldErrors, path }) {
   }
   return (
     <div className="grid gap-1">
-      <Label htmlFor={id} className="font-mono text-xs">
-        {name}
+      <Label htmlFor={id} className="text-sm">
+        {humanize(name)}
       </Label>
       {control}
       {Array.isArray(value) ? <p className="text-xs text-muted-foreground">Comma-separated list</p> : null}
@@ -140,17 +151,28 @@ export function ValueEditor({ value, onChange, fieldErrors = {} }) {
   );
 }
 
+/** One value in words: booleans as On/Off, nested groups as "UPI: 180 bps + 0 paise"-style lines. */
+function show(v) {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'boolean') return v ? 'On' : 'Off';
+  if (Array.isArray(v)) return v.map(show).join(', ') || '—';
+  if (typeof v === 'object')
+    return Object.entries(v)
+      .map(([k, x]) => `${k}: ${typeof x === 'object' && x !== null ? `{ ${show(x)} }` : show(x)}`)
+      .join(' · ');
+  return String(v);
+}
+
 export function renderValue(value) {
   if (value === null || value === undefined) return <span className="text-muted-foreground">Not set</span>;
-  if (typeof value !== 'object') return <span className="font-mono text-xs">{String(value)}</span>;
+  if (typeof value !== 'object' || Array.isArray(value))
+    return <span className="text-xs">{show(value)}</span>;
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
       {Object.entries(value).map(([k, v]) => (
         <div key={k} className="contents">
-          <dt className="font-mono text-muted-foreground">{k}</dt>
-          <dd className="font-mono break-all">
-            {Array.isArray(v) ? v.join(', ') || '—' : v === null ? '—' : String(v)}
-          </dd>
+          <dt className="text-muted-foreground">{humanize(k)}</dt>
+          <dd className="break-all">{show(v)}</dd>
         </div>
       ))}
     </dl>
