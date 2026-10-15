@@ -15,7 +15,12 @@ read -r -p "SMTP server [smtp-relay.brevo.com]: " SMTP_HOST; SMTP_HOST="${SMTP_H
 read -r -p "SMTP port [2525]: " SMTP_PORT; SMTP_PORT="${SMTP_PORT:-2525}"
 read -r -p "SMTP login (Brevo shows it, e.g. 9a1b2c001@smtp-brevo.com): " SMTP_USER
 case "$SMTP_USER" in *@*) ;; *) echo "The login should look like an email address. Nothing was saved."; exit 1 ;; esac
-read -r -s -p "SMTP key (hidden): " SMTP_PASS; echo
+while :; do
+  read -r -s -p "SMTP key (hidden — paste with Cmd+V, then Enter): " SMTP_PASS; echo
+  SMTP_PASS="$(printf '%s' "$SMTP_PASS" | tr -d '[:space:]')"
+  if [ "${#SMTP_PASS}" -ge 20 ]; then echo "  ✓ got a key of ${#SMTP_PASS} characters"; break; fi
+  echo "  ✗ got ${#SMTP_PASS} characters — that is not a full key. Paste it again."
+done
 read -r -p "Send emails from [noreply@jamzo.in]: " FROM; FROM="${FROM:-noreply@jamzo.in}"
 read -r -p "Send a test email to [admin@jamzo.in]: " TEST_TO; TEST_TO="${TEST_TO:-admin@jamzo.in}"
 
