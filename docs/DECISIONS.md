@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-10-01 (charge switches — OD-46).
+Last updated: 2026-10-15 (online demo deployment — OD-47).
 
 ---
 
@@ -63,6 +63,7 @@ Last updated: 2026-10-01 (charge switches — OD-46).
 | OD-44 | **Jamzo logo kit and a food-app look** (owner, 2026-09-26). The owner sent the Jamzo logo kit (v7: logos, J mark, app icons; colours midnight navy `#1B2250`, turmeric `#F2B21B`, leaf green `#2F8F6B`, cool white `#F4F5FB`; font Poppins) and asked for a very user-friendly look like Zomato or Swiggy, with back buttons, using Zomato screenshots as the reference ("looks very good but not ours"). Fonts: Poppins for titles and prices, Inter for text ("update fonts"). Answers Q-13. Implemented as D-107 … D-109, in steps with screenshots. |
 | OD-45 | **Ratings and reviews** (owner, 2026-09-27: "Customers can give review to delivery boy and items and customers can only see stars average"). The spec lists ratings/reviews for the customer app, but no phase had built them. Customers rate the **food items** and the **delivery partner** after delivery; **customers see only star averages**, never comments. Proposed defaults kept (not changed by the owner): restaurants cannot reply for now; a star average shows only after **5** ratings (a setting). Built as D-110. |
 | OD-46 | **The owner controls every customer charge from the admin** (owner, 2026-10-01: "I want do not take GST an all right now … you give me settings on backend of everything I will handle it"). The owner may stop charging GST and fees for now and will decide each one. Built as D-111: on/off switches per charge. **Advised in chat before building:** food-delivery apps generally must collect and pay 5% GST on restaurant food from the first order (Section 9(5)); switching taxes off may leave Jamzo owing it — the owner's decision with their CA (Q-3). Switches default to on; nothing was switched off by the developer. |
+| OD-47 | **Jamzo online as a demo** (owner, 2026-10-15: "I want deploy this app now"). The owner created the DigitalOcean resources himself after seeing the live price (Droplet 2 GB $12 + managed PostgreSQL 18, 1 GB $15.15 + Spaces $5 = $32.15 + 18% GST ≈ ₹3,300/month, OD-40). Live at https://admin.jamzo.in and https://api.jamzo.in in **demo mode** (D-112) until MSG91, email and Razorpay exist. Demo restaurants added at the owner's choice. |
 
 
 ## 2. Engineering decisions
@@ -952,6 +953,27 @@ Setting `pricing.charges` (Admin → Configuration → Pricing → "Charges to c
   restaurants (a business-to-business tax) is not affected and stays under the tax rules.
 - The pricing engine applies the switches in one place (`quote.js`), with tests per switch; everything else
   (menu prices, markup, commission, promotions) is unchanged.
+
+### D-112. First deployment: demo mode, Singapore files, Cloudflare DNS (OD-47)
+- **Demo mode** (`deploy/first-setup.sh`, `MODE=demo` → `APP_ENV=development`): sign-in codes are written to
+  the server log instead of SMS/email, online payments use the fake gateway (cash orders only in practice), admin
+  sign-in codes are off. HTTPS, secure cookies, the proxy setting, Spaces storage and verified database TLS are
+  the same as production. **Not for the public**: move to staging/production settings once MSG91 (DLT), an SMTP
+  mailbox and Razorpay keys exist; the API refuses console providers there by design.
+- **Secrets** were typed by the owner into `first-setup.sh` on the server (hidden input) and live only in
+  `deploy/.env.production` (mode 600, git-ignored). The server's own keys (JWT, OTP pepper, field encryption,
+  metrics token) are generated there; the developer never saw any of them.
+- **Database TLS:** DigitalOcean's connection string names a placeholder CA path; the setup fetches the cluster's
+  own CA into `deploy/certs/do-db-ca.crt`, mounted read-only at `/certs` (`sslmode=verify-full`, hostname
+  verified).
+- **Spaces in Singapore (SGP1) with CDN:** new Spaces in Bangalore were disabled by DigitalOcean. The server and
+  database stay in Bangalore; photos are served through the CDN. The privacy policy must say files may be stored
+  outside India (allowed under the DPDP Act unless a country is restricted).
+- **DNS is on Cloudflare** (jamzo.in's nameservers), not GoDaddy: `api` and `admin` A records → 139.59.17.4,
+  **DNS only** (grey cloud) so Caddy obtains certificates itself. The domain is still renewed at GoDaddy.
+- **Images are built on the Droplet** from the repository (`docker build`), not pulled from a registry; a 2 GB
+  swap file makes the build fit in 2 GB RAM.
+- Server hardening: firewall (22, 80, 443 only), SSH keys only, fail2ban, automatic security updates.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

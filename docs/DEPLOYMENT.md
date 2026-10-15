@@ -1,6 +1,6 @@
 # Environments & deployment
 
-Status: **Runbook ready (Phase 10, D-98 … D-103). Hosting: DigitalOcean Bangalore, Option 2 (OD-40).** Nothing is
+Status: **Live as a demo since 2026-10-15 (OD-47, D-112): https://admin.jamzo.in, https://api.jamzo.in.** Hosting: DigitalOcean Bangalore, Option 2 (OD-40). Nothing is
 created, bought or published until the owner does it or approves it; prices are re-checked at launch.
 Full runbooks come in Phase 10.
 
@@ -66,6 +66,17 @@ secret). The API refuses to start with live keys outside production and with tes
 - **Files:** renditions can be regenerated from originals; enable Spaces versioning for `private/` documents.
 
 ## 6. First-time setup (owner + me, in this order)
+
+**As done on 2026-10-15 (D-112):** Droplet `139.59.17.4` (BLR1) · managed PostgreSQL 18 `jamzo-db` (BLR1,
+trusted source = the Droplet) · Spaces bucket `jamzo` in **SGP1** with CDN · DNS on **Cloudflare** (DNS only).
+On the Droplet: `/opt/jamzo` is a clone of the repository; images are built there
+(`docker build -f deploy/api.Dockerfile -t jamzo-api:latest .` and the same for admin), then the owner ran
+`ssh -t root@139.59.17.4 /opt/jamzo/deploy/first-setup.sh` (secrets typed by the owner; migrations, seed, start).
+**Update:** `cd /opt/jamzo && git pull`, rebuild both images, `docker compose -f deploy/docker-compose.prod.yml run --rm api node packages/database/scripts/prisma.mjs migrate deploy`,
+then `docker compose -f deploy/docker-compose.prod.yml up -d`.
+**Demo sign-in codes:** `docker compose -f deploy/docker-compose.prod.yml logs api | grep devOnlyText`.
+
+The plan written before launch:
 
 1. Owner: create the DigitalOcean account and billing (approves the price shown at launch — OD-40).
 2. Create the Droplet (Ubuntu 24.04, BLR1, SSH key only), the managed PostgreSQL cluster (BLR1; trusted
