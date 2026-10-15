@@ -30,7 +30,7 @@ unset SMTP_PASS
 
 COMPOSE="docker compose -f docker-compose.prod.yml"
 echo "Sending a test email to $TEST_TO …"
-$COMPOSE run --rm --no-deps -e TEST_TO="$TEST_TO" api node --input-type=module -e "
+$COMPOSE run --rm --no-deps -w /app/services/api -e TEST_TO="$TEST_TO" api node --input-type=module -e "
 import { loadEnv, apiEnvSchema } from '@jamzo/config';
 import { createEmailProvider } from '@jamzo/notifications';
 const env = loadEnv(apiEnvSchema);
