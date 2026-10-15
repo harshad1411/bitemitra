@@ -974,6 +974,12 @@ Setting `pricing.charges` (Admin → Configuration → Pricing → "Charges to c
 - **Images are built on the Droplet** from the repository (`docker build`), not pulled from a registry; a 2 GB
   swap file makes the build fit in 2 GB RAM.
 - Server hardening: firewall (22, 80, 443 only), SSH keys only, fail2ban, automatic security updates.
+- **Outgoing email through Brevo, not Zoho:** DigitalOcean blocks ports 25, 465 and 587 on every Droplet (confirmed
+  by DigitalOcean), and Zoho Mail only offers those. The server sends through Brevo's SMTP relay on port 2525
+  (free plan, 300 emails/day), from `Jamzo <noreply@jamzo.in>`; jamzo.in is authenticated in Brevo (DKIM
+  `brevo1/brevo2._domainkey`, DMARC `p=none`), and Brevo only accepts the Droplet's IP (Authorized IPs). Zoho Mail
+  (Workplace, 2 users: harshad@, admin@ with aliases noreply@, support@, partners@) stays the mailbox for reading
+  and writing mail. Set up with `deploy/set-email.sh` (owner types the SMTP key on the server).
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 
