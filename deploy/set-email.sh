@@ -13,7 +13,11 @@ echo
 echo "== Outgoing email (Brevo SMTP relay) =="
 read -r -p "SMTP server [smtp-relay.brevo.com]: " SMTP_HOST; SMTP_HOST="${SMTP_HOST:-smtp-relay.brevo.com}"
 read -r -p "SMTP port [2525]: " SMTP_PORT; SMTP_PORT="${SMTP_PORT:-2525}"
-read -r -p "SMTP login (Brevo shows it, e.g. 9a1b2c001@smtp-brevo.com): " SMTP_USER
+if [ -n "${SMTP_LOGIN:-}" ]; then
+  read -r -p "SMTP login [$SMTP_LOGIN]: " SMTP_USER; SMTP_USER="${SMTP_USER:-$SMTP_LOGIN}"
+else
+  read -r -p "SMTP login (Brevo shows it, e.g. 9a1b2c001@smtp-brevo.com): " SMTP_USER
+fi
 case "$SMTP_USER" in *@*) ;; *) echo "The login should look like an email address. Nothing was saved."; exit 1 ;; esac
 while :; do
   read -r -s -p "SMTP key (hidden — paste with Cmd+V, then Enter): " SMTP_PASS; echo
