@@ -18,6 +18,7 @@ services:
     command: ['node', 'services/workers/src/main.js']
     stop_grace_period: 30s
     volumes: ['./certs:/certs:ro']
+    healthcheck: { disable: true } # the image's check calls the API port; the worker has none (/ready watches the outbox)
   admin:
     image: ${JAMZO_ADMIN_IMAGE:-jamzo-admin:latest}
     restart: unless-stopped
