@@ -10,12 +10,14 @@ services:
     restart: unless-stopped
     command: ['node', 'services/api/src/server.js']
     expose: ['4000']
+    volumes: ['./certs:/certs:ro'] # the managed database's CA certificate (sslmode=verify-full)
   worker:
     image: ${JAMZO_API_IMAGE:-jamzo-api:latest}
     env_file: .env.production
     restart: unless-stopped
     command: ['node', 'services/workers/src/main.js']
     stop_grace_period: 30s
+    volumes: ['./certs:/certs:ro']
   admin:
     image: ${JAMZO_ADMIN_IMAGE:-jamzo-admin:latest}
     restart: unless-stopped

@@ -51,6 +51,15 @@ EMAIL_PROVIDER=console
 PUSH_PROVIDER=console
 ENV
   chmod 600 "$ENV_FILE"
+  # DigitalOcean's connection string names a placeholder CA file; fetch the database's own CA (public) and use it,
+  # so the connection is encrypted and verified (sslmode=verify-full).
+  DB_HOST=$(echo "$DB_URL" | sed -E 's#^[a-z]+://[^@]*@([^:/]+).*#\1#')
+  DB_PORT=$(echo "$DB_URL" | sed -E 's#^[a-z]+://[^@]*@[^:/]+:([0-9]+).*#\1#')
+  mkdir -p certs
+  echo | timeout 15 openssl s_client -starttls postgres -connect "$DB_HOST:$DB_PORT" -showcerts 2>/dev/null \
+    | awk '/BEGIN CERT/{n++} n==2' | sed -n '/BEGIN CERT/,/END CERT/p' > certs/do-db-ca.crt
+  chmod 644 certs/do-db-ca.crt
+  sed -i -E 's#sslrootcert=[^&]*#sslrootcert=/certs/do-db-ca.crt#' "$ENV_FILE"
   echo "✓ Saved deploy/$ENV_FILE (only root on this server can read it)."
   echo "  Keep a copy of FIELD_ENCRYPTION_KEY somewhere safe later: without it, saved bank details cannot be read."
 fi

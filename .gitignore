@@ -25,3 +25,6 @@ apps/*/dist/
 *.mobileprovision
 google-services.json
 GoogleService-Info.plist
+
+# Server-only files written by deploy/first-setup.sh
+deploy/certs/
