@@ -3,6 +3,12 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Delivery partner performance (2026-10-16) — OD-48
+
+### Added
+- Jamzo Admin → Delivery partners → **Partner performance** (D-113): per partner for any range (today, yesterday, this week, this month, last 30 days or custom) — deliveries, cancelled trips, offers declined or missed, partner pay, tips, cash collected, delivery charges, **Jamzo's delivery margin**, average trip time, hours online and rating, with totals.
+- Each partner's page has the same figures **day by day**.
+
 ## Charge switches (2026-10-01) — OD-46
 
 ### Added

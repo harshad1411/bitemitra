@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bike } from 'lucide-react';
+import Link from 'next/link';
+import { Bike, ChartColumn } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { formatPaise } from '@jamzo/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PageHeader } from '@/components/jamzo/page-header';
@@ -60,6 +62,13 @@ export default function RidersPage() {
       <PageHeader
         title="Delivery partners"
         description="Applications, documents, status and cash limits. Document files are private; every view is recorded."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/riders/performance">
+              <ChartColumn className="size-4" aria-hidden /> Partner performance
+            </Link>
+          </Button>
+        }
       />
       <ResourceTable
         queryKey={['riders']}

@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (238 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (240 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -227,7 +227,9 @@ _Generated from the route definitions by `pnpm docs:api` (238 endpoints). Do not
 | `GET` | `/v1/admin/riders/:id` | admin token | ADMIN | `riders.view` |  |
 | `PATCH` | `/v1/admin/riders/:id/cod` | admin token | ADMIN | `riders.manage` |  |
 | `POST` | `/v1/admin/riders/:id/cod-deposits` | admin token | ADMIN | `settlements.manage` |  |
+| `GET` | `/v1/admin/riders/:id/performance` | admin token | ADMIN | `riders.view` |  |
 | `POST` | `/v1/admin/riders/:id/status` | admin token | ADMIN | `riders.approve` |  |
+| `GET` | `/v1/admin/riders/performance` | admin token | ADMIN | `riders.view` |  |
 | `GET` | `/v1/admin/roles` | admin token | ADMIN | `roles.view` |  |
 | `POST` | `/v1/admin/roles` | admin token | ADMIN | `roles.manage` |  |
 | `DELETE` | `/v1/admin/roles/:id` | admin token | ADMIN | `roles.manage` |  |

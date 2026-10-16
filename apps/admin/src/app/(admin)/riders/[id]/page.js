@@ -22,6 +22,7 @@ import { formatDateTime } from '@/lib/format';
 import { statusLabel, statusTone } from '@/lib/orders';
 import { DOC_KIND, RIDER_STATUS, VEHICLE, minutesAgo } from '@/lib/riders';
 import { openPrivateFile } from '@/lib/upload';
+import { FIGURES, RangePicker, presetRange } from '@/components/riders/performance';
 
 const STATUS_ACTION = {
   DOCUMENT_PENDING: 'Ask for documents',
@@ -31,6 +32,66 @@ const STATUS_ACTION = {
   REJECTED: 'Reject',
 };
 const DOC_TONE = { PENDING: 'warning', VERIFIED: 'success', REJECTED: 'critical' };
+
+/** Day-by-day figures for this partner (D-113). */
+function Performance({ id }) {
+  const [preset, setPreset] = useState('WEEK');
+  const [range, setRange] = useState(() => presetRange('WEEK'));
+  const q = useQuery({
+    queryKey: ['rider-performance', id, range],
+    queryFn: () => api.get(`/v1/admin/riders/${id}/performance`, range),
+  });
+  const rows = q.data ? [...q.data.days, { day: 'Total', ...q.data.totals }] : [];
+  return (
+    <Card className="lg:col-span-3">
+      <CardHeader>
+        <CardTitle>Performance</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <RangePicker
+          preset={preset}
+          range={range}
+          onChange={(p, r) => {
+            setPreset(p);
+            setRange(r);
+          }}
+        />
+        {q.isPending ? (
+          <LoadingRows rows={3} />
+        ) : q.isError ? (
+          <ErrorState error={q.error} onRetry={() => q.refetch()} />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Day</TableHead>
+                  {FIGURES.map(([h]) => (
+                    <TableHead key={h} className="text-right">
+                      {h}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.day} className={r.day === 'Total' ? 'font-semibold' : undefined}>
+                    <TableCell className="whitespace-nowrap">{r.day}</TableCell>
+                    {FIGURES.map(([h, f]) => (
+                      <TableCell key={h} className="text-right tabular-nums">
+                        {f(r)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function RiderPage({ params }) {
   const { id } = use(params);
@@ -275,6 +336,7 @@ export default function RiderPage({ params }) {
             )}
           </CardContent>
         </Card>
+        <Performance id={id} />
       </div>
       <ConfirmDialog
         open={Boolean(transition)}

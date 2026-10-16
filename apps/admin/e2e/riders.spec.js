@@ -67,3 +67,23 @@ test('order detail: the delivery card lists the manual request', async ({ page }
   await expect(page.getByText('Offered')).toBeVisible();
   await shot(page, '63-order-delivery');
 });
+
+test('partner performance: deliveries, pay and Jamzo margin per partner, then day by day (D-113)', async ({
+  page,
+}) => {
+  await signIn(page);
+  await nav(page, 'Delivery partners');
+  await page.getByRole('link', { name: 'Partner performance' }).click();
+  await expect(page.getByRole('heading', { name: 'Partner performance' })).toBeVisible();
+  // The demo partner delivered (and was rated for) one order in global-setup today.
+  const row = page.getByRole('row', { name: /Demo Delivery Partner/ });
+  await expect(row).toBeVisible();
+  await expect(row.getByRole('cell').nth(1)).toHaveText(/^[1-9]\d*$/);
+  await expect(page.getByText('Jamzo delivery margin')).toBeVisible();
+  await shot(page, '45-partner-performance');
+  await page.getByRole('tab', { name: 'This month' }).click();
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page.getByText('Performance', { exact: true })).toBeVisible();
+  await expect(page.getByRole('row', { name: /^Total/ })).toBeVisible();
+});

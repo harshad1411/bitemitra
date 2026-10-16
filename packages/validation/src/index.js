@@ -1185,6 +1185,18 @@ export const analyticsQuery = z
     cityId: uuid.optional(),
   })
   .refine((b) => b.from < b.to, { message: 'The end must be after the start', path: ['to'] });
+/** Delivery partner performance (D-113): India dates, from inclusive, to exclusive, at most 92 days. */
+export const riderPerformanceQuery = z
+  .object({
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    cityId: uuid.optional(),
+  })
+  .refine((b) => b.from < b.to, { message: 'The end must be after the start', path: ['to'] })
+  .refine((b) => (Date.parse(b.to) - Date.parse(b.from)) / 86_400_000 <= 92, {
+    message: 'Choose at most 92 days',
+    path: ['to'],
+  });
 export const appAnalyticsQuery = z.object({ range: z.enum(['TODAY', 'WEEK', 'MONTH']).default('WEEK') });
 
 /**

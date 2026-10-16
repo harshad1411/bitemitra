@@ -5,6 +5,7 @@ import {
   riderCodBody,
   riderDocumentReviewBody,
   riderListQuery,
+  riderPerformanceQuery,
   riderTransitionBody,
   uuid,
 } from '@jamzo/validation';
@@ -15,6 +16,7 @@ import { allowedCityIds, canInCity } from '../../core/auth.js';
 import { idPage, toPage } from '../../core/pagination.js';
 import { maskPhone } from '@jamzo/logger';
 import { codBalances, missingDocuments } from './service.js';
+import { emptyPerformance, indiaDay, partnerPerformance, sumPerformance } from './performance.js';
 
 const idParam = z.object({ id: uuid });
 const num = (v) => (v == null ? null : Number(v));
@@ -66,6 +68,72 @@ export default async function riderAdminRoutes(app) {
     codBalancePaise: cod ?? 0,
     createdAt: r.createdAt,
   });
+
+  // ── Performance (D-113) ──
+  const indiaStart = (day) => new Date(`${day}T00:00:00+05:30`);
+  const riderSummary = (r) => ({
+    id: r.id,
+    name: r.user.name,
+    phoneMasked: r.user.phone ? maskPhone(r.user.phone) : null,
+    onboardingStatus: r.onboardingStatus,
+    vehicle: r.vehicles?.[0]?.type ?? null,
+  });
+
+  app.get(
+    '/v1/admin/riders/performance',
+    { config: { permission: 'riders.view' } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const q = parse(riderPerformanceQuery, request.query);
+      const cities = allowedCityIds(request, 'riders.view');
+      if (q.cityId && cities && !cities.includes(q.cityId)) throw forbidden();
+      const cityFilter = q.cityId ? [q.cityId] : cities;
+      const riders = await prisma.rider.findMany({
+        where: {
+          onboardingStatus: { in: ['ACTIVE', 'SUSPENDED'] },
+          ...(cityFilter ? { cityId: { in: cityFilter } } : {}),
+        },
+        include: { user: true, vehicles: { where: { isActive: true } } },
+      });
+      const figures = await partnerPerformance(prisma, {
+        from: indiaStart(q.from),
+        to: indiaStart(q.to),
+        riderIds: riders.map((r) => r.id),
+        now: app.clock.now(),
+      });
+      const items = riders
+        .map((r) => ({ rider: riderSummary(r), ...(figures.get(r.id) ?? emptyPerformance()) }))
+        .sort(
+          (a, b) =>
+            b.deliveries - a.deliveries ||
+            b.payPaise - a.payPaise ||
+            String(a.rider.name).localeCompare(String(b.rider.name)),
+        );
+      return { from: q.from, to: q.to, totals: sumPerformance(items), items };
+    },
+  );
+
+  app.get(
+    '/v1/admin/riders/:id/performance',
+    { config: { permission: 'riders.view' } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const { id } = parse(idParam, request.params);
+      const q = parse(riderPerformanceQuery, request.query);
+      const r = await load(request, id, 'riders.view');
+      const from = indiaStart(q.from);
+      const to = indiaStart(q.to);
+      const byDay =
+        (
+          await partnerPerformance(prisma, { from, to, riderIds: [id], byDay: true, now: app.clock.now() })
+        ).get(id) ?? new Map();
+      const days = [];
+      for (let d = from; d < to; d = new Date(d.getTime() + 86_400_000)) {
+        const day = indiaDay(d);
+        days.push({ day, ...(byDay.get(day) ?? emptyPerformance()) });
+      }
+      days.reverse(); // newest first
+      return { rider: riderSummary(r), from: q.from, to: q.to, totals: sumPerformance(days), days };
+    },
+  );
 
   app.get(
     '/v1/admin/riders',

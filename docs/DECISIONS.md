@@ -9,7 +9,7 @@ OD-30). Other documents describe *how*; this file records *what was decided, by 
 - **Q-n** — questions only the owner (or their CA/lawyer) can answer.
 - **CH-n** — changes from MASTER_SPEC, with approval status.
 
-Last updated: 2026-10-15 (online demo deployment — OD-47).
+Last updated: 2026-10-16 (partner performance — OD-48).
 
 ---
 
@@ -64,6 +64,7 @@ Last updated: 2026-10-15 (online demo deployment — OD-47).
 | OD-45 | **Ratings and reviews** (owner, 2026-09-27: "Customers can give review to delivery boy and items and customers can only see stars average"). The spec lists ratings/reviews for the customer app, but no phase had built them. Customers rate the **food items** and the **delivery partner** after delivery; **customers see only star averages**, never comments. Proposed defaults kept (not changed by the owner): restaurants cannot reply for now; a star average shows only after **5** ratings (a setting). Built as D-110. |
 | OD-46 | **The owner controls every customer charge from the admin** (owner, 2026-10-01: "I want do not take GST an all right now … you give me settings on backend of everything I will handle it"). The owner may stop charging GST and fees for now and will decide each one. Built as D-111: on/off switches per charge. **Advised in chat before building:** food-delivery apps generally must collect and pay 5% GST on restaurant food from the first order (Section 9(5)); switching taxes off may leave Jamzo owing it — the owner's decision with their CA (Q-3). Switches default to on; nothing was switched off by the developer. |
 | OD-47 | **Jamzo online as a demo** (owner, 2026-10-15: "I want deploy this app now"). The owner created the DigitalOcean resources himself after seeing the live price (Droplet 2 GB $12 + managed PostgreSQL 18, 1 GB $15.15 + Spaces $5 = $32.15 + 18% GST ≈ ₹3,300/month, OD-40). Live at https://admin.jamzo.in and https://api.jamzo.in in **demo mode** (D-112) until MSG91, email and Razorpay exist. Demo restaurants added at the owner's choice. |
+| OD-48 | **Next features, one at a time, no AI for now** (owner, 2026-10-16: "we wont ai for now do one by one implementation"). Order agreed: (1) **delivery partner performance** in Jamzo Admin (D-113) — needs nothing from the owner, built first; (2) **map pin + place search for addresses** (customers who refuse location cannot add an address today) — needs the owner's Google Cloud / Maps key (Q-14); (3) **"Order again", favourite cuisines and opt-in offer notifications** without AI. AI suggestions wait until there are 1–2 months of real orders. Each step stops for the owner's review. |
 
 
 ## 2. Engineering decisions
@@ -980,6 +981,21 @@ Setting `pricing.charges` (Admin → Configuration → Pricing → "Charges to c
   `brevo1/brevo2._domainkey`, DMARC `p=none`), and Brevo only accepts the Droplet's IP (Authorized IPs). Zoho Mail
   (Workplace, 2 users: harshad@, admin@ with aliases noreply@, support@, partners@) stays the mailbox for reading
   and writing mail. Set up with `deploy/set-email.sh` (owner types the SMTP key on the server).
+
+### D-113. Delivery partner performance in Jamzo Admin (OD-48)
+Delivery partners → **Performance** (`riders.view`, limited to the admin's cities), for a date range in India time
+(from inclusive, to exclusive, at most 92 days), one row per active partner:
+- **Deliveries** (orders delivered by them in the range, by delivery time), **cancelled trips** (paid
+  cancelled-trip earnings), **offers rejected** and **timed out**.
+- **Partner pay** = their trip earnings in the range (`rider_earnings`, delivery and cancelled-trip kinds), **tips**
+  (tip share on their delivered orders, 100% theirs), **cash collected** (cash-on-delivery amounts).
+- **Delivery charges** = what customers were charged for delivery on their orders (delivery fee + night and
+  demand surcharges from the order's price snapshot, before coupons). **Jamzo's delivery margin** = delivery
+  charges − partner pay (can be negative, e.g. free-delivery offers). Tips are never part of it.
+- **Average trip time** (picked up → delivered), **hours online** (shifts overlapping the range), and the
+  **average delivery rating** from visible reviews in the range.
+- Totals for all partners on top; opening a partner shows the same figures **day by day**.
+All figures are computed from existing records on request; nothing new is stored.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 
