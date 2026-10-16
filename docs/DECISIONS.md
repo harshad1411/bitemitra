@@ -1063,7 +1063,7 @@ Setting `pricing.charges` (Admin → Configuration → Pricing → "Charges to c
 - **Q-3 (CA)** GST liability on food (platform as e-commerce operator vs restaurant) and taxable value when marked up; GST on delivery / platform / small-order fees, surcharges, packaging; GST on commission; TCS (GST) and TDS (income tax) on restaurant payouts; invoice issuer per document type. See [PRICING.md §11](PRICING.md#11-open-tax--legal-questions-owner--ca-must-decide).
 - **Q-4 (legal)** Is customer-price markup over the restaurant's menu price permitted for Jamzo's model; must it be disclosed; does it make Jamzo seller of record?
 - **Q-5b** Payouts (OD-39): automatic payout when the restaurant requests it and an admin approves, with a manual (bank transfer) mode too — Phase 8; provider (e.g. RazorpayX) to be chosen then.
-- **Q-12 (legal)** Legal entity + GSTIN, FSSAI obligations as aggregator, policies (privacy, terms, refunds), rider engagement model, DPDP compliance.
+- **Q-12 (legal)** Legal entity + GSTIN, FSSAI obligations as aggregator, policies (privacy, terms, refunds), rider engagement model, DPDP compliance. **Drafts written 2026-10-16** in [docs/legal/](legal/README.md) for the owner and a lawyer/CA to review; open points are marked `[[REVIEW]]`. **In-app account deletion** is required by Apple and Google and must be built before store submission.
 
 ### Open — needed for later phases or real-device testing
 - **Q-6b** MSG91 account, DLT sender id and the OTP template (owner) — the code is built (D-104). Email: which SMTP service, and SPF/DKIM at GoDaddy (D-105). Google/Apple sign-in later.
