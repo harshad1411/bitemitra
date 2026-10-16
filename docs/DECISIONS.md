@@ -997,6 +997,32 @@ Delivery partners → **Performance** (`riders.view`, limited to the admin's cit
 - Totals for all partners on top; opening a partner shows the same figures **day by day**.
 All figures are computed from existing records on request; nothing new is stored.
 
+### D-114. Delivery spot on a map and address search, without needing location permission (OD-48)
+Customers who refuse location could not add an address (the only spot was GPS). Now:
+- **Map screen** in the customer app ("Set delivery location"): the map moves under a **fixed centre pin** (as in
+  the big food apps). It opens at the place already chosen, else the last known position (only if permission was
+  given earlier), else the centre of the first live city. **"Use current location"** asks for permission only
+  when pressed; refusing never blocks — the customer moves the map or searches. A **search box** on top finds
+  streets, shops, temples, societies. Guests can use it to browse; saving an address still needs sign-in.
+- Under the pin the screen shows the **address of the spot** and, live, whether Jamzo delivers there. Saving an
+  address keeps the pin's position plus the looked-up area and pincode; **house / flat and street** is typed by
+  the customer (required), landmark optional. The server re-checks serviceability on save, as before.
+- **Paid lookups go through the Jamzo API** with the server key (`GOOGLE_MAPS_API_KEY`, never in the app):
+  `GET /v1/geo/places/search`, `GET /v1/geo/places/:placeId`, `GET /v1/geo/reverse`. With `maps.provider =
+  GOOGLE`: Places API (New) Autocomplete (India only, biased to 30 km around the map), Place Details (same session
+  token, so one search is billed as one session) and Geocoding API (reverse). **Without Google** (setting NONE, no
+  key, or Google failing): search matches the names of Jamzo's own **zones and service areas** (Jamzo Admin →
+  Geography) and the spot's address is its zone and city — so the feature already works before the key exists.
+  Every answer says its source (`GOOGLE` | `LOCAL`).
+- **Cost control:** the app searches from 3 letters, 400 ms after typing stops, and looks up the spot only when
+  the map stops moving; the server caches spot lookups per ~11 m for 24 hours; 30 searches and 30 spot lookups
+  per minute per customer (or IP).
+- **Map tiles:** `react-native-maps` (Apple Maps on iPhone, Google Maps on Android); in Expo Go they need no
+  Jamzo key. **Android store builds** need a separate *Maps SDK for Android* key, `GOOGLE_MAPS_ANDROID_KEY`, read at
+  build time. Google requires this key inside the app; it is restricted to the Jamzo package and signing
+  certificate and can only draw maps. All paid lookups stay on the server key.
+- Tested against fake Google endpoints; **not verified with Google** until the owner adds the key (Q-14).
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 
@@ -1084,7 +1110,7 @@ All figures are computed from existing records on request; nothing new is stored
 ### Open — needed for later phases or real-device testing
 - **Q-6b** MSG91 account, DLT sender id and the OTP template (owner) — the code is built (D-104). Email: which SMTP service, and SPF/DKIM at GoDaddy (D-105). Google/Apple sign-in later.
 - **Q-11** Hosting decided: DigitalOcean Bangalore, Option 2 (OD-40, D-72). Still open: SaaS processors such as Sentry for error reports.
-- **Q-14** Maps/distance provider (Google Maps Platform vs Ola Maps / Mappls) — cost-driven; needed by Phase 3/6.
+- **Q-14** Maps/distance provider — **Google Maps Platform** (OD-41, OD-48). Road distance (D-81), address search and the address of a map spot (D-114) are built; **waiting for the owner's key** (server key: Routes, Places (New), Geocoding; Android key: Maps SDK for Android).
 - **Q-17 (toolchains)** — install **approved** (OD-39). Native builds and simulator runs need Xcode's iOS simulator runtime + CocoaPods and the Android SDK + Java 17, none of which are installed on this Mac (multi-GB installs; not done without approval). Alternatives: rely on the CI native build jobs, or on EAS Build once the Expo account exists (Q-18).
 - **Q-21** Masked calling provider for customer ↔ rider calls (Exotel, Knowlarity, …) — until then calls go to Jamzo support (D-80).
 - **Q-18 (Expo/EAS)** — owner will create it (OD-39). An Expo account and three EAS projects are needed for push tokens, OTA updates and store builds; the owner creates them (no store publication during development).

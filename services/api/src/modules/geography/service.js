@@ -8,7 +8,7 @@ const area = (z) => (Number(z.maxLat) - Number(z.minLat)) * (Number(z.maxLng) - 
 /**
  * @param {import('@jamzo/database').Db} prisma
  * @param {{ lat: number, lng: number }} point
- * @returns {Promise<{ serviceable: boolean, reason: string, city: any | null, zone: any | null }>}
+ * @returns {Promise<{ serviceable: boolean, reason: string, city: any | null, zone: any | null, serviceAreaId: string | null }>}
  */
 export async function resolvePoint(prisma, point) {
   const zones = await prisma.zone.findMany({
@@ -37,5 +37,11 @@ export async function resolvePoint(prisma, point) {
     ),
   });
   const city = result.city ? (zones.find((z) => z.cityId === result.city.id)?.city ?? result.city) : null;
-  return { serviceable: result.serviceable, reason: result.reason, city, zone: result.zone };
+  return {
+    serviceable: result.serviceable,
+    reason: result.reason,
+    city,
+    zone: result.zone,
+    serviceAreaId: result.serviceAreaId,
+  };
 }

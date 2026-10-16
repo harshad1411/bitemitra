@@ -6,6 +6,8 @@ import {
   cityUpdateBody,
   countryCreateBody,
   pageQuery,
+  placeDetailsQuery,
+  placeSearchQuery,
   serviceAreaCreateBody,
   serviceAreaUpdateBody,
   serviceabilityQuery,
@@ -66,6 +68,63 @@ export default async function geographyRoutes(app) {
         reason: result.reason,
         city: result.city ? { id: result.city.id, name: result.city.name, slug: result.city.slug } : null,
         zone: result.zone ? { id: result.zone.id, name: result.zone.name, slug: result.zone.slug } : null,
+      };
+    },
+  );
+
+  // ── Address search and the address of a map spot (D-114) ──
+  // Signed-in customers count per user, guests per IP (D-100). Google is called only from here, with the server key.
+  const LOOKUP = { auth: 'optional', rateLimit: { max: 30, timeWindow: '1 minute' } };
+  const places = app.services.places;
+
+  // Where the map opens when the customer has not shared their location: the live cities' centres.
+  app.get('/v1/geo/cities', { config: { auth: 'optional' } }, async () => ({
+    items: (
+      await prisma.city.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, centerLat: true, centerLng: true },
+      })
+    ).map((c) => ({ id: c.id, name: c.name, lat: num(c.centerLat), lng: num(c.centerLng) })),
+  }));
+
+  app.get(
+    '/v1/geo/places/search',
+    { config: LOOKUP },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const { q, lat, lng, session } = parse(placeSearchQuery, request.query);
+      return places.search(q, lat === undefined ? null : { lat, lng }, session ?? null);
+    },
+  );
+
+  app.get(
+    '/v1/geo/places/details',
+    { config: LOOKUP },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const { id, session } = parse(placeDetailsQuery, request.query);
+      const place = await places.details(id, session ?? null).catch((err) => {
+        request.log.warn({ err: String(err?.message ?? err) }, 'place details unavailable');
+        return null;
+      });
+      if (!place) throw notFound('Place');
+      return place;
+    },
+  );
+
+  app.get(
+    '/v1/geo/reverse',
+    { config: LOOKUP },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const { lat, lng } = parse(serviceabilityQuery, request.query);
+      const spot = await resolvePoint(prisma, { lat, lng });
+      const { source, address } = await places.reverse({ lat, lng }, spot);
+      return {
+        source,
+        address,
+        serviceable: spot.serviceable,
+        reason: spot.reason,
+        city: spot.city ? { id: spot.city.id, name: spot.city.name } : null,
+        zone: spot.zone ? { id: spot.zone.id, name: spot.zone.name } : null,
       };
     },
   );

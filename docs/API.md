@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (240 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (244 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -288,6 +288,10 @@ _Generated from the route definitions by `pnpm docs:api` (240 endpoints). Do not
 | `POST` | `/v1/customer/support/tickets` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/support/tickets/:id` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/support/tickets/:id/messages` | required | CUSTOMER | — |  |
+| `GET` | `/v1/geo/cities` | optional | any | — |  |
+| `GET` | `/v1/geo/places/details` | optional | any | — | 30/min |
+| `GET` | `/v1/geo/places/search` | optional | any | — | 30/min |
+| `GET` | `/v1/geo/reverse` | optional | any | — | 30/min |
 | `GET` | `/v1/geo/serviceability` | optional | any | — | 60/min |
 | `GET` | `/v1/me` | required | any | — |  |
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |

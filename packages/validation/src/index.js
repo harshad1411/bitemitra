@@ -195,6 +195,26 @@ export const serviceabilityQuery = z.object({
   lat: z.coerce.number().pipe(latitude),
   lng: z.coerce.number().pipe(longitude),
 });
+// Address search and the address of a map spot (D-114). `session` groups one search for Google billing.
+const placeSession = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{8,64}$/)
+  .optional();
+export const placeSearchQuery = z
+  .object({
+    q: z.string().trim().min(2).max(80),
+    lat: z.coerce.number().pipe(latitude).optional(),
+    lng: z.coerce.number().pipe(longitude).optional(),
+    session: placeSession,
+  })
+  .refine((v) => (v.lat === undefined) === (v.lng === undefined), {
+    message: 'Send both lat and lng, or neither',
+    path: ['lat'],
+  });
+export const placeDetailsQuery = z.object({
+  id: z.string().regex(/^(g|area|zone):[A-Za-z0-9_-]{1,300}$/),
+  session: placeSession,
+});
 
 // ── RBAC ────────────────────────────────────────────────────────────────────
 

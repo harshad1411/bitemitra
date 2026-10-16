@@ -1,13 +1,16 @@
-// Choose where to deliver (D-55): current location, a saved address, or (development builds) a demo point.
+// Choose where to deliver (D-55, D-114): current location, a spot on the map (search or move the pin — works
+// without location permission), a saved address, or (development builds) a demo point.
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useJamzo } from '@jamzo/mobile-foundation';
-import { Banner, Button, Card, Header, Screen, Text } from '@jamzo/mobile-ui';
+import { Pressable } from 'react-native';
+import { Banner, Button, Card, Header, Icon, Screen, Text, useTheme } from '@jamzo/mobile-ui';
 import { DEMO_POINT, useLocation } from '../lib/location';
 import { useAddresses } from '../lib/queries';
 
 export default function ChooseLocation() {
   const router = useRouter();
+  const t = useTheme();
   const { env, session } = useJamzo();
   const { choose, detectLocation } = useLocation();
   const [error, setError] = useState(null);
@@ -17,6 +20,25 @@ export default function ChooseLocation() {
   const done = () => (router.canGoBack() ? router.back() : router.replace('/'));
   return (
     <Screen header={<Header title="Delivery location" />}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Search for an area, street or landmark"
+        onPress={() => router.push('/map?search=1')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          height: 44,
+          borderRadius: 22,
+          paddingHorizontal: 14,
+          backgroundColor: t.colors.surface,
+          borderWidth: 1,
+          borderColor: t.colors.border,
+        }}
+      >
+        <Icon name="search" size={18} color={t.colors.action} />
+        <Text variant="muted">Search for an area, street or landmark</Text>
+      </Pressable>
       {error ? <Banner tone="warning">{error}</Banner> : null}
       <Button
         title="Use my current location"
@@ -29,6 +51,7 @@ export default function ChooseLocation() {
           else setError(r.reason);
         }}
       />
+      <Button title="Set location on the map" variant="secondary" onPress={() => router.push('/map')} />
       {signedIn ? (
         <Card>
           <Text variant="heading">Saved addresses</Text>
@@ -43,7 +66,11 @@ export default function ChooseLocation() {
               }}
             />
           ))}
-          <Button title="Add a new address" variant="secondary" onPress={() => router.push('/addresses')} />
+          <Button
+            title="Add a new address"
+            variant="secondary"
+            onPress={() => router.push('/map?purpose=save&then=home')}
+          />
         </Card>
       ) : (
         <Text variant="muted">Sign in to use saved addresses.</Text>
@@ -58,7 +85,6 @@ export default function ChooseLocation() {
           }}
         />
       ) : null}
-      <Text variant="small">Picking a spot on a map arrives once a maps provider is chosen.</Text>
     </Screen>
   );
 }

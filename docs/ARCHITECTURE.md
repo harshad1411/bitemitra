@@ -148,7 +148,8 @@ API processes already work without a Redis adapter. Jamzo Admin polls (15 s) for
 | Email OTP | `EmailProvider` | TBD (Q-6) | **console provider only** |
 | Social login | `IdentityProvider` | Google, Apple | **slots only — returns AUTH_METHOD_UNAVAILABLE** |
 | Push | `PushProvider` | Expo Push (FCM/APNs) | **console provider in development**; Expo provider implemented and tested against a fake endpoint only — not verified with Expo until the EAS projects exist (Q-18) |
-| Maps / route distance | `DistanceProvider` | Q-14 | **fallback only**: straight line × road factor, flagged `FALLBACK` (D-48) |
+| Maps / route distance | `DistanceProvider` | Google Routes (D-81) | **built, waiting for the key** (Q-14); until then straight line × road factor, flagged `FALLBACK` (D-48) |
+| Address search / address of a spot | `createPlaces` (`geography/places.js`) | Google Places (New) + Geocoding (D-114) | **built, waiting for the key**; until then Jamzo's own zones and service areas (`source: LOCAL`) |
 | Object storage | `Storage` | S3-compatible | **local filesystem driver only** (D-23) |
 
 ## 7. Mobile applications

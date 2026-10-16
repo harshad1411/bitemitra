@@ -107,6 +107,13 @@ ADMIN_2FA=required   PUSH_PROVIDER=expo  EXPO_ACCESS_TOKEN=…
 GOOGLE_MAPS_API_KEY=…   METRICS_TOKEN=… (24+ random chars)
 ```
 
+**Google Maps (D-81, D-114).** One Google Cloud project "Jamzo" with billing and a budget alert. Enable **Geocoding
+API**, **Places API (New)** and **Routes API** and create a **server key** restricted to those three APIs and the
+Droplet's IP. Put it on the server with `ssh -t root@<droplet-ip> /opt/jamzo/deploy/set-maps-key.sh` (hidden input;
+the script checks all three APIs from the server and saves nothing if one fails), then set Jamzo Admin → Settings
+→ "Maps provider" to GOOGLE. Android store builds also need a second key, *Maps SDK for Android* only, restricted
+to the package `in.jamzo.customer` and the signing certificate, given to the build as `GOOGLE_MAPS_ANDROID_KEY`.
+
 The API refuses to start with development-only providers, local file storage, test gateway keys, insecure
 cookies or admin sign-in codes turned off in production.
 

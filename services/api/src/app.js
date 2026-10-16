@@ -43,6 +43,7 @@ import reviewRoutes from './modules/reviews/routes.js';
 import { createDispatch } from './modules/dispatch/service.js';
 import { createTrips } from './modules/dispatch/trips.js';
 import { createDistanceProvider } from './modules/delivery/distance.js';
+import { createPlaces } from './modules/geography/places.js';
 import { createPayments } from './modules/payments/service.js';
 import { createPaymentProvider } from './modules/payments/providers/index.js';
 import { mediaBase } from './modules/media/urls.js';
@@ -65,6 +66,7 @@ const GATE_EXEMPT = new Set(['/v1/app-config']);
  *   logger?: boolean | object,
  *   onRoute?: (route: any) => void,
  *   distance?: import('./modules/delivery/distance.js').DistanceProvider,
+ *   mapsFetch?: typeof fetch,
  *   paymentProvider?: import('./modules/payments/providers/razorpay.js').PaymentProvider,
  * }} deps
  */
@@ -122,6 +124,13 @@ export async function buildApp(deps) {
         getProvider: async () => (await config.resolve('maps.provider')).value.provider,
         log: app.log,
       }),
+    places: createPlaces({
+      prisma,
+      apiKey: env.GOOGLE_MAPS_API_KEY ?? null,
+      getProvider: async () => (await config.resolve('maps.provider')).value.provider,
+      fetch: deps.mapsFetch,
+      log: app.log,
+    }),
     mediaBase: mediaBase(env),
     dispatch: createDispatch({ prisma, clock, config, log: app.log }),
     trips: createTrips({ prisma, clock, otpSecret: env.FIELD_ENCRYPTION_KEY }),

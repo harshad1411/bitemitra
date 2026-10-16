@@ -75,7 +75,62 @@ export function installFakeApi({ appConfig = {}, me = {}, onRequest, withAddress
       return json(200, { ...q, lines: q.lines.map((l) => ({ ...l, key: body.lines[0].key })) });
     }
     if (path === '/v1/customer/favorites') return json(200, { items: [] });
+    if (path === '/v1/customer/addresses' && init.method === 'POST') {
+      const a = {
+        id: `addr-${orderState.addresses.items.length + 1}`,
+        ...body,
+        cityName: 'Unjha',
+        isDefault: false,
+        serviceable: true,
+      };
+      orderState.addresses = { items: [a, ...orderState.addresses.items] };
+      return json(201, a);
+    }
     if (path === '/v1/customer/addresses') return json(200, orderState.addresses);
+    // Maps (D-114): answers shaped like the real API's Google answers.
+    const q = new URL(url).searchParams;
+    if (path === '/v1/geo/cities')
+      return json(200, { items: [{ id: 'city-1', name: 'Unjha', lat: 23.8053, lng: 72.3935 }] });
+    if (path === '/v1/geo/places/search')
+      return json(200, {
+        source: 'GOOGLE',
+        items: [
+          {
+            id: 'g:temple',
+            title: 'Umiya Mata Temple',
+            subtitle: 'Unjha, Gujarat, India',
+            lat: null,
+            lng: null,
+          },
+        ],
+      });
+    if (path === '/v1/geo/places/details')
+      return json(200, { lat: 23.801235, lng: 72.392346, title: 'Umiya Mata Temple', address: null });
+    if (path === '/v1/geo/reverse') {
+      const atTemple = q.get('lat') === '23.801235';
+      return json(200, {
+        source: 'GOOGLE',
+        address: atTemple
+          ? {
+              title: 'Umiya Mata Temple',
+              line: 'Umiya Mata Temple, Station Rd, Unjha',
+              area: 'Unjha',
+              city: 'Unjha',
+              pincode: '384170',
+            }
+          : {
+              title: '12, Station Rd',
+              line: '12, Station Rd, Patel Vas, Unjha',
+              area: 'Patel Vas',
+              city: 'Unjha',
+              pincode: '384170',
+            },
+        serviceable: true,
+        reason: 'OK',
+        city: { id: 'city-1', name: 'Unjha' },
+        zone: { id: 'zone-1', name: 'Unjha Central' },
+      });
+    }
     if (path === '/v1/orders') {
       orderState.checkouts.push({ body, key: init.headers['idempotency-key'] });
       return json(201, { order: orderState.current, created: true });

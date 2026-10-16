@@ -3,6 +3,16 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Map pin and address search (2026-10-16) — OD-48
+
+### Added
+- Customer app: **Set delivery location** on a map (D-114). Move the map under the pin, or search for an area, street or landmark. Works when the customer refuses location permission — before, they could not add an address at all.
+- Saving an address: confirm the pin, then type house / flat, street and landmark and choose Home, Work or Other. The area and pincode come from the spot.
+- API: `GET /v1/geo/cities`, `/v1/geo/places/search`, `/v1/geo/places/details`, `/v1/geo/reverse`. They use Google when the admin setting `maps.provider` is GOOGLE and the server key exists; otherwise Jamzo's own zones and service areas.
+
+### Not yet verified
+- Google answers (street names, shop and landmark search) are tested against a fake Google only, until the owner adds the Google Maps key.
+
 ## Delivery partner performance (2026-10-16) — OD-48
 
 ### Added

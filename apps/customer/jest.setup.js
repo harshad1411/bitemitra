@@ -12,8 +12,25 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('expo-location', () => ({
   Accuracy: { Balanced: 3, High: 4 },
   requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'denied' })),
+  getForegroundPermissionsAsync: jest.fn(async () => ({ status: 'denied' })),
   getCurrentPositionAsync: jest.fn(async () => ({ coords: { latitude: 23.805, longitude: 72.39 } })),
+  getLastKnownPositionAsync: jest.fn(async () => null),
 }));
+
+// react-native-maps has no native module under Jest: a plain view. Moving the map (animateToRegion) ends
+// with onRegionChangeComplete, as on a phone; tests move it by firing 'regionChangeComplete' on testID "map".
+jest.mock('react-native-maps', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const MapView = React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      animateToRegion: (region) => props.onRegionChangeComplete?.(region),
+    }));
+    return React.createElement(View, props);
+  });
+  MapView.displayName = 'MapView';
+  return { __esModule: true, default: MapView };
+});
 
 // socket.io-client: tests push realtime notices through global.__realtime.emit(event, payload).
 jest.mock('socket.io-client', () => {

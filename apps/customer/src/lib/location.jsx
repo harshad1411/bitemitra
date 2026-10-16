@@ -1,5 +1,5 @@
-// Where the customer wants delivery (D-55): the device's current location, or a saved address. A map pin
-// picker needs the maps provider decision (Q-14).
+// Where the customer wants delivery (D-55): the device's current location, a spot set on the map (D-114), or
+// a saved address.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as Location from 'expo-location';
 import { load, save } from './storage';
@@ -29,7 +29,8 @@ export function LocationProvider({ children }) {
     if (perm.status !== 'granted')
       return {
         ok: false,
-        reason: 'Location permission was not given. You can choose a saved address instead.',
+        reason:
+          'Location permission was not given. Set your spot on the map or choose a saved address instead.',
       };
     try {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });

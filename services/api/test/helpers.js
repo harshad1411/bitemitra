@@ -61,7 +61,16 @@ export async function startTestApp(opts = {}) {
   const sms = createConsoleSmsProvider();
   const email = createConsoleEmailProvider();
   const storage = createLocalStorage({ root: mediaDir });
-  const app = await buildApp({ env, prisma, clock, sms, email, storage, logger: false });
+  const app = await buildApp({
+    env,
+    prisma,
+    clock,
+    sms,
+    email,
+    storage,
+    logger: false,
+    mapsFetch: opts.mapsFetch,
+  });
   await app.ready();
   return {
     app,

@@ -41,6 +41,7 @@
     "expo-web-browser": "catalog:",
     "react": "catalog:",
     "react-native": "catalog:",
+    "react-native-maps": "catalog:",
     "react-native-safe-area-context": "catalog:",
     "react-native-screens": "catalog:"
   },

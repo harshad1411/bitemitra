@@ -119,8 +119,10 @@ multi-GB toolchains (not done without owner approval). Phase 1 verification per 
 **Location permission.** Only foreground location is requested (`NSLocationWhenInUseUsageDescription`,
 Android `ACCESS_COARSE/FINE_LOCATION`). The plugin's default "Always" and motion usage descriptions are
 removed and Android background location is blocked (`blockedPermissions`) — checked in the prebuild
-output (`Info.plist`, `AndroidManifest.xml`) — the customer app never tracks in the background. Denial is explained and saved
-addresses remain available. A map pin picker needs the maps provider (Q-14).
+output (`Info.plist`, `AndroidManifest.xml`) — the customer app never tracks in the background. Denial is explained and never blocks:
+the customer sets the spot on the map instead (search, or move the map under the centre pin — D-114), or picks a
+saved address. Address search and the address of a spot come from the Jamzo API; the app holds no Google key
+(Android store builds carry only a map-drawing key, `GOOGLE_MAPS_ANDROID_KEY`).
 
 **Tests.** `apps/customer/__tests__/app.test.js` drives the real screens through Expo Router against a
 fake API whose customer responses (`fixtures.json`) were captured from the real API on the seeded

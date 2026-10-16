@@ -9,6 +9,7 @@ import Customize from '../src/app/customize';
 import CartScreen from '../src/app/cart';
 import Account from '../src/app/(tabs)/account';
 import Addresses from '../src/app/addresses';
+import MapPicker from '../src/app/map';
 import SignIn from '../src/app/sign-in';
 import CmsPage from '../src/app/page/[slug]';
 import Checkout from '../src/app/checkout';
@@ -48,6 +49,7 @@ const routes = {
   cart: CartScreen,
   '(tabs)/account': Account,
   addresses: Addresses,
+  map: MapPicker,
   'sign-in': SignIn,
   'page/[slug]': CmsPage,
   checkout: Checkout,
@@ -149,9 +151,72 @@ describe('customer app', () => {
     expect(await screen.findByText(/Signed in as/)).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Saved addresses'));
     expect(await screen.findByText('No saved addresses yet.')).toBeTruthy();
+    // A new address is set on the map (D-114): the pin opens at the city, the address of the spot is filled in.
     await fireEvent.press(screen.getByLabelText('Add a new address'));
+    expect(await screen.findByText('12, Station Rd')).toBeTruthy();
+    expect(calls.find((c) => c.path === '/v1/geo/reverse')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Confirm and add details'));
+    expect(screen.getByLabelText('Street, society or area').props.value).toBe(
+      '12, Station Rd, Patel Vas, Unjha',
+    );
     await fireEvent.press(screen.getByLabelText('Save address'));
-    expect(await screen.findByText('Enter the house / flat and street.')).toBeTruthy();
+    expect(await screen.findByText('Enter the house / flat number.')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('House / flat / floor'), 'B-4, Shanti Flats');
+    await fireEvent.changeText(screen.getByLabelText('Landmark (optional)'), 'Near the water tank');
+    await fireEvent.press(screen.getByLabelText('Work'));
+    await fireEvent.press(screen.getByLabelText('Save address'));
+    expect(
+      await screen.findByText(
+        'B-4, Shanti Flats, 12, Station Rd, Patel Vas, Unjha, Near the water tank, Unjha',
+      ),
+    ).toBeTruthy();
+    expect(calls.find((c) => c.path === '/v1/customer/addresses' && c.method === 'POST').body).toEqual({
+      label: 'Work',
+      line1: 'B-4, Shanti Flats, 12, Station Rd, Patel Vas, Unjha',
+      landmark: 'Near the water tank',
+      area: 'Patel Vas',
+      pincode: '384170',
+      lat: 23.8053,
+      lng: 72.3935,
+    });
+  });
+
+  it('sets the delivery spot on the map without location permission: search, pick, confirm', async () => {
+    const calls = installFakeApi();
+    await renderRouter(routes, { initialUrl: '/location' });
+    await fireEvent.press(await screen.findByLabelText('Use my current location'));
+    expect(await screen.findByText(/Set your spot on the map/)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Set location on the map'));
+    // Opens at the live city's centre and shows the address under the pin.
+    expect(await screen.findByText('12, Station Rd')).toBeTruthy();
+    // Location refused on the map too: explained, nothing blocked.
+    await fireEvent.press(screen.getByLabelText('Use current location'));
+    expect(await screen.findByText(/Location is off/)).toBeTruthy();
+
+    await fireEvent.changeText(screen.getByLabelText('Search for an area, street or landmark'), 'umiya');
+    await fireEvent.press(await screen.findByLabelText('Umiya Mata Temple, Unjha, Gujarat, India'));
+    const search = calls.find((c) => c.path === '/v1/geo/places/search');
+    const details = calls.find((c) => c.path === '/v1/geo/places/details');
+    expect(search).toBeTruthy();
+    expect(details).toBeTruthy();
+    expect(await screen.findByText('Umiya Mata Temple, Station Rd, Unjha')).toBeTruthy();
+
+    // Moving the map by hand updates the spot too.
+    await fireEvent(screen.getByTestId('map'), 'regionChangeComplete', {
+      latitude: 23.8055,
+      longitude: 72.3911,
+      latitudeDelta: 0.004,
+      longitudeDelta: 0.004,
+    });
+    expect(await screen.findByText('12, Station Rd')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Confirm location'));
+    expect(await screen.findByText('Recommended for you')).toBeTruthy();
+    expect(calls.filter((c) => c.path === '/v1/customer/home').at(-1)).toBeTruthy();
+    expect(JSON.parse(await AsyncStorage.getItem('jamzo.location.v1'))).toEqual({
+      lat: 23.8055,
+      lng: 72.3911,
+      label: '12, Station Rd',
+    });
   });
 
   it('explains a denied location permission and offers alternatives', async () => {

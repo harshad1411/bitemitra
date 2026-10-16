@@ -2,7 +2,9 @@
 // (packages/config/src/apps.js — DECISIONS D-15); this file adds only customer-specific settings.
 // Location: foreground only ("while using the app") to find restaurants that deliver to you (D-55). No
 // background location is ever requested by the customer app.
-// Env: APP_VARIANT = development | preview | production, EXPO_PUBLIC_API_URL, EAS_PROJECT_ID.
+// Env: APP_VARIANT = development | preview | production, EXPO_PUBLIC_API_URL, EAS_PROJECT_ID,
+// GOOGLE_MAPS_ANDROID_KEY (D-114: draws the map in Android builds only; a "Maps SDK for Android" key restricted
+// to the Jamzo package and signing certificate. Search and addresses use the server's key, never this one).
 const { buildExpoConfig } = require('@jamzo/config/expo');
 const { version } = require('./package.json');
 
@@ -23,6 +25,9 @@ module.exports = ({ config }) =>
     android: {
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
       blockedPermissions: ['android.permission.ACCESS_BACKGROUND_LOCATION'],
+      ...(process.env.GOOGLE_MAPS_ANDROID_KEY
+        ? { config: { googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_KEY } } }
+        : {}),
     },
     plugins: [
       [
