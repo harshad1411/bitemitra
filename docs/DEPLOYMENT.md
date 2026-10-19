@@ -59,8 +59,12 @@ script checks the keys with Razorpay, generates the webhook secret and shows it 
 
 - **Managed PostgreSQL:** daily backups + 7-day point-in-time restore (RPO ≈ minutes). Restore = DigitalOcean
   → Database → Restore from backup to a **new** cluster, check it, then switch `DATABASE_URL`.
-- **Extra copy:** `pnpm db:backup` (compressed `pg_dump`) weekly from the Droplet, uploaded to a private Spaces
-  folder (`backups/`), kept 8 weeks.
+- **Extra copy (D-118):** `deploy/backup.sh` nightly at 02:30 IST (timer `jamzo-backup`, installed by
+  `deploy/install-timers.sh`): compressed `pg_dump`, checked, uploaded to the private Spaces folder `backups/`,
+  kept 30 days. Restore one: download it from Spaces, then `pg_restore --clean --no-owner -d "$DATABASE_URL" file`
+  into a **new** database first.
+- **Watchdog (D-118):** `deploy/watchdog.sh` every 5 minutes emails admin@jamzo.in when the website, API, admin,
+  disk or backups need attention, and again when fixed. Logs: `journalctl -u jamzo-watchdog -u jamzo-backup`.
 - **Drill:** `pnpm db:restore-drill` restores the latest dump into a scratch database and compares every
   table's row count. Run 2026-09-25 on the development database: 94 tables, 1 591 rows, all equal. Repeat on
   staging before launch, then every quarter.

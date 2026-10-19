@@ -1072,6 +1072,20 @@ words of their reviews (stars stay). Orders, payments, invoices and ledgers are 
 covered yet: their accounts carry payouts and cash; deletion there stays a request to Jamzo support until
 designed with the partner agreements.
 
+### D-118. Daily extra backup and a watchdog with email alerts (OD-50)
+- **Backup:** `deploy/backup.sh` every night at 02:30 India time (systemd timer `jamzo-backup`): `pg_dump` 18
+  from the official image over the verified TLS connection, checked with `pg_restore --list`, uploaded **private**
+  to the Spaces bucket under `backups/`, deleted after **30 days** by a bucket lifecycle rule; the two newest
+  copies also stay on the Droplet. This is in addition to DigitalOcean's daily backups and 7-day point-in-time
+  restore of the managed database (D-103).
+- **Watchdog:** `deploy/watchdog.sh` every 5 minutes (timer `jamzo-watchdog`) checks https://api.jamzo.in/ready,
+  https://admin.jamzo.in and https://jamzo.in (three tries each), disk below 85% and a backup within 36 hours.
+  It emails **admin@jamzo.in** (`ALERT_EMAIL`) through the existing Brevo settings once when something breaks and
+  once when it is fine again — no new service or cost.
+- It cannot notice the Droplet itself being off; for that the owner can add a DigitalOcean Uptime check
+  (an outside service, shown with its price in the dashboard before enabling).
+- Updates now also trim Docker's build cache to 5 GB (it had reached 28 GB and filled 70% of the disk).
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 

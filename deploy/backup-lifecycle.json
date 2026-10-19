@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "jamzo-backups-30-days",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "backups/" },
+      "Expiration": { "Days": 30 }
+    }
+  ]
+}
