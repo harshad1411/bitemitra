@@ -1,13 +1,13 @@
 {
-  "legalName": null,
-  "ownerName": null,
-  "address": null,
-  "supportPhone": null,
+  "legalName": "JAMZO",
+  "ownerName": "Harshad Parmar",
+  "address": "64, Agharaparu, Block A, near Umiyamata Road, Unjha, District Mahesana, Gujarat 384170",
+  "supportPhone": "+91 87581 95390",
   "supportEmail": "support@jamzo.in",
   "partnersEmail": "partners@jamzo.in",
   "supportHours": "9 am to 11 pm, every day",
-  "grievanceOfficer": null,
-  "udyam": null,
+  "grievanceOfficer": "Harshad Parmar",
+  "udyam": "UDYAM-GJ-14-0081270",
   "gstin": null,
-  "effectiveDate": null
+  "effectiveDate": "2026-10-19"
 }

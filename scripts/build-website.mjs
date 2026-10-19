@@ -250,7 +250,7 @@ ${body}
     </div>
   </div>
   <div class="wrap legal-line">
-    <p>© ${year} ${esc(val('legalName'))}. Jamzo is a trade name of ${esc(val('legalName'))}. ${esc(registrations.join(' · '))}.</p>
+    <p>© ${year} ${esc(val('legalName'))}, proprietor ${esc(val('ownerName'))}. ${esc(val('address'))}. ${esc(registrations.join(' · '))}.</p>
   </div>
 </footer>
 </body>

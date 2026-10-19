@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://jamzo.in/sitemap.xml
