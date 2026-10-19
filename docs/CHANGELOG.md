@@ -8,6 +8,8 @@ release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.
 ### Changed
 - Checkout: compact delivery address with Change, sticky total and "Place order" bar (D-119).
 - Order tracking: coloured status card with the arrival estimate and four steps with times (D-119).
+- Restaurant Partner home: clearer store controls (pause pills, −5/+5 preparation time) and shortcut tiles.
+- Delivery Partner home: large Online/Offline card; cash in hand and earnings as tiles.
 
 ## Backups and alerts (2026-10-19) — OD-50
 

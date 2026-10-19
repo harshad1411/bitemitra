@@ -1,6 +1,7 @@
 // Restaurant Partner home. Signing in does NOT make someone a partner (OD-13): what they see depends on the
 // approval status the API reports, and every action is re-checked by the API (D-42).
 import { useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MOBILE_APPS } from '@jamzo/config/apps';
 import { registerForPush, useJamzo, useNetwork, userMessage } from '@jamzo/mobile-foundation';
@@ -10,10 +11,12 @@ import {
   Button,
   Card,
   ErrorState,
+  Icon,
   LoadingState,
   Screen,
   Text,
   ToggleRow,
+  useTheme,
 } from '@jamzo/mobile-ui';
 import { useResource } from '../lib/use-resource';
 import { openText } from '../lib/format';
@@ -62,6 +65,7 @@ function Access({ me, support }) {
 
 /** Open / pause / busy / preparation time for one branch (owners and managers). */
 function BranchControls({ branch, store, onChange }) {
+  const t = useTheme();
   const { api } = useJamzo();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -80,10 +84,23 @@ function BranchControls({ branch, store, onChange }) {
       setBusy(false);
     }
   };
+  const accepting = branch.isOpen && !paused;
   return (
     <Card>
-      <Text variant="heading">{branch.name}</Text>
-      <Badge tone={status.tone}>{status.text}</Badge>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: accepting ? t.colors.action : t.colors.textSubtle,
+          }}
+        />
+        <Text variant="heading" style={{ flex: 1 }}>
+          {branch.name}
+        </Text>
+        <Badge tone={status.tone}>{status.text}</Badge>
+      </View>
       {error ? <Banner tone="critical">{error}</Banner> : null}
       {can ? (
         <>
@@ -104,20 +121,35 @@ function BranchControls({ branch, store, onChange }) {
               onPress={() => update({ pauseMinutes: 0 })}
             />
           ) : (
-            <>
-              <Text variant="small">Pause new orders for a short while:</Text>
-              {[15, 30, 60]
-                .filter((n) => n <= store.limits.maxPauseMinutes)
-                .map((n) => (
-                  <Button
-                    key={n}
-                    title={`Pause ${n} minutes`}
-                    variant="secondary"
-                    disabled={busy || !branch.isOpen}
-                    onPress={() => update({ pauseMinutes: n })}
-                  />
-                ))}
-            </>
+            <View style={{ gap: 6 }}>
+              <Text variant="small">Pause new orders for a short while</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[15, 30, 60]
+                  .filter((n) => n <= store.limits.maxPauseMinutes)
+                  .map((n) => (
+                    <Pressable
+                      key={n}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Pause ${n} minutes`}
+                      accessibilityState={{ disabled: busy || !branch.isOpen }}
+                      disabled={busy || !branch.isOpen}
+                      onPress={() => update({ pauseMinutes: n })}
+                      style={{
+                        flex: 1,
+                        minHeight: 44,
+                        borderRadius: 22,
+                        borderWidth: 1,
+                        borderColor: t.colors.borderStrong,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: busy || !branch.isOpen ? 0.5 : 1,
+                      }}
+                    >
+                      <Text variant="strong">{`${n} min`}</Text>
+                    </Pressable>
+                  ))}
+              </View>
+            </View>
           )}
           <ToggleRow
             label="Busy mode"
@@ -126,24 +158,61 @@ function BranchControls({ branch, store, onChange }) {
             disabled={busy}
             onValueChange={(busyMode) => update({ busyMode })}
           />
-          <Text variant="body">Preparation time: {branch.prepTimeMinutes} minutes</Text>
-          <Button
-            title="− 5 minutes"
-            variant="secondary"
-            disabled={busy || branch.prepTimeMinutes <= 5}
-            onPress={() => update({ prepTimeMinutes: branch.prepTimeMinutes - 5 })}
-          />
-          <Button
-            title="+ 5 minutes"
-            variant="secondary"
-            disabled={busy}
-            onPress={() => update({ prepTimeMinutes: branch.prepTimeMinutes + 5 })}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text variant="body">Preparation time</Text>
+              <Text variant="strong">{`${branch.prepTimeMinutes} minutes`}</Text>
+            </View>
+            <Button
+              title="−5"
+              accessibilityLabel="− 5 minutes"
+              variant="secondary"
+              size="sm"
+              disabled={busy || branch.prepTimeMinutes <= 5}
+              onPress={() => update({ prepTimeMinutes: branch.prepTimeMinutes - 5 })}
+            />
+            <Button
+              title="+5"
+              accessibilityLabel="+ 5 minutes"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onPress={() => update({ prepTimeMinutes: branch.prepTimeMinutes + 5 })}
+            />
+          </View>
         </>
       ) : (
         <Text variant="muted">Only owners and managers can change the store status.</Text>
       )}
     </Card>
+  );
+}
+
+/** A square shortcut on the home screen. */
+function Tile({ icon, label, onPress, wide = false }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={{
+        width: wide ? '100%' : '48%',
+        minHeight: 84,
+        padding: t.spacing[3],
+        gap: 8,
+        borderRadius: 18,
+        backgroundColor: wide ? t.colors.primary : t.colors.surface,
+        borderWidth: wide ? 0 : 1,
+        borderColor: t.colors.border,
+        justifyContent: 'center',
+      }}
+    >
+      <Icon name={icon} size={24} color={wide ? t.colors.accent : t.colors.primary} />
+      <Text variant="strong" style={{ color: wide ? t.colors.onPrimary : t.colors.text }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -165,35 +234,43 @@ function Store({ restaurantId }) {
       {s.branches.map((b) => (
         <BranchControls key={b.id} branch={b} store={s} onChange={store.setData} />
       ))}
-      <Button
-        title="Orders"
-        onPress={() =>
-          router.push({ pathname: '/orders', params: { restaurantId, timeZone: s.restaurant.city.timezone } })
-        }
-      />
-      {s.capabilities['orders.finance'] ? (
-        <Button
-          title="Payouts"
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/payouts', params: { restaurantId } })}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
+        <Tile
+          wide
+          icon="receipt"
+          label="Orders"
+          onPress={() =>
+            router.push({
+              pathname: '/orders',
+              params: { restaurantId, timeZone: s.restaurant.city.timezone },
+            })
+          }
         />
-      ) : null}
-      {s.capabilities['orders.finance'] ? (
-        <Button
-          title="Sales"
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/sales', params: { restaurantId } })}
+        <Tile
+          icon="restaurant-outline"
+          label="Menu & sold-out items"
+          onPress={() => router.push({ pathname: '/menu', params: { restaurantId } })}
         />
-      ) : null}
-      <Button
-        title="Ratings"
-        variant="secondary"
-        onPress={() => router.push({ pathname: '/ratings', params: { restaurantId } })}
-      />
-      <Button
-        title="Menu & sold-out items"
-        onPress={() => router.push({ pathname: '/menu', params: { restaurantId } })}
-      />
+        <Tile
+          icon="star-outline"
+          label="Ratings"
+          onPress={() => router.push({ pathname: '/ratings', params: { restaurantId } })}
+        />
+        {s.capabilities['orders.finance'] ? (
+          <Tile
+            icon="trending-up-outline"
+            label="Sales"
+            onPress={() => router.push({ pathname: '/sales', params: { restaurantId } })}
+          />
+        ) : null}
+        {s.capabilities['orders.finance'] ? (
+          <Tile
+            icon="wallet-outline"
+            label="Payouts"
+            onPress={() => router.push({ pathname: '/payouts', params: { restaurantId } })}
+          />
+        ) : null}
+      </View>
       <Text variant="small">Menu content and prices are edited by Jamzo for now.</Text>
     </>
   );

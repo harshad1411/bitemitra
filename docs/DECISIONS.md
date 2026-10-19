@@ -1095,6 +1095,11 @@ designed with the partner agreements.
   cancelled) with the arrival estimate, then **four steps** — placed, being prepared, on the way, delivered — with
   the time each happened. It replaces the plain list of status changes. Cancelled and unpaid orders show only
   the card. Nothing about what the server decides changed.
+- **Restaurant Partner home:** each branch in one card with a status dot and badge, "Accepting orders", pause as
+  three pills (15 / 30 / 60 min), busy mode, and preparation time with −5 / +5; then tiles — Orders (large),
+  Menu & sold-out items, Ratings, Sales, Payouts. The orders screen was already in this style and is unchanged.
+- **Delivery Partner home:** a large Online / Offline card (green when taking requests) with the switch, then
+  "Cash in hand" and "Earnings" as two tiles.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 
