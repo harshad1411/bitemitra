@@ -3,7 +3,7 @@
 // attempt makes a double tap or a retry after a network error return the same order. Online orders then open
 // the payment page; the server confirms the payment with the gateway (D-84).
 import { useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { newIdempotencyKey, useJamzo, userMessage } from '@jamzo/mobile-foundation';
@@ -13,11 +13,13 @@ import {
   Card,
   EmptyState,
   Header,
+  Icon,
   LoadingState,
   Screen,
   Text,
   TextField,
   ToggleRow,
+  useTheme,
 } from '@jamzo/mobile-ui';
 import { useCart } from '../lib/cart';
 import { money } from '../lib/format';
@@ -30,6 +32,7 @@ const ONLINE_LABEL = { UPI: 'UPI', CARD: 'cards', NETBANKING: 'netbanking', WALL
 
 export default function Checkout() {
   const router = useRouter();
+  const t = useTheme();
   const qc = useQueryClient();
   const { api, session, env } = useJamzo();
   const cart = useCart();
@@ -43,6 +46,7 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
   const [choice, setChoice] = useState(null); // 'COD' | 'ONLINE'; null until the customer or the default decides
   const [problem, setProblem] = useState(null); // { message, issues? }
+  const [picking, setPicking] = useState(false); // choosing another saved address
   const attempt = useRef(null); // idempotency key of the current attempt (reused on retry)
 
   if (!signedIn)
@@ -131,28 +135,86 @@ export default function Checkout() {
   };
 
   return (
-    <Screen header={<Header title="Checkout" />}>
-      <Text variant="muted">{cart.restaurant.name}</Text>
-
-      <Card>
-        <Text variant="heading">Deliver to</Text>
-        {address ? (
-          <Text>{[address.label, address.line1, address.landmark].filter(Boolean).join(', ')}</Text>
-        ) : (
-          <Text variant="muted">Choose a saved address for this order.</Text>
-        )}
-        {saved
-          .filter((a) => a.id !== address?.id)
-          .map((a) => (
+    <Screen
+      header={<Header title="Checkout" subtitle={cart.restaurant.name} />}
+      footer={
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: t.spacing[3],
+            padding: t.spacing[4],
+            borderTopWidth: 1,
+            borderColor: t.colors.border,
+            backgroundColor: t.colors.surface,
+          }}
+        >
+          <View style={{ width: '25%' }}>
+            <Text variant="strong">{total != null ? money(total) : '—'}</Text>
+            <Text variant="small">{pay === 'COD' ? 'Cash' : 'Online'}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
             <Button
-              key={a.id}
-              variant="secondary"
-              title={`Deliver to ${a.label}: ${a.line1}${a.serviceable ? '' : ' (not served)'}`}
-              disabled={!a.serviceable}
-              onPress={() => choose({ lat: a.lat, lng: a.lng, label: a.label, addressId: a.id })}
+              title={
+                total != null
+                  ? `${pay === 'COD' ? 'Place order' : 'Place order and pay'} · ${money(total)}`
+                  : 'Place order'
+              }
+              busy={busy}
+              disabled={!address || !data?.canCheckout || busy}
+              onPress={placeOrder}
             />
-          ))}
-        <Button title="Add a new address" variant="secondary" onPress={() => router.push('/addresses')} />
+          </View>
+        </View>
+      }
+    >
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+          <Icon name="location" size={22} color={t.colors.action} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="heading">Deliver to</Text>
+            {address ? (
+              <Text>{[address.label, address.line1, address.landmark].filter(Boolean).join(', ')}</Text>
+            ) : (
+              <Text variant="muted">Choose a saved address for this order.</Text>
+            )}
+          </View>
+          {saved.length > 1 || !address ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Change address"
+              onPress={() => setPicking((v) => !v)}
+              hitSlop={10}
+            >
+              <Text style={{ color: t.colors.action, fontFamily: t.fonts.semibold }}>
+                {picking ? 'Close' : 'Change'}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {picking || !address
+          ? saved
+              .filter((a) => a.id !== address?.id)
+              .map((a) => (
+                <Button
+                  key={a.id}
+                  variant="secondary"
+                  title={`Deliver to ${a.label}: ${a.line1}${a.serviceable ? '' : ' (not served)'}`}
+                  disabled={!a.serviceable}
+                  onPress={() => {
+                    choose({ lat: a.lat, lng: a.lng, label: a.label, addressId: a.id });
+                    setPicking(false);
+                  }}
+                />
+              ))
+          : null}
+        {picking || !address ? (
+          <Button
+            title="Add a new address"
+            variant="ghost"
+            onPress={() => router.push('/map?purpose=save')}
+          />
+        ) : null}
       </Card>
 
       <Card>
@@ -219,9 +281,19 @@ export default function Checkout() {
                 <Text>{money(b.amountPaise)}</Text>
               </View>
             ))}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontWeight: '700' }}>{pay === 'COD' ? 'To pay (cash)' : 'To pay (online)'}</Text>
-              <Text style={{ fontWeight: '700' }}>{money(total)}</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                borderTopWidth: 1,
+                borderStyle: 'dashed',
+                borderColor: t.colors.borderStrong,
+                paddingTop: 8,
+                marginTop: 4,
+              }}
+            >
+              <Text variant="strong">{pay === 'COD' ? 'To pay (cash)' : 'To pay (online)'}</Text>
+              <Text variant="strong">{money(total)}</Text>
             </View>
           </>
         ) : null}
@@ -240,16 +312,6 @@ export default function Checkout() {
           ].join(' ')}
         </Banner>
       ) : null}
-      <Button
-        title={
-          total != null
-            ? `${pay === 'COD' ? 'Place order' : 'Place order and pay'} · ${money(total)}`
-            : 'Place order'
-        }
-        busy={busy}
-        disabled={!address || !data?.canCheckout || busy}
-        onPress={placeOrder}
-      />
       <Text variant="small">
         {pay === 'COD'
           ? 'By placing the order you agree to pay the total in cash on delivery.'

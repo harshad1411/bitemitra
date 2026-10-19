@@ -1086,6 +1086,16 @@ designed with the partner agreements.
   (an outside service, shown with its price in the dashboard before enabling).
 - Updates now also trim Docker's build cache to 5 GB (it had reached 28 GB and filled 70% of the disk).
 
+### D-119. Checkout and order tracking in the food-app look (OD-44, OD-50)
+- **Checkout:** the restaurant name in the header; the delivery address as one line with **Change** (saved
+  addresses and "Add a new address" — the map, D-114 — open only when asked); payment, notes and bill as before
+  with a dashed line above the total; a **sticky bar** at the bottom with the total and "Place order", like the
+  cart.
+- **Order tracking:** a coloured **status card** (navy while the order is moving, green when delivered, grey when
+  cancelled) with the arrival estimate, then **four steps** — placed, being prepared, on the way, delivered — with
+  the time each happened. It replaces the plain list of status changes. Cancelled and unpaid orders show only
+  the card. Nothing about what the server decides changed.
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 

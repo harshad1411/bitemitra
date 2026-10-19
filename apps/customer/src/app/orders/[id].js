@@ -8,8 +8,9 @@ import { useJamzo, useRealtime, userMessage } from '@jamzo/mobile-foundation';
 import { Banner, Button, Card, ErrorState, Header, LoadingState, Screen, Text } from '@jamzo/mobile-ui';
 import { VegMark } from '../../components/bits';
 import { RateOrder } from '../../components/rate-order';
+import { ProgressSteps, StatusCard } from '../../components/order-progress';
 import { arrivalLabel, mapPinUrl, money } from '../../lib/format';
-import { CANCEL_REASONS, REFUND_TEXT, TIMELINE_LABEL, statusText } from '../../lib/order-status';
+import { CANCEL_REASONS, REFUND_TEXT, statusText } from '../../lib/order-status';
 import { payOnline } from '../../lib/pay';
 import { TERMINAL, useOrder } from '../../lib/queries';
 import { useReorder } from '../../lib/reorder';
@@ -80,10 +81,8 @@ export default function OrderScreen() {
   };
   return (
     <Screen header={<Header title="Order" subtitle={o.orderNumber} />}>
-      <Text variant="title" accessibilityRole="header">
-        {s.title}
-      </Text>
-      <Text variant="muted">{s.text}</Text>
+      <StatusCard order={o} status={s} eta={o.delivery?.eta ? arrivalLabel(o.delivery.eta) : null} />
+      <ProgressSteps order={o} />
       {error ? <Banner tone="critical">{error}</Banner> : null}
 
       {o.status === 'PAYMENT_PENDING' ? (
@@ -116,7 +115,6 @@ export default function OrderScreen() {
           {o.delivery.code ? (
             <Banner tone="info">{`Share this delivery code with ${o.delivery.rider.firstName} at the door: ${o.delivery.code}`}</Banner>
           ) : null}
-          {o.delivery.eta ? <Text>{arrivalLabel(o.delivery.eta)}</Text> : null}
           {o.delivery.rider.position ? (
             <>
               <Text variant="small">{`Location updated ${time(o.delivery.rider.position.at)}`}</Text>
@@ -153,16 +151,6 @@ export default function OrderScreen() {
           }
         />
       ) : null}
-
-      <Card>
-        <Text variant="heading">Progress</Text>
-        {o.timeline.map((t, i) => (
-          <View key={`${t.status}-${i}`} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text>{TIMELINE_LABEL[t.status] ?? t.status}</Text>
-            <Text variant="small">{time(t.at)}</Text>
-          </View>
-        ))}
-      </Card>
 
       <Card>
         <Text variant="heading">{o.restaurant.name}</Text>

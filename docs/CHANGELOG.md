@@ -3,6 +3,12 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Checkout and order tracking redesign (2026-10-19) — OD-50
+
+### Changed
+- Checkout: compact delivery address with Change, sticky total and "Place order" bar (D-119).
+- Order tracking: coloured status card with the arrival estimate and four steps with times (D-119).
+
 ## Backups and alerts (2026-10-19) — OD-50
 
 ### Added
