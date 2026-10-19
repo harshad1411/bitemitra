@@ -1,5 +1,6 @@
 // The Razorpay adapter (D-82) against a fake Razorpay HTTP API: request shapes, auth, state mapping, webhook
-// signatures and refund safety. Not verified with Razorpay itself until the owner creates test keys.
+// signatures and refund safety. Checked against Razorpay test mode on 2026-10-19 (order, checkout, server check, webhook
+// signature, automatic capture).
 import { createHmac } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { createRazorpayProvider, parseRazorpayWebhook } from '../src/modules/payments/providers/razorpay.js';
@@ -42,6 +43,36 @@ describe('razorpay adapter', () => {
       notes: { jamzoPaymentId: 'p-1' },
     });
     expect(rp.publicKey).toBe('rzp_test_key123'); // only the public key id ever reaches the payment page
+  });
+
+  it('capture: Razorpay already captured it (automatic capture won the race) → the captured payment, not an error', async () => {
+    const { rp, fetch } = make((path, init) =>
+      init.method === 'POST'
+        ? json(400, {
+            error: { code: 'BAD_REQUEST_ERROR', description: 'This payment has already been captured' },
+          })
+        : json(200, {
+            id: 'pay_9',
+            status: 'captured',
+            amount: 13_300,
+            currency: 'INR',
+            method: 'netbanking',
+          }),
+    );
+    expect(await rp.capture('pay_9', 13_300, 'INR')).toMatchObject({
+      state: 'CAPTURED',
+      providerPaymentId: 'pay_9',
+      amountPaise: 13_300,
+    });
+    expect(fetch.mock.calls.map(([u, i]) => `${i.method} ${new URL(u).pathname}`)).toEqual([
+      'POST /v1/payments/pay_9/capture',
+      'GET /v1/payments/pay_9',
+    ]);
+    // Any other refusal is still an error.
+    const other = make(() =>
+      json(400, { error: { description: 'Capture amount must be equal to the amount authorized' } }),
+    );
+    await expect(other.rp.capture('pay_9', 100, 'INR')).rejects.toThrow(/Capture amount/);
   });
 
   it("reads an order's payments: captured wins over failed tries; fee and tax in paise", async () => {

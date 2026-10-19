@@ -129,12 +129,16 @@ export function createRazorpayProvider({
       return bestOf(r.items ?? []);
     },
     async capture(providerPaymentId, amountPaise, currency) {
-      return toGatewayPayment(
-        await call('POST', `/payments/${encodeURIComponent(providerPaymentId)}/capture`, {
-          amount: amountPaise,
-          currency,
-        }),
-      );
+      const path = `/payments/${encodeURIComponent(providerPaymentId)}`;
+      try {
+        return toGatewayPayment(await call('POST', `${path}/capture`, { amount: amountPaise, currency }));
+      } catch (err) {
+        // Razorpay's automatic capture can win the race with ours (webhook payment.authorized): that is a
+        // success, not an error — read the payment as it now is.
+        if (err.status === 400 && /already been captured/i.test(err.message))
+          return toGatewayPayment(await call('GET', path));
+        throw err;
+      }
     },
     verifyWebhook: (rawBody, headers) => parseRazorpayWebhook(rawBody, headers, webhookSecret),
     async createRefund({ refundId, providerPaymentId, amountPaise }) {
