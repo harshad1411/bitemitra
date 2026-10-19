@@ -379,6 +379,7 @@ put(
   shell({
     title: 'Page not found · Jamzo',
     description: 'This page does not exist.',
+    current: null,
     body: `<section class="page-hero"><div class="wrap"><p class="eyebrow">404</p><h1>Page not found</h1></div></section>
 <article class="wrap prose"><p>This page does not exist. <a href="/">Go to the Jamzo home page</a>.</p></article>`,
   }),

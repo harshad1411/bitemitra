@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (244 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (247 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -164,6 +164,7 @@ _Generated from the route definitions by `pnpm docs:api` (244 endpoints). Do not
 | `PATCH` | `/v1/admin/menu-categories/:id` | admin token | ADMIN | `products.manage` |  |
 | `GET` | `/v1/admin/notification-templates` | admin token | ADMIN | `notifications.manage` |  |
 | `PATCH` | `/v1/admin/notification-templates/:id` | admin token | ADMIN | `notifications.manage` |  |
+| `POST` | `/v1/admin/offer-notifications` | admin token | ADMIN | `notifications.manage` | 2× auth limit/min |
 | `GET` | `/v1/admin/orders` | admin token | ADMIN | `orders.view` |  |
 | `GET` | `/v1/admin/orders/:id` | admin token | ADMIN | `orders.view` |  |
 | `POST` | `/v1/admin/orders/:id/assign` | admin token | ADMIN | `orders.assign_rider` |  |
@@ -270,6 +271,7 @@ _Generated from the route definitions by `pnpm docs:api` (244 endpoints). Do not
 | `DELETE` | `/v1/customer/addresses/:id` | required | CUSTOMER | — |  |
 | `PATCH` | `/v1/customer/addresses/:id` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/cart/quote` | optional | CUSTOMER | — | 120/min |
+| `GET` | `/v1/customer/consents` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/consents` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/favorites` | required | CUSTOMER | — |  |
 | `DELETE` | `/v1/customer/favorites/:id` | required | CUSTOMER | — |  |
@@ -280,6 +282,7 @@ _Generated from the route definitions by `pnpm docs:api` (244 endpoints). Do not
 | `POST` | `/v1/customer/orders/:id/cancel` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/orders/:id/payment` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/orders/:id/payment/verify` | required | CUSTOMER | — |  |
+| `POST` | `/v1/customer/orders/:id/reorder` | required | CUSTOMER | — |  |
 | `POST` | `/v1/customer/orders/:id/review` | required | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants` | optional | CUSTOMER | — |  |
 | `GET` | `/v1/customer/restaurants/:id` | optional | CUSTOMER | — |  |

@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { registerForPush, useJamzo, useNetwork } from '@jamzo/mobile-foundation';
-import { Button, Card, ListRow, SectionTitle, Screen, Text, useTheme } from '@jamzo/mobile-ui';
+import { Button, Card, ListRow, SectionTitle, Screen, Text, ToggleRow, useTheme } from '@jamzo/mobile-ui';
 
 function Favorites() {
   const router = useRouter();
@@ -30,6 +30,50 @@ function Favorites() {
         </Text>
       )}
     </Card>
+  );
+}
+
+/** Offers by notification only with consent (D-116); order updates are not affected by this switch. */
+const CONSENT_VERSION = '2026-10';
+function OffersSwitch() {
+  const { api, env } = useJamzo();
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);
+  const q = useQuery({ queryKey: ['consents'], queryFn: () => api.get('/v1/customer/consents') });
+  const on = Boolean(q.data?.items.find((c) => c.kind === 'MARKETING_PUSH')?.granted);
+  const change = async (granted) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.post('/v1/customer/consents', { kind: 'MARKETING_PUSH', version: CONSENT_VERSION, granted });
+      await qc.invalidateQueries({ queryKey: ['consents'] });
+      if (granted) {
+        const r = await registerForPush({
+          api,
+          easProjectId: env.easProjectId,
+          androidChannel: { id: 'offers', name: 'Offers', importance: 'DEFAULT' },
+        });
+        if (r.status !== 'registered')
+          setNote('Saved. Offers will arrive once notifications are allowed for Jamzo on this phone.');
+      }
+    } catch {
+      setNote('Could not save. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <ToggleRow
+        label="Offers and updates"
+        description="Hear about offers from restaurants near you. Order updates come either way."
+        value={on}
+        disabled={busy || q.isPending}
+        onValueChange={change}
+      />
+      {note ? <Text variant="small">{note}</Text> : null}
+    </>
   );
 }
 
@@ -102,6 +146,7 @@ export default function Account() {
           <Favorites />
           <Card>
             <SectionTitle>Notifications</SectionTitle>
+            <OffersSwitch />
             <Text variant="muted">
               {push ? `${push.status}${push.reason ? ` — ${push.reason}` : ''}` : 'Not requested yet.'}
             </Text>

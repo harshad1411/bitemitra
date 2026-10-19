@@ -23,6 +23,7 @@ import { createMenuPricer, loadRuleSet, ruleTargets } from '../pricing/service.j
 import { customerAvailability, discover, locationFrom, sortCards } from './discovery.js';
 import { quoteCart } from './cart.js';
 import { publicRating } from '../reviews/service.js';
+import { itemsSummary } from '../orders/reorder.js';
 
 const CUSTOMER = { apps: ['CUSTOMER'] };
 const BROWSE = { apps: ['CUSTOMER'], auth: 'optional' };
@@ -256,7 +257,32 @@ export default async function customerRoutes(app) {
       )
         .filter(targeted)
         .map((s) => ({ ...s, banners: s.banners.filter(targeted) }));
-      const isNewCustomer = true; // no orders exist before Phase 5
+      // Personal sections for a signed-in customer (D-116): order again, and saved restaurants that deliver here.
+      const me = request.auth
+        ? await prisma.customer.findUnique({ where: { userId: request.auth.userId }, select: { id: true } })
+        : null;
+      const delivered = me
+        ? await prisma.order.findMany({
+            where: { customerId: me.id, status: 'DELIVERED' },
+            orderBy: { deliveredAt: 'desc' },
+            take: 30,
+            select: {
+              id: true,
+              restaurantId: true,
+              totalPayablePaise: true,
+              deliveredAt: true,
+              items: { select: { productName: true, quantity: true }, orderBy: { createdAt: 'asc' } },
+            },
+          })
+        : [];
+      const favourites = me
+        ? await prisma.favoriteRestaurant.findMany({
+            where: { customerId: me.id },
+            orderBy: { createdAt: 'desc' },
+            select: { restaurantId: true },
+          })
+        : [];
+      const isNewCustomer = delivered.length === 0;
       const mediaIds = sections
         .flatMap((s) => [s.mediaId, ...s.banners.map((b) => b.mediaId)])
         .filter(Boolean);
@@ -273,6 +299,7 @@ export default async function customerRoutes(app) {
       const byIdCard = new Map(candidates.map((c) => /** @type {[string, any]} */ ([c.card.id, c.card])));
       const reachableIds = candidates.map((c) => c.restaurant.id);
       const byId = new Map(candidates.map((c) => /** @type {[string, any]} */ ([c.restaurant.id, c])));
+      /** @type {any[]} */
       const out = [];
       for (const s of sections) {
         const cfg = /** @type {any} */ (s.config ?? {});
@@ -417,6 +444,35 @@ export default async function customerRoutes(app) {
             break;
         }
       }
+      const cardById = new Map(cards.map((c) => [c.id, c]));
+      const personal = [];
+      const seen = new Set();
+      const again = [];
+      for (const o of delivered) {
+        if (again.length === 6 || seen.has(o.restaurantId) || !cardById.has(o.restaurantId)) continue;
+        seen.add(o.restaurantId);
+        again.push({
+          id: o.id,
+          summary: itemsSummary(o.items),
+          totalPayablePaise: o.totalPayablePaise,
+          deliveredAt: o.deliveredAt,
+          restaurant: cardById.get(o.restaurantId),
+        });
+      }
+      if (again.length)
+        personal.push({ id: 'order-again', type: 'ORDER_AGAIN', title: 'Order again', orders: again });
+      const favCards = favourites.map((f) => cardById.get(f.restaurantId)).filter(Boolean);
+      if (favCards.length)
+        personal.push({
+          id: 'favourites',
+          type: 'FAVOURITES',
+          title: 'Your favourites',
+          restaurants: favCards,
+        });
+      // After the banners and categories at the top, before everything else.
+      let at = 0;
+      while (at < out.length && ['BANNER_CAROUSEL', 'CATEGORIES'].includes(out[at].type)) at += 1;
+      out.splice(at, 0, ...personal);
       // With no CMS sections configured the app still gets a useful home: every restaurant that delivers here.
       if (!sections.length && cards.length)
         out.push({
@@ -802,6 +858,27 @@ export default async function customerRoutes(app) {
   );
 
   // ── Consents (DPDP; legal texts pending Q-12) ──
+  // The customer's current choice per kind = their latest record (records are never changed, only added).
+  app.get(
+    '/v1/customer/consents',
+    { config: CUSTOMER },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const rows = await prisma.consentRecord.findMany({
+        where: { userId: request.auth.userId },
+        orderBy: { createdAt: 'desc' },
+        distinct: ['kind'],
+      });
+      return {
+        items: rows.map((r) => ({
+          kind: r.kind,
+          version: r.version,
+          granted: r.granted,
+          createdAt: r.createdAt,
+        })),
+      };
+    },
+  );
+
   app.post(
     '/v1/customer/consents',
     { config: CUSTOMER },

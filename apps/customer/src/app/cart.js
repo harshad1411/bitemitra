@@ -2,7 +2,7 @@
 // layout (D-109): items with steppers, coupon, tip and bill in cards, and the total pinned at the bottom.
 import { useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { userMessage } from '@jamzo/mobile-foundation';
 import {
   Badge,
@@ -51,6 +51,8 @@ export default function CartScreen() {
   const router = useRouter();
   const t = useTheme();
   const cart = useCart();
+  // "Order again" names the dishes it could not add (D-116).
+  const { notice } = useLocalSearchParams();
   const { place } = useLocation();
   const q = useQuote(cart, place);
   const [code, setCode] = useState(cart.couponCode ?? '');
@@ -123,6 +125,7 @@ export default function CartScreen() {
   );
   return (
     <Screen header={header} footer={footer}>
+      {typeof notice === 'string' && notice ? <Banner tone="warning">{notice}</Banner> : null}
       <Card>
         {cart.lines.map((l) => {
           const priced = data?.lines?.find((x) => x.key === l.key);

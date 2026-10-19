@@ -166,6 +166,7 @@ export function Button({
   busy = false,
   disabled = false,
   accessibilityHint,
+  accessibilityLabel,
   icon,
   size = 'md',
 }) {
@@ -180,7 +181,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: off, busy }}
       disabled={off}

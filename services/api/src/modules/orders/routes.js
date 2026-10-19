@@ -42,6 +42,7 @@ import { allowedCityIds, canInCity, hasGlobal } from '../../core/auth.js';
 import { maskPhone } from '@jamzo/logger';
 import { createMemberGuard } from '../restaurants/membership.js';
 import { placeOrder } from './checkout.js';
+import { rebuildCart } from './reorder.js';
 import {
   ORDER_DETAIL_INCLUDE,
   applyResult,
@@ -270,6 +271,29 @@ export default async function orderRoutes(app) {
       const { id } = parse(idParam, request.params);
       const customer = await customerOf(request);
       return customerDetail(customer.id, id);
+    },
+  );
+
+  // "Order again" (D-116): the cart rebuilt from today's menu; the app re-quotes it like any cart.
+  app.post(
+    '/v1/customer/orders/:id/reorder',
+    { config: CUSTOMER },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const { id } = parse(idParam, request.params);
+      const customer = await customerOf(request);
+      const order = await prisma.order.findFirst({
+        where: { id, customerId: customer.id },
+        include: {
+          items: { include: { addons: true }, orderBy: { createdAt: 'asc' } },
+          restaurant: { select: { id: true, name: true } },
+        },
+      });
+      if (!order) throw notFound('Order');
+      const products = await prisma.product.findMany({
+        where: { id: { in: order.items.map((i) => i.productId) } },
+        include: { variants: true, addonGroups: { include: { addons: true } } },
+      });
+      return { restaurant: order.restaurant, ...rebuildCart(order, products) };
     },
   );
 

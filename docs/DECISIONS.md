@@ -66,6 +66,7 @@ Last updated: 2026-10-16 (partner performance — OD-48).
 | OD-47 | **Jamzo online as a demo** (owner, 2026-10-15: "I want deploy this app now"). The owner created the DigitalOcean resources himself after seeing the live price (Droplet 2 GB $12 + managed PostgreSQL 18, 1 GB $15.15 + Spaces $5 = $32.15 + 18% GST ≈ ₹3,300/month, OD-40). Live at https://admin.jamzo.in and https://api.jamzo.in in **demo mode** (D-112) until MSG91, email and Razorpay exist. Demo restaurants added at the owner's choice. |
 | OD-48 | **Next features, one at a time, no AI for now** (owner, 2026-10-16: "we wont ai for now do one by one implementation"). Order agreed: (1) **delivery partner performance** in Jamzo Admin (D-113) — needs nothing from the owner, built first; (2) **map pin + place search for addresses** (customers who refuse location cannot add an address today) — needs the owner's Google Cloud / Maps key (Q-14); (3) **"Order again", favourite cuisines and opt-in offer notifications** without AI. AI suggestions wait until there are 1–2 months of real orders. Each step stops for the owner's review. |
 | OD-49 | **Website at jamzo.in, built and put online by the developer** (owner, 2026-10-19: "why you dont make website do it properly and deploy it … choose design best and do needful"). Needed for the Razorpay application (policy pages). The owner supplies the business details and adds the DNS record; everything else is built and deployed by the developer. → D-115. |
+| OD-50 | **Finish the developer's pending work** (owner, 2026-10-19: "finish your work why pending"). Taken as permission to build the remaining items that need nothing from the owner one after another, each documented, tested, committed and deployed, with a report at the end: (1) "Order again" and favourite restaurants (OD-48 #3), (2) in-app account deletion (store requirement, Q-12), (3) daily database backups and an uptime alert, (4) redesign of checkout, order tracking and the partner apps. Still waiting on the owner: Expo account (Android build), Google Maps key, approvals (DLT, Razorpay). |
 
 
 ## 2. Engineering decisions
@@ -1040,6 +1041,24 @@ Contact** pages. jamzo.in had no website.
   served from the site itself (no Google Fonts requests); no cookies, no tracking.
 - The pages are the **drafts of Q-12, not yet reviewed by a lawyer**; the owner chose to publish them now for
   the Razorpay application and can have them reviewed later.
+
+### D-116. "Order again", favourites on Home, and opt-in offer notifications (OD-48 #3, OD-50)
+No AI: everything comes from the customer's own orders and choices.
+- **Home, signed-in customers:** two personal sections after the banners and categories — **"Order again"**
+  (up to 6 restaurants the customer received orders from, newest first, only those that deliver to the chosen
+  location now; each shows what was ordered last time) and **"Your favourites"** (saved restaurants that deliver
+  there). Guests and new customers do not see them. "New customer" sections (CMS audience) now really mean
+  "no delivered order yet".
+- **Order again** (`POST /v1/customer/orders/:id/reorder`, the customer's own orders): rebuilds the cart from the
+  order's items with **today's menu**: a dish that is sold out, removed or whose options changed (a size or
+  required choice that no longer exists) is left out and listed, so the app can say so. Prices are never copied
+  from the old order — the cart shows the server's new quote as always. Offered on Home and on every delivered or
+  cancelled order.
+- **Offers by notification, only with consent:** Account → "Offers and updates" switch records the
+  `MARKETING_PUSH` consent (versioned, as other consents). Jamzo Admin → **Offer notifications** (permission
+  `notifications.manage`) sends a title, a message and an optional link to customers who said yes, optionally limited to
+  one city, after showing how many will receive it. Order updates are separate and not affected by the switch.
+  Every send is audit-logged with the number of recipients.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

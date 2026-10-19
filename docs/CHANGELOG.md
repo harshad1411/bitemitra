@@ -3,6 +3,16 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Order again, favourites and offer notifications (2026-10-19) — OD-48, OD-50
+
+### Added
+- Customer app: **Order again** on Home (what was ordered last time) and on every finished order. The cart is rebuilt from today's menu; dishes that are sold out, removed or whose options changed are named and left out (D-116).
+- Home shows **Your favourites** (saved restaurants that deliver to you).
+- Account → **Offers and updates** switch (consent, off by default). Jamzo Admin → Notifications → **Send an offer**: count who will receive it, then send — only to customers who switched offers on.
+
+### Fixed
+- Admin notification template form now shows field errors (they were never displayed).
+
 ## Website and Razorpay test mode (2026-10-19) — OD-49
 
 ### Added

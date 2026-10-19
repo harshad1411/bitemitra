@@ -24,6 +24,8 @@ import { notServedLabel } from '../../lib/format';
 import { useLocation } from '../../lib/location';
 import { TERMINAL, useHome, useOrders } from '../../lib/queries';
 import { TIMELINE_LABEL } from '../../lib/order-status';
+import { money } from '../../lib/format';
+import { useReorder } from '../../lib/reorder';
 
 const LOGO = require('../../../assets/logo-on-dark.png');
 
@@ -53,6 +55,96 @@ function Heading({ children, subtitle }) {
         {children}
       </Text>
       {subtitle ? <Text variant="small">{subtitle}</Text> : null}
+    </View>
+  );
+}
+
+/** "Order again" (D-116): what was ordered last time, one tap back into the cart with today's prices. */
+function OrderAgain({ s }) {
+  const t = useTheme();
+  const router = useRouter();
+  const orderAgain = useReorder();
+  return (
+    <View style={{ gap: t.spacing[3] }}>
+      <Heading>{s.title}</Heading>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {s.orders.map((o) => (
+          <View
+            key={o.id}
+            style={{
+              width: 250,
+              padding: t.spacing[4],
+              gap: 6,
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: t.colors.border,
+              backgroundColor: t.colors.surface,
+            }}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${o.restaurant.name}`}
+              onPress={() => router.push(`/restaurant/${o.restaurant.id}`)}
+              style={{ gap: 4 }}
+            >
+              <Text variant="strong" numberOfLines={1}>
+                {o.restaurant.name}
+              </Text>
+              <Text variant="small" numberOfLines={2}>
+                {o.summary}
+              </Text>
+              <Text variant="small">{`Last time ${money(o.totalPayablePaise)}`}</Text>
+            </Pressable>
+            <Button
+              title="Order again"
+              variant="secondary"
+              accessibilityLabel={`Order again from ${o.restaurant.name}`}
+              onPress={() => orderAgain(o.id)}
+            />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+/** Saved restaurants that deliver here, as a compact row (D-116). */
+function Favourites({ s }) {
+  const t = useTheme();
+  const router = useRouter();
+  return (
+    <View style={{ gap: t.spacing[3] }}>
+      <Heading>{s.title}</Heading>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {s.restaurants.map((r) => (
+          <Pressable
+            key={r.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Favourite: ${r.name}`}
+            onPress={() => router.push(`/restaurant/${r.id}`)}
+            style={{
+              width: 170,
+              padding: t.spacing[3],
+              gap: 4,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: t.colors.border,
+              backgroundColor: t.colors.surface,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="heart" size={16} color={t.colors.critical} />
+              <Text variant="strong" numberOfLines={1} style={{ flex: 1 }}>
+                {r.name}
+              </Text>
+            </View>
+            <Text variant="small" numberOfLines={1}>
+              {r.cuisines.join(', ')}
+            </Text>
+            {r.open?.isOpen === false ? <Text variant="small">Closed now</Text> : null}
+          </Pressable>
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -126,6 +218,8 @@ function Section({ s }) {
         </ScrollView>
       </View>
     );
+  if (s.type === 'ORDER_AGAIN') return <OrderAgain s={s} />;
+  if (s.type === 'FAVOURITES') return <Favourites s={s} />;
   if (s.restaurants)
     return (
       <View style={{ gap: t.spacing[3] }}>

@@ -371,6 +371,114 @@ describe('customer app', () => {
     expect(screen.queryByText('Rate your order')).toBeNull();
   });
 
+  it('orders again from Home and from a past order: today’s menu, and it says what could not be added (D-116)', async () => {
+    const base = fixtures.delivery.delivered;
+    const bread = fixtures.restaurant.sections
+      .flatMap((x) => x.products)
+      .find((x) => x.name === 'Cheese Sandwich');
+    const reorder = {
+      restaurant: { id: base.restaurant.id, name: 'Pizza Point' },
+      lines: [
+        {
+          productId: bread.id,
+          variantId: null,
+          addonIds: [],
+          quantity: 2,
+          name: 'Cheese Sandwich',
+          variantName: null,
+          addonNames: [],
+          foodType: 'VEG',
+        },
+      ],
+      skipped: [{ name: 'Margherita (Medium 10")', reason: 'SOLD_OUT' }],
+    };
+    const card = fixtures.home.sections.find((x) => x.restaurants)?.restaurants[0];
+    const calls = installFakeApi({
+      onRequest: (path) => {
+        if (path === '/v1/customer/home')
+          return {
+            body: {
+              ...fixtures.home,
+              sections: [
+                {
+                  id: 'order-again',
+                  type: 'ORDER_AGAIN',
+                  title: 'Order again',
+                  orders: [
+                    {
+                      id: base.id,
+                      summary: 'Cheese Sandwich × 2, Margherita',
+                      totalPayablePaise: 31_900,
+                      restaurant: { ...card, name: 'Pizza Point' },
+                    },
+                  ],
+                },
+                {
+                  id: 'favourites',
+                  type: 'FAVOURITES',
+                  title: 'Your favourites',
+                  restaurants: [{ ...card, name: 'Pizza Point' }],
+                },
+                ...fixtures.home.sections,
+              ],
+            },
+          };
+        if (path === `/v1/customer/orders/${base.id}/reorder`) return { body: reorder };
+        if (path === `/v1/customer/orders/${base.id}`) return { body: base };
+        return null;
+      },
+    });
+    await renderRouter(routes, { initialUrl: '/' });
+    await chooseDemoLocation();
+    expect(screen.getByText('Cheese Sandwich × 2, Margherita')).toBeTruthy();
+    expect(screen.getByText('Last time ₹319')).toBeTruthy();
+    expect(screen.getByLabelText('Favourite: Pizza Point')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Order again from Pizza Point'));
+    expect(await screen.findByText('Not added: Margherita (Medium 10") (sold out).')).toBeTruthy();
+    expect(screen.getByText('Cheese Sandwich')).toBeTruthy();
+    expect(calls.filter((c) => c.path === '/v1/customer/cart/quote').at(-1).body.lines).toEqual([
+      expect.objectContaining({ productId: bread.id, quantity: 2, addonIds: [] }),
+    ]);
+
+    // The same from the order itself.
+    await AsyncStorage.removeItem('jamzo.cart.v2');
+    await renderRouter(routes, { initialUrl: `/orders/${base.id}` });
+    await fireEvent.press(await screen.findByLabelText('Order again'));
+    expect(await screen.findByText('Not added: Margherita (Medium 10") (sold out).')).toBeTruthy();
+    expect(calls.filter((c) => c.path === `/v1/customer/orders/${base.id}/reorder`)).toHaveLength(2);
+  });
+
+  it('offers by notification only when the customer switches them on (D-116)', async () => {
+    let consents = [];
+    const calls = installFakeApi({
+      onRequest: (path, body) => {
+        if (path === '/v1/customer/consents' && body) {
+          consents = [{ ...body, createdAt: new Date().toISOString() }];
+          return { status: 201, body: consents[0] };
+        }
+        if (path === '/v1/customer/consents') return { body: { items: consents } };
+        return null;
+      },
+    });
+    await renderRouter(routes, { initialUrl: '/account' });
+    await fireEvent.press(await screen.findByLabelText('Sign in'));
+    await fireEvent.changeText(await screen.findByLabelText('Mobile number'), '98765 43210');
+    await fireEvent.press(screen.getByLabelText('Send code'));
+    await fireEvent.changeText(await screen.findByLabelText('Verification code'), '123456');
+    await fireEvent.press(screen.getByLabelText('Verify and continue'));
+    const toggle = await screen.findByLabelText('Offers and updates');
+    expect(toggle.props.value).toBe(false); // off until the customer says yes
+    await fireEvent(toggle, 'valueChange', true);
+    await waitFor(() => expect(screen.getByLabelText('Offers and updates').props.value).toBe(true));
+    expect(calls.find((c) => c.path === '/v1/customer/consents' && c.method === 'POST').body).toEqual({
+      kind: 'MARKETING_PUSH',
+      version: '2026-10',
+      granted: true,
+    });
+    // A simulator has no push token: the choice is saved, and the app says why nothing arrives yet.
+    expect(await screen.findByText(/Offers will arrive once notifications are allowed/)).toBeTruthy();
+  });
+
   describe('checkout and tracking (Phase 5)', () => {
     const placed = fixtures.orders.placed.order;
     const address = fixtures.orders.addresses.items[0];

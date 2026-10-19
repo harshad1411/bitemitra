@@ -583,6 +583,20 @@ export const addressBody = z.object({
   makeDefault: z.boolean().default(false),
 });
 export const addressUpdateBody = patchOf(addressBody);
+/** An offer notification to customers who opted in (D-116). `send: false` only counts the recipients. */
+export const offerNotificationBody = z.object({
+  title: text(3, 65),
+  body: text(3, 178),
+  url: z
+    .string()
+    .trim()
+    .regex(/^\/[A-Za-z0-9/_\-?=&.]*$/, 'An app link such as /restaurant/… or /search?q=pizza')
+    .max(200)
+    .nullable()
+    .optional(),
+  cityId: uuid.nullable().optional(),
+  send: z.boolean().default(false),
+});
 export const consentBody = z.object({
   kind: z.enum(['TERMS', 'PRIVACY', 'MARKETING_SMS', 'MARKETING_EMAIL', 'MARKETING_PUSH']),
   version: z.string().trim().min(1).max(20),

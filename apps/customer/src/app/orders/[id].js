@@ -11,7 +11,8 @@ import { RateOrder } from '../../components/rate-order';
 import { arrivalLabel, mapPinUrl, money } from '../../lib/format';
 import { CANCEL_REASONS, REFUND_TEXT, TIMELINE_LABEL, statusText } from '../../lib/order-status';
 import { payOnline } from '../../lib/pay';
-import { useOrder } from '../../lib/queries';
+import { TERMINAL, useOrder } from '../../lib/queries';
+import { useReorder } from '../../lib/reorder';
 
 const VEHICLE = {
   MOTORCYCLE: 'Motorcycle',
@@ -28,6 +29,7 @@ export default function OrderScreen() {
   const router = useRouter();
   const qc = useQueryClient();
   const { api, env } = useJamzo();
+  const orderAgain = useReorder();
   const q = useOrder(id);
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -137,6 +139,10 @@ export default function OrderScreen() {
       ) : null}
 
       <RateOrder order={o} />
+
+      {TERMINAL.includes(o.status) && o.status !== 'PAYMENT_FAILED' ? (
+        <Button title="Order again" onPress={() => orderAgain(o.id)} />
+      ) : null}
 
       {!['CREATED', 'PAYMENT_PENDING'].includes(o.status) ? (
         <Button

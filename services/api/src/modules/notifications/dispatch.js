@@ -2,6 +2,7 @@
 // (so every message is recorded and visible in the apps), then each row is pushed to the recipient's
 // devices for that app. Runs in the worker from the outbox; the dedupe key makes a retried event harmless.
 import { isUniqueViolation } from '@jamzo/database';
+import { createOfferHandler } from './offers.js';
 
 /** Events that notify someone. Other order events are recorded only. */
 export const NOTIFYING_EVENTS = [
@@ -181,7 +182,10 @@ export function createNotificationDispatcher({ prisma, push, clock = { now: () =
     }
   }
 
-  return Object.fromEntries(ORDER_EVENTS.map((e) => [e, handle]));
+  return {
+    ...Object.fromEntries(ORDER_EVENTS.map((e) => [e, handle])),
+    'offer.broadcast': createOfferHandler({ prisma, push, clock, log }),
+  };
 }
 
 /**

@@ -1,6 +1,9 @@
 // Notification templates (spec §41: admin-configurable where safe) and the signed-in user's own notifications.
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { notificationTemplateBody, pageQuery, uuid } from '@jamzo/validation';
+import { notificationTemplateBody, offerNotificationBody, pageQuery, uuid } from '@jamzo/validation';
+import { enqueueEvent } from '../../core/outbox.js';
+import { offerRecipients } from './offers.js';
 import { notFound } from '../../core/errors.js';
 import { parse } from '../../core/validate.js';
 import { audit } from '../../core/audit.js';
@@ -18,6 +21,39 @@ export default async function notificationRoutes(app) {
       items: await prisma.notificationTemplate.findMany({ orderBy: [{ event: 'asc' }, { appId: 'asc' }] }),
       placeholders: ['orderNumber', 'shortNumber', 'restaurantName', 'itemCount', 'prepTimeMinutes', 'total'],
     }),
+  );
+
+  // Offer notifications (D-116): count first (`send: false`), then send to the customers who opted in.
+  app.post(
+    '/v1/admin/offer-notifications',
+    { config: { permission: 'notifications.manage', rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const body = parse(offerNotificationBody, request.body);
+      const userIds = await offerRecipients(prisma, { cityId: body.cityId ?? null });
+      if (!body.send) return { recipients: userIds.length, sent: false };
+      if (!userIds.length) return { recipients: 0, sent: false };
+      await prisma.$transaction(async (tx) => {
+        const ev = await enqueueEvent(tx, {
+          aggregateType: 'offer',
+          aggregateId: randomUUID(),
+          eventType: 'offer.broadcast',
+          payload: { title: body.title, body: body.body, url: body.url ?? null, userIds },
+        });
+        await audit(tx, request, {
+          action: 'offer_notification.send',
+          entityType: 'offer_notification',
+          entityId: ev.id,
+          newValue: {
+            title: body.title,
+            body: body.body,
+            url: body.url ?? null,
+            cityId: body.cityId ?? null,
+            recipients: userIds.length,
+          },
+        });
+      });
+      return { recipients: userIds.length, sent: true };
+    },
   );
 
   app.patch(

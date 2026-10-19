@@ -89,6 +89,27 @@ test('notifications: templates can be edited', async ({ page }) => {
   await shot(page, '44-notifications');
 });
 
+test('notifications: an offer is checked before sending and goes only to customers who opted in (D-116)', async ({
+  page,
+}) => {
+  await signIn(page);
+  await nav(page, 'Notifications');
+  await expect(page.getByText('Send an offer')).toBeVisible();
+  await page.getByLabel('Title', { exact: true }).fill('Hi');
+  await page.getByLabel('Message').fill('x');
+  await page.getByRole('button', { name: 'Check recipients' }).click();
+  await expect(page.getByText(/expected string to have >=3 characters/).first()).toBeVisible(); // field errors from the API
+  await page.getByLabel('Title', { exact: true }).fill('Pizza Friday');
+  await page.getByLabel('Message').fill('20% off at Pizza Point today');
+  await page.getByRole('button', { name: 'Check recipients' }).click();
+  // The demo customers never turned offers on, so nothing can be sent.
+  await expect(
+    page.getByText('Nobody to send to yet: no customer with the app has turned offers on.'),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Send to/ })).toHaveCount(0);
+  await shot(page, '45-offer-notifications');
+});
+
 test('customers: cash on delivery can be switched off and on with a reason', async ({ page }) => {
   await signIn(page);
   await nav(page, 'Customers');
