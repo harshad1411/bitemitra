@@ -4,10 +4,28 @@
 # Asks for the Key ID and Key Secret (hidden), checks them with Razorpay, makes a webhook secret and shows it once
 # (to paste into Razorpay → Webhooks), saves everything in deploy/.env.production, then restarts the API and worker.
 # Test keys (rzp_test_) first; live keys (rzp_live_) only once the server runs in production mode.
+#   …/set-razorpay.sh --new-webhook-secret   makes a fresh webhook secret only (keys unchanged) and shows it once.
 set -euo pipefail
 cd "$(dirname "$0")"
 ENV_FILE=.env.production
 [ -f "$ENV_FILE" ] || { echo "Run first-setup.sh first."; exit 1; }
+
+if [ "${1:-}" = "--new-webhook-secret" ]; then
+  grep -q '^PAYMENT_PROVIDER=razorpay' "$ENV_FILE" || { echo "Run this script without options first."; exit 1; }
+  SECRET="$(openssl rand -hex 24)"
+  sed -i -E '/^RAZORPAY_WEBHOOK_SECRET=/d' "$ENV_FILE"
+  printf 'RAZORPAY_WEBHOOK_SECRET=%s\n' "$SECRET" >> "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  docker compose -f docker-compose.prod.yml up -d --force-recreate api worker >/dev/null
+  echo
+  echo "✓ New webhook secret saved and the API restarted. In Razorpay (Test Mode ON):"
+  echo "  Account & Settings → Webhooks → your webhook → Edit → Secret → clear the box, paste this, Save:"
+  echo
+  echo "      $SECRET"
+  echo
+  echo "  (48 characters, letters a–f and numbers only. Not shown again; never send it to anyone.)"
+  exit 0
+fi
 
 echo
 echo "== Razorpay =="
