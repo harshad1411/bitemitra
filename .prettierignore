@@ -10,6 +10,8 @@ assets
 apps/*/android
 apps/*/ios
 apps/*/dist
+apps/website/public
+apps/website/preview
 packages/database/prisma/migrations
 packages/database/prisma/schema.prisma
 packages/database/prisma/constraints.active.sql

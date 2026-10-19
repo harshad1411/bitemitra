@@ -28,3 +28,6 @@ GoogleService-Info.plist
 
 # Server-only files written by deploy/first-setup.sh
 deploy/certs/
+
+# Website preview build (D-115); the published pages are apps/website/public
+apps/website/preview/

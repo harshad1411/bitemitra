@@ -30,6 +30,7 @@ services:
     ports: ['80:80', '443:443']
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../apps/website/public:/srv/www:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on: [api, admin]

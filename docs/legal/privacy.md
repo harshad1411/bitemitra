@@ -54,7 +54,7 @@ nearby orders and show customers where their order is; trips, earnings, cash col
 | MSG91 | Sending sign-in codes by SMS |
 | Brevo and Zoho | Sending and receiving email |
 | Expo, Apple and Google | Push notifications |
-| Google Maps (when switched on) | Road distances |
+| Google Maps (when switched on) | Road distances, address search and the address of a spot on the map |
 
 We share data with government authorities only when the law requires it. **We do not sell your personal data.**
 

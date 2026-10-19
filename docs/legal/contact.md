@@ -2,9 +2,11 @@
 
 **DRAFT — fill in the [[…]] values before publishing.**
 
-**Jamzo** — food delivery in Unjha, Gujarat
-Operated by **[[LEGAL NAME]]** ([[OWNER NAME]]), [[ADDRESS]], India
-GSTIN: [[GSTIN]] · Udyam: [[UDYAM]]
+**Jamzo** — food delivery in Unjha, Gujarat.
+
+Operated by **[[LEGAL NAME]]** ([[OWNER NAME]]), [[ADDRESS]], India.
+
+[[REGISTRATIONS]]
 
 | For | Contact |
 |---|---|
@@ -15,4 +17,5 @@ GSTIN: [[GSTIN]] · Udyam: [[UDYAM]]
 
 We acknowledge complaints within **48 hours** and resolve them within **one month**.
 
-Policies: [Terms of Use](terms.md) · [Privacy Policy](privacy.md) · [Cancellation and Refund Policy](refunds.md)
+Policies: [Terms of Use](terms.md) · [Privacy Policy](privacy.md) · [Cancellation and Refund Policy](refunds.md) ·
+[Delivery Policy](delivery.md)

@@ -12,6 +12,8 @@ cd deploy
 COMPOSE="docker compose -f docker-compose.prod.yml"
 $COMPOSE run --rm --no-deps api node packages/database/scripts/prisma.mjs migrate deploy
 $COMPOSE up -d
+# A changed Caddyfile or website needs no restart; Caddy reloads its configuration without dropping connections.
+$COMPOSE exec -T caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null
 for i in $(seq 1 30); do
   if $COMPOSE exec -T api node -e "fetch('http://127.0.0.1:4000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" 2>/dev/null; then
     docker image prune -f >/dev/null

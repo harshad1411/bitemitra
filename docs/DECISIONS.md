@@ -65,6 +65,7 @@ Last updated: 2026-10-16 (partner performance — OD-48).
 | OD-46 | **The owner controls every customer charge from the admin** (owner, 2026-10-01: "I want do not take GST an all right now … you give me settings on backend of everything I will handle it"). The owner may stop charging GST and fees for now and will decide each one. Built as D-111: on/off switches per charge. **Advised in chat before building:** food-delivery apps generally must collect and pay 5% GST on restaurant food from the first order (Section 9(5)); switching taxes off may leave Jamzo owing it — the owner's decision with their CA (Q-3). Switches default to on; nothing was switched off by the developer. |
 | OD-47 | **Jamzo online as a demo** (owner, 2026-10-15: "I want deploy this app now"). The owner created the DigitalOcean resources himself after seeing the live price (Droplet 2 GB $12 + managed PostgreSQL 18, 1 GB $15.15 + Spaces $5 = $32.15 + 18% GST ≈ ₹3,300/month, OD-40). Live at https://admin.jamzo.in and https://api.jamzo.in in **demo mode** (D-112) until MSG91, email and Razorpay exist. Demo restaurants added at the owner's choice. |
 | OD-48 | **Next features, one at a time, no AI for now** (owner, 2026-10-16: "we wont ai for now do one by one implementation"). Order agreed: (1) **delivery partner performance** in Jamzo Admin (D-113) — needs nothing from the owner, built first; (2) **map pin + place search for addresses** (customers who refuse location cannot add an address today) — needs the owner's Google Cloud / Maps key (Q-14); (3) **"Order again", favourite cuisines and opt-in offer notifications** without AI. AI suggestions wait until there are 1–2 months of real orders. Each step stops for the owner's review. |
+| OD-49 | **Website at jamzo.in, built and put online by the developer** (owner, 2026-10-19: "why you dont make website do it properly and deploy it … choose design best and do needful"). Needed for the Razorpay application (policy pages). The owner supplies the business details and adds the DNS record; everything else is built and deployed by the developer. → D-115. |
 
 
 ## 2. Engineering decisions
@@ -1022,6 +1023,23 @@ Customers who refuse location could not add an address (the only spot was GPS). 
   build time. Google requires this key inside the app; it is restricted to the Jamzo package and signing
   certificate and can only draw maps. All paid lookups stay on the server key.
 - Tested against fake Google endpoints; **not verified with Google** until the owner adds the key (Q-14).
+
+### D-115. The jamzo.in website (OD-49)
+Razorpay approves a business only after checking its website for **Terms, Privacy, Refund, Delivery and
+Contact** pages. jamzo.in had no website.
+- A small static website: a home page (what Jamzo is, how ordering works, partner with us, contact) and five
+  policy pages — `/terms`, `/privacy`, `/refunds`, `/delivery`, `/contact`.
+- **One source for the legal text:** the pages are generated from `docs/legal/*.md` by
+  `scripts/build-website.mjs`, so the app and the website never disagree. Business details (legal name, address,
+  phone, Udyam number, Grievance Officer) come from `apps/website/business.json`. The build **refuses to produce
+  pages** while any detail is missing or any `[[…]]` placeholder is left; review notes are removed and the
+  proposed defaults shown in the drafts are used (24 hours to report a problem, 7 working days for cash refunds,
+  30 days to answer privacy requests, 90 days for delivery partners' location history, courts at Mehsana).
+  The generated pages are committed (`apps/website/public`) and `pnpm check:docs` fails if they are out of date.
+- Served by the existing Caddy on the Droplet (`jamzo.in`; `www.jamzo.in` redirects) — no new cost. Fonts are
+  served from the site itself (no Google Fonts requests); no cookies, no tracking.
+- The pages are the **drafts of Q-12, not yet reviewed by a lawyer**; the owner chose to publish them now for
+  the Razorpay application and can have them reviewed later.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

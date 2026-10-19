@@ -24,7 +24,7 @@
     "test": "turbo run test",
     "build": "turbo run build",
     "verify:schema": "node scripts/verify-schema.mjs",
-    "check:docs": "node scripts/check-docs.mjs && node scripts/generate-api-docs.mjs --check",
+    "check:docs": "node scripts/check-docs.mjs && node scripts/generate-api-docs.mjs --check && node scripts/build-website.mjs --check",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm verify:schema && pnpm check:docs && pnpm check:secrets && pnpm test",
     "assets:generate": "node scripts/brand-assets.mjs",
     "docs:api": "node scripts/generate-api-docs.mjs",

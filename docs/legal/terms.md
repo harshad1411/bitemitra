@@ -4,10 +4,11 @@
 
 These terms apply when you use the Jamzo app or jamzo.in to order food. By creating an account or placing an
 order you agree to them. Please also read our [Privacy Policy](privacy.md) and
-[Cancellation and Refund Policy](refunds.md).
+[Cancellation and Refund Policy](refunds.md). How delivery works is in the
+[Delivery Policy](delivery.md).
 
 ## 1. Who we are
-Jamzo is operated by **[[LEGAL NAME]]**, [[ADDRESS]], India ([[GSTIN]], [[UDYAM]]). Jamzo is an online platform
+Jamzo is operated by **[[LEGAL NAME]]**, [[ADDRESS]], India ([[REGISTRATIONS]]). Jamzo is an online platform
 that connects you with **restaurants** that prepare food and **independent delivery partners** who deliver it.
 [[REVIEW Q-4: state whether Jamzo is a marketplace (restaurants sell to you) or the seller, once the markup
 question is decided.]]

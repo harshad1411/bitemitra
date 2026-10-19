@@ -10,8 +10,13 @@ owner and checked by a lawyer or CA before they are published in the apps (Q-12)
 | [privacy.md](privacy.md) | All apps → Privacy policy; store listings (required by Apple, Google, Razorpay) | `privacy` |
 | [refunds.md](refunds.md) | Customer app → Cancellation and refund policy; Razorpay requires it | `refunds` |
 | [contact.md](contact.md) | Website / Razorpay "Contact us"; grievance officer (E-Commerce Rules 2020) | `contact` |
+| [delivery.md](delivery.md) | Website (Razorpay asks for a shipping / delivery policy) | `delivery` |
 | [restaurant-partner-agreement.md](restaurant-partner-agreement.md) | Signed by each restaurant at onboarding | — |
 | [delivery-partner-agreement.md](delivery-partner-agreement.md) | Accepted by each delivery partner when applying | — |
+
+**Website (D-115):** jamzo.in shows terms, privacy, refunds, delivery and contact, generated from these files by
+`node scripts/build-website.mjs` with the business details in `apps/website/business.json`. Edit the text here,
+then rebuild; the build stops while any `[[…]]` is unresolved.
 
 ## Fill in before publishing (search for `[[`)
 - `[[LEGAL NAME]]` — the business's legal name (proprietor's name, or firm/company name) and trade name "Jamzo".
