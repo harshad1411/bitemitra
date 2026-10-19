@@ -3,6 +3,15 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Backups and alerts (2026-10-19) — OD-50
+
+### Added
+- Nightly extra database copy to the private Spaces folder `backups/`, kept 30 days (D-118), on top of DigitalOcean's own daily backups.
+- A watchdog every 5 minutes that emails admin@jamzo.in when the website, API, admin, disk or backups need attention, and again when fixed.
+
+### Fixed
+- The server disk had filled to 70% with old build cache; updates now trim it.
+
 ## Delete my account (2026-10-19) — OD-50
 
 ### Added
