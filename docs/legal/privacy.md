@@ -75,8 +75,8 @@ wording under the DPDP Act.]]
 Under the DPDP Act you can:
 - **access** a summary of the personal data we hold about you;
 - **correct or update** it (most details can be changed in the app);
-- **ask us to delete** it — [[until in-app deletion is built: email the Grievance Officer from your registered
-  email, or contact support from the app]];
+- **delete your account** in the app (Account → Delete my account): you are signed out at once and the data
+  above is erased after 30 days, unless you sign in and keep the account before then;
 - **withdraw consent** (for example, location in your phone's settings, or notifications);
 - **nominate** someone to exercise these rights if you die or cannot act;
 - **complain** to our Grievance Officer, and then to the Data Protection Board of India.

@@ -14,6 +14,7 @@ import { createPaymentProvider } from '@jamzo/api/payment-providers';
 import { createLedgerJobs } from '@jamzo/api/ledger-jobs';
 import { createSettlements } from '@jamzo/api/settlements';
 import { createPushProvider } from '@jamzo/notifications';
+import { createAccountDeletionJobs } from '@jamzo/api/account-deletion';
 
 const env = loadEnv(workerEnvSchema);
 const log = createLogger({ name: 'workers', level: env.LOG_LEVEL });
@@ -41,6 +42,7 @@ const relay = createOutboxRelay({
     createPayments({ prisma, log, provider: createPaymentProvider(env) }).handlers,
     createLedgerJobs({ prisma, log }),
     settlements.handlers,
+    createAccountDeletionJobs({ prisma, log }),
   ),
 });
 

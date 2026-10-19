@@ -413,6 +413,7 @@ model User {
   name          String?
   status        UserStatus @default(ACTIVE)
   deletedAt     DateTime?  @db.Timestamptz(3) // account deletion (spec §49): PII scrubbed, row kept for FK integrity
+  deletionScheduledFor DateTime? @db.Timestamptz(3) // the user asked to delete their account; PII is scrubbed then (D-117)
   createdAt     DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime   @updatedAt @db.Timestamptz(3)
 

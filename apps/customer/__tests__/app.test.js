@@ -10,6 +10,7 @@ import CartScreen from '../src/app/cart';
 import Account from '../src/app/(tabs)/account';
 import Addresses from '../src/app/addresses';
 import MapPicker from '../src/app/map';
+import DeleteAccount from '../src/app/delete-account';
 import SignIn from '../src/app/sign-in';
 import CmsPage from '../src/app/page/[slug]';
 import Checkout from '../src/app/checkout';
@@ -50,6 +51,7 @@ const routes = {
   '(tabs)/account': Account,
   addresses: Addresses,
   map: MapPicker,
+  'delete-account': DeleteAccount,
   'sign-in': SignIn,
   'page/[slug]': CmsPage,
   checkout: Checkout,
@@ -477,6 +479,64 @@ describe('customer app', () => {
     });
     // A simulator has no push token: the choice is saved, and the app says why nothing arrives yet.
     expect(await screen.findByText(/Offers will arrive once notifications are allowed/)).toBeTruthy();
+  });
+
+  it('deletes the account: explained, asked twice, then signed out (D-117)', async () => {
+    const at = '2026-11-18T07:30:00.000Z';
+    let pending = null;
+    const calls = installFakeApi({
+      me: { user: { id: 'u1', phone: '+919876543210', deletionScheduledFor: null } },
+      onRequest: (path) => {
+        if (path === '/v1/me/deletion' && pending === null) {
+          pending = at;
+          return { body: { scheduledFor: at } };
+        }
+        return null;
+      },
+    });
+    await renderRouter(routes, { initialUrl: '/account' });
+    await fireEvent.press(await screen.findByLabelText('Sign in'));
+    await fireEvent.changeText(await screen.findByLabelText('Mobile number'), '98765 43210');
+    await fireEvent.press(screen.getByLabelText('Send code'));
+    await fireEvent.changeText(await screen.findByLabelText('Verification code'), '123456');
+    await fireEvent.press(screen.getByLabelText('Verify and continue'));
+    await fireEvent.press(await screen.findByLabelText('Delete my account'));
+    expect(await screen.findByText(/After 30 days we erase your name, mobile number/)).toBeTruthy();
+    expect(screen.getByText(/Your past orders and payments are kept for tax records/)).toBeTruthy();
+    const buttons = await screen.findAllByLabelText('Delete my account');
+    await fireEvent.press(buttons.at(-1));
+    await fireEvent.press(await screen.findByLabelText('Yes, delete my account'));
+    expect(await screen.findByText('Your account will be deleted on 18 November 2026')).toBeTruthy();
+    expect(calls.filter((c) => c.path === '/v1/me/deletion').map((c) => c.method)).toEqual(['POST']);
+    expect(calls.some((c) => c.path === '/v1/auth/logout')).toBe(true); // signed out on this phone too
+  });
+
+  it('while a deletion waits, Account says so and "Keep my account" cancels it (D-117)', async () => {
+    const at = '2026-11-18T07:30:00.000Z';
+    installFakeApi({
+      me: { user: { id: 'u1', phone: '+919876543210', deletionScheduledFor: at } },
+      onRequest: (path) =>
+        path === '/v1/me' || path === '/v1/me/deletion'
+          ? {
+              body: {
+                appId: 'CUSTOMER',
+                user: { id: 'u1', phone: '+919876543210', deletionScheduledFor: null },
+                access: { status: 'OK' },
+              },
+            }
+          : null,
+    });
+    await renderRouter(routes, { initialUrl: '/account' });
+    await fireEvent.press(await screen.findByLabelText('Sign in'));
+    await fireEvent.changeText(await screen.findByLabelText('Mobile number'), '98765 43210');
+    await fireEvent.press(screen.getByLabelText('Send code'));
+    await fireEvent.changeText(await screen.findByLabelText('Verification code'), '123456');
+    await fireEvent.press(screen.getByLabelText('Verify and continue'));
+    expect(await screen.findByText('Your account will be deleted on 18 November 2026')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Keep my account'));
+    await waitFor(() =>
+      expect(screen.queryByText('Your account will be deleted on 18 November 2026')).toBeNull(),
+    );
   });
 
   describe('checkout and tracking (Phase 5)', () => {

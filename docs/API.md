@@ -93,7 +93,7 @@ admin routes write an audit log entry in the same transaction.
 
 <!-- routes:start -->
 
-_Generated from the route definitions by `pnpm docs:api` (247 endpoints). Do not edit by hand — CI fails if this drifts from the code._
+_Generated from the route definitions by `pnpm docs:api` (249 endpoints). Do not edit by hand — CI fails if this drifts from the code._
 
 | Method | Path | Auth | Apps | Permission | Rate limit |
 |---|---|---|---|---|---|
@@ -298,6 +298,8 @@ _Generated from the route definitions by `pnpm docs:api` (247 endpoints). Do not
 | `GET` | `/v1/geo/serviceability` | optional | any | — | 60/min |
 | `GET` | `/v1/me` | required | any | — |  |
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `DELETE` | `/v1/me/deletion` | required | CUSTOMER | — |  |
+| `POST` | `/v1/me/deletion` | required | CUSTOMER | — |  |
 | `POST` | `/v1/me/devices` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
 | `GET` | `/v1/me/notifications` | required | any | — |  |
 | `GET` | `/v1/media/files/*` | none | browser (no headers) | — |  |

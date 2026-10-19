@@ -231,6 +231,15 @@ export default async function orderRoutes(app) {
           [CLIENT_HEADERS.idempotencyKey]: ['Required'],
         });
       const customer = await customerOf(request);
+      const user = await prisma.user.findUnique({
+        where: { id: request.auth.userId },
+        select: { deletionScheduledFor: true },
+      });
+      if (user?.deletionScheduledFor)
+        throw new AppError(
+          'CONFLICT',
+          'Your account is set to be deleted. Tap “Keep my account” in Account to order again.',
+        );
       return withIdempotency(request, reply, { successStatus: 201 }, async () => {
         const { orderId, created } = await placeOrder(app, request, body, customer);
         return { order: await customerDetail(customer.id, orderId), created };

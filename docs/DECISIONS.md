@@ -1060,6 +1060,18 @@ No AI: everything comes from the customer's own orders and choices.
   one city, after showing how many will receive it. Order updates are separate and not affected by the switch.
   Every send is audit-logged with the number of recipients.
 
+### D-117. Delete my account in the customer app (OD-50; store requirement, Q-12)
+Account → **Delete my account** explains what happens and asks twice. Then: signed out on every phone, devices
+switched off, and the erase is queued for **30 days later** (`users.deletionScheduledFor`, outbox event
+`account.delete`). Not allowed while an order is on its way. While it waits, the customer may sign in again:
+Account shows the date and **Keep my account**; new orders are refused until then. On the day, the worker
+erases in place: name, phone, email, password, sign-in methods (so the number can start a fresh account),
+sessions, devices, saved addresses (scrubbed), favourites, the address and contact on their orders, and the
+words of their reviews (stars stay). Orders, payments, invoices and ledgers are kept without the identity
+(Privacy Policy §4). Every step is audit-logged. **Partner apps** (restaurant, delivery partner) are not
+covered yet: their accounts carry payouts and cash; deletion there stays a request to Jamzo support until
+designed with the partner agreements.
+
 ## 3. Changes from MASTER_SPEC (OD-30)
 
 

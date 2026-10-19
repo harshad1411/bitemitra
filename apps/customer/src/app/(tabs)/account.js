@@ -77,6 +77,39 @@ function OffersSwitch() {
   );
 }
 
+/** Shown while a deletion the customer asked for is waiting (D-117). */
+function DeletionPending() {
+  const { api, session } = useJamzo();
+  const [busy, setBusy] = useState(false);
+  const at = session.me?.user?.deletionScheduledFor;
+  if (!at) return null;
+  const date = new Date(at).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
+  return (
+    <Card>
+      <Text variant="heading">{`Your account will be deleted on ${date}`}</Text>
+      <Text variant="muted">You cannot order until you keep it.</Text>
+      <Button
+        title="Keep my account"
+        busy={busy}
+        onPress={async () => {
+          setBusy(true);
+          try {
+            await api.delete('/v1/me/deletion');
+            await session.reloadMe();
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+    </Card>
+  );
+}
+
 function Profile() {
   const t = useTheme();
   const { session } = useJamzo();
@@ -133,6 +166,7 @@ export default function Account() {
       {signedIn ? (
         <>
           <Profile />
+          <DeletionPending />
           <Card>
             <SectionTitle>Food delivery</SectionTitle>
             <ListRow icon="receipt-outline" label="Your orders" onPress={() => router.navigate('/orders')} />
@@ -193,7 +227,14 @@ export default function Account() {
       </Card>
       {signedIn ? (
         <Card>
-          <ListRow icon="log-out-outline" label="Sign out" danger last onPress={() => session.signOut()} />
+          <ListRow icon="log-out-outline" label="Sign out" onPress={() => session.signOut()} />
+          <ListRow
+            icon="trash-outline"
+            label="Delete my account"
+            danger
+            last
+            onPress={() => router.push('/delete-account')}
+          />
         </Card>
       ) : null}
       <View style={{ alignItems: 'center', gap: 2 }}>

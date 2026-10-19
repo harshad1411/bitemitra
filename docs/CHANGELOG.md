@@ -3,6 +3,12 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Delete my account (2026-10-19) — OD-50
+
+### Added
+- Customer app → Account → **Delete my account** (required by Google Play and the App Store, D-117): explained, asked twice, signed out everywhere; 30 days to sign in and **Keep my account**; then name, number, email, addresses and favourites are erased, while orders and payments are kept without the identity.
+- Database: `users.deletionScheduledFor` (migration `20261019120000_account_deletion`, expand-only).
+
 ## Order again, favourites and offer notifications (2026-10-19) — OD-48, OD-50
 
 ### Added

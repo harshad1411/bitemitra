@@ -87,8 +87,6 @@ const VALUES = {
   'REVIEW: 30': '30',
   'REVIEW: retention period, e.g. 90 days': '90 days',
   'REVIEW: support hours, e.g. 9 am – 11 pm every day': val('supportHours'),
-  'until in-app deletion is built: email the Grievance Officer from your registered email, or contact support from the app':
-    'email the Grievance Officer from your registered email, or contact support from the app',
 };
 const NOTES = new Set([
   'REVIEW Q-4: disclosure wording.',

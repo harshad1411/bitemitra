@@ -457,6 +457,8 @@ export function createAuthService({ prisma, env, clock, config, sms, email, log 
         email: user.email,
         phoneVerified: user.phoneVerified,
         emailVerified: user.emailVerified,
+        // Set while an account deletion the user asked for is waiting (D-117); they can still keep the account.
+        deletionScheduledFor: user.deletionScheduledFor ?? null,
       },
       appId,
     };

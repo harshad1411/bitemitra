@@ -94,7 +94,7 @@ environment (development, test, staging, production).
 
 ## 7. Privacy (§49)
 
-- **Account deletion**: customer/rider self-service request → 30-day grace → PII scrubbed in place (name, phone, email, addresses), sessions/devices removed; orders, invoices and ledgers retained with the anonymised reference (legal retention).
+- **Account deletion** (customer app, D-117): self-service request → 30-day grace ("Keep my account") → PII scrubbed in place (name, phone, email, sign-in methods, addresses, favourites, order addresses, review words), sessions/devices removed; orders, invoices and ledgers retained without the identity (legal retention). Partner apps: on request until designed.
 - **Address deletion**: soft delete; orders keep their own address copy.
 - **Data export**: async job produces a JSON/CSV archive of the user's data, delivered via signed URL.
 - **Consent records** (`consent_records`) for terms, privacy policy and marketing channels, versioned.

@@ -14,7 +14,8 @@
     "./payments": "./src/modules/payments/service.js",
     "./payment-providers": "./src/modules/payments/providers/index.js",
     "./ledger-jobs": "./src/modules/ledgers/jobs.js",
-    "./settlements": "./src/modules/ledgers/settlements.js"
+    "./settlements": "./src/modules/ledgers/settlements.js",
+    "./account-deletion": "./src/modules/auth/deletion.js"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --watch src/server.js",

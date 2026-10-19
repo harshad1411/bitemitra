@@ -12,6 +12,9 @@ import { z } from 'zod';
 import { AppError, unauthenticated } from '../../core/errors.js';
 import { parse } from '../../core/validate.js';
 import { withIdempotency } from '../../core/idempotency.js';
+import { audit } from '../../core/audit.js';
+import { enqueueEvent } from '../../core/outbox.js';
+import { GRACE_DAYS, activeOrderCount } from './deletion.js';
 
 const MOBILE = ['CUSTOMER', 'RESTAURANT', 'RIDER'];
 export const ADMIN_REFRESH_COOKIE = 'jz_admin_rt';
@@ -168,6 +171,62 @@ export default async function authRoutes(app) {
       const body = parse(z.object({ name: z.string().trim().min(2).max(80) }), request.body);
       await app.prisma.user.update({ where: { id: request.auth.userId }, data: { name: body.name } });
       return auth.me({ userId: request.auth.userId, appId: request.auth.appId });
+    },
+  );
+
+  // ── Delete my account (D-117): customer app; 30 days to change one's mind, then the data is erased ──
+  app.post(
+    '/v1/me/deletion',
+    { config: { apps: ['CUSTOMER'] } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const userId = request.auth.userId;
+      if (await activeOrderCount(app.prisma, userId))
+        throw new AppError(
+          'CONFLICT',
+          'You have an order on its way. Delete your account after it is delivered.',
+        );
+      const now = app.clock.now();
+      const scheduledFor = new Date(now.getTime() + GRACE_DAYS * 86_400_000);
+      await app.prisma.$transaction(async (tx) => {
+        await tx.user.update({ where: { id: userId }, data: { deletionScheduledFor: scheduledFor } });
+        // Signed out everywhere; no more notifications.
+        await tx.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
+        await tx.device.updateMany({ where: { userId, disabledAt: null }, data: { disabledAt: now } });
+        await enqueueEvent(tx, {
+          aggregateType: 'user',
+          aggregateId: userId,
+          eventType: 'account.delete',
+          payload: { userId },
+          availableAt: scheduledFor,
+        });
+        await audit(tx, request, {
+          action: 'account.deletion_requested',
+          entityType: 'user',
+          entityId: userId,
+          newValue: { scheduledFor: scheduledFor.toISOString() },
+        });
+      });
+      return { scheduledFor };
+    },
+  );
+
+  app.delete(
+    '/v1/me/deletion',
+    { config: { apps: ['CUSTOMER'] } },
+    async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
+      const userId = request.auth.userId;
+      await app.prisma.$transaction(async (tx) => {
+        const before = await tx.user.findUnique({ where: { id: userId } });
+        if (!before.deletionScheduledFor) return;
+        await tx.user.update({ where: { id: userId }, data: { deletionScheduledFor: null } });
+        await audit(tx, request, {
+          action: 'account.deletion_cancelled',
+          entityType: 'user',
+          entityId: userId,
+          oldValue: { scheduledFor: before.deletionScheduledFor.toISOString() },
+        });
+      });
+      return auth.me({ userId, appId: request.auth.appId });
     },
   );
 
