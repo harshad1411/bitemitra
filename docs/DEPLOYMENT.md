@@ -144,5 +144,8 @@ number, otherwise by email (D-106).
 - [ ] Test sign-in codes arrive on staging by SMS (MSG91 template approved) and email (SPF/DKIM set).
 - [ ] Staging load test on the Droplet meets p95 < 300 ms (docs/PERFORMANCE.md §4); home < 2 s on 4G.
 - [ ] Restore drill on staging; uptime alert tested by stopping the worker once.
-- [ ] Razorpay test payments, refunds and webhooks verified on staging with test keys; then live keys.
+- [x] Razorpay test payments, refunds and webhooks verified with test keys on the demo server (2026-10-19:
+  netbanking test payment → order placed, webhooks signed and processed, cancellation → full refund confirmed by
+  `refund.processed`). UPI was not offered by Razorpay before account activation — check it after activation.
+- [ ] Razorpay live keys (after Razorpay activates the account; server in production mode).
 - [ ] Apps: EAS builds for internal testing (TestFlight / Play internal); store listings — the owner submits.

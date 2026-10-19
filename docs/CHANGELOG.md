@@ -3,6 +3,18 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Website and Razorpay test mode (2026-10-19) — OD-49
+
+### Added
+- **https://jamzo.in**: home page and Terms, Privacy, Cancellation & Refunds, Delivery and Contact pages, generated from `docs/legal` with the business details from the Udyam certificate (D-115).
+- `deploy/set-razorpay.sh`: the owner enters Razorpay keys on the server (checked with Razorpay before saving) and gets the webhook secret to paste into Razorpay; `--new-webhook-secret` makes a fresh one.
+
+### Fixed
+- When Razorpay captures a payment automatically before Jamzo does, the `payment.authorized` webhook no longer records an error (found in Razorpay test mode).
+
+### Verified
+- With Razorpay test keys on the demo server: payment, order placed, signed webhooks, cancellation with an automatic full refund.
+
 ## Map pin and address search (2026-10-16) — OD-48
 
 ### Added
