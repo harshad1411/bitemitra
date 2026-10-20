@@ -1,20 +1,41 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "local" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
   "build": {
+    "base": {
+      "node": "22.20.0",
+      "pnpm": "11.24.0"
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "APP_VARIANT": "development" }
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "extends": "base"
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "env": { "APP_VARIANT": "preview" }
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_API_URL": "https://api.jamzo.in"
+      },
+      "extends": "base"
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "env": { "APP_VARIANT": "production" }
+      "env": {
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.jamzo.in"
+      },
+      "extends": "base"
     }
   },
   "submit": {

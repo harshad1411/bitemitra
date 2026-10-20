@@ -1,6 +1,6 @@
 // Builds an Expo app config from the product registry (DECISIONS D-15), so bundle ids, names, schemes,
 // colours and variants are never hand-typed in the apps. Each app passes only its own extras.
-import { mobileIdentity } from './apps.js';
+import { EAS_PROJECT_IDS, EXPO_OWNER, mobileIdentity } from './apps.js';
 
 /**
  * @param {object} p
@@ -26,6 +26,7 @@ export function buildExpoConfig({
   notificationSounds = [],
 }) {
   const variant = /** @type {any} */ (env.variant ?? 'development');
+  const easProjectId = env.easProjectId ?? EAS_PROJECT_IDS[appId] ?? null;
   const id = mobileIdentity(appId, variant);
   const production = variant === 'production';
   const appLinks = production && id.associatedDomain;
@@ -33,6 +34,7 @@ export function buildExpoConfig({
     ...base,
     name: id.name,
     slug: `jamzo-${id.slug}`,
+    owner: EXPO_OWNER,
     version,
     scheme: id.scheme,
     runtimeVersion: { policy: 'appVersion' },
@@ -105,8 +107,8 @@ export function buildExpoConfig({
       apiUrl: env.apiUrl ?? 'http://localhost:4000',
       schemes: [id.scheme],
       domains: id.associatedDomain ? [id.associatedDomain] : [],
-      ...(env.easProjectId ? { eas: { projectId: env.easProjectId } } : {}),
+      ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
     },
-    ...(env.easProjectId ? { updates: { url: `https://u.expo.dev/${env.easProjectId}` } } : {}),
+    ...(easProjectId ? { updates: { url: `https://u.expo.dev/${easProjectId}` } } : {}),
   };
 }

@@ -53,6 +53,14 @@ export const MOBILE_APPS = Object.freeze({
 
 export const ADMIN_APP = Object.freeze({ appId: 'ADMIN', displayName: 'Jamzo Admin' });
 
+/** Expo (EAS) organization that owns the three app projects (Q-18, OD-52). Project ids are not secret. */
+export const EXPO_OWNER = 'jamzo-in';
+export const EAS_PROJECT_IDS = Object.freeze({
+  CUSTOMER: '64a97e22-f5f6-4e22-b2d2-fcb211a28de0',
+  RESTAURANT: '895bc651-d7df-4f90-89ec-195cae435db1',
+  RIDER: '03024d46-45e3-45f5-97e0-ca49491c5378',
+});
+
 const VARIANT_SUFFIX = Object.freeze({ development: '.dev', preview: '.preview', production: '' });
 const VARIANT_LABEL = Object.freeze({ development: ' (Dev)', preview: ' (Preview)', production: '' });
 

@@ -11,8 +11,8 @@ const { version } = require('./package.json');
 const WHEN_IN_USE =
   'Jamzo uses your location to show restaurants that deliver to you and to fill in your delivery address.';
 
-module.exports = ({ config }) =>
-  buildExpoConfig({
+module.exports = ({ config }) => {
+  const expo = buildExpoConfig({
     appId: 'CUSTOMER',
     version,
     base: config,
@@ -44,3 +44,8 @@ module.exports = ({ config }) =>
       ],
     ],
   });
+  // Android draws maps with Google's SDK, which needs the key above; without it the map screen offers search
+  // and the current location only (D-114).
+  expo.extra.androidMaps = Boolean(process.env.GOOGLE_MAPS_ANDROID_KEY);
+  return expo;
+};

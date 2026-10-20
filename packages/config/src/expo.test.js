@@ -30,7 +30,15 @@ describe('buildExpoConfig', () => {
       extra: { apiUrl: 'http://localhost:4000', variant: 'development' },
     });
     expect(dev.ios.associatedDomains).toBeUndefined();
-    expect(dev.updates).toBeUndefined();
+    // Every build belongs to the Jamzo Expo organization and its project (OD-52).
+    expect(dev).toMatchObject({
+      owner: 'jamzo-in',
+      slug: 'jamzo-customer',
+      extra: { eas: { projectId: '64a97e22-f5f6-4e22-b2d2-fcb211a28de0' } },
+    });
+    expect(buildExpoConfig({ appId: 'RIDER', version: '1.0.0', env: {} }).extra.eas.projectId).toBe(
+      '03024d46-45e3-45f5-97e0-ca49491c5378',
+    );
   });
 
   it('keeps apps independent: own ids, versions and extras', () => {

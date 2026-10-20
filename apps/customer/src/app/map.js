@@ -3,7 +3,8 @@
 // blocks. `purpose=browse` (default) sets where to deliver; `purpose=save` goes on to the address form and
 // saves it. Lookups go through the Jamzo API — the app holds no Google key.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import Constants from 'expo-constants';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MapView from 'react-native-maps';
@@ -24,6 +25,11 @@ import {
 import { DEMO_POINT, useLocation } from '../lib/location';
 
 const ZOOM = { latitudeDelta: 0.004, longitudeDelta: 0.004 };
+/**
+ * Android draws maps with Google's SDK, which stops the app without the Maps SDK key (GOOGLE_MAPS_ANDROID_KEY,
+ * D-114). Until the key is in the build, Android offers search and the current location without a map.
+ */
+const MAP_DRAWN = Platform.OS !== 'android' || Boolean(Constants.expoConfig?.extra?.androidMaps);
 const LABELS = ['Home', 'Work', 'Other'];
 const round6 = (n) => Math.round(n * 1e6) / 1e6;
 const newSession = () => `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
@@ -320,7 +326,14 @@ export default function MapPicker() {
       }
     >
       <View style={{ flex: 1 }}>
-        {region ? (
+        {!MAP_DRAWN ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 }}>
+            <Icon name="map-outline" size={40} color={t.colors.textSubtle} />
+            <Text variant="muted" style={{ textAlign: 'center' }}>
+              Search for your area above, or use your current location.
+            </Text>
+          </View>
+        ) : region ? (
           <MapView
             ref={map}
             testID="map"
@@ -338,37 +351,39 @@ export default function MapPicker() {
           </View>
         )}
         {/* The pin stays in the middle; the customer moves the map under it. */}
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {/* 80 pt tall with the 40 pt pin in the top half, so the pin's tip sits on the exact centre. */}
-          <View style={{ width: 260, height: 80, alignItems: 'center' }}>
-            <View
-              style={{
-                position: 'absolute',
-                bottom: 84,
-                backgroundColor: t.colors.text,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-              }}
-            >
-              <Text variant="small" style={{ color: t.colors.surface }}>
-                Order will be delivered here
-              </Text>
+        {MAP_DRAWN ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* 80 pt tall with the 40 pt pin in the top half, so the pin's tip sits on the exact centre. */}
+            <View style={{ width: 260, height: 80, alignItems: 'center' }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 84,
+                  backgroundColor: t.colors.text,
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                }}
+              >
+                <Text variant="small" style={{ color: t.colors.surface }}>
+                  Order will be delivered here
+                </Text>
+              </View>
+              <Icon name="location" size={40} color={t.colors.critical} />
             </View>
-            <Icon name="location" size={40} color={t.colors.critical} />
           </View>
-        </View>
+        ) : null}
         <View style={{ position: 'absolute', bottom: 36, left: 0, right: 0, alignItems: 'center' }}>
           <Button title="Use current location" variant="secondary" busy={locating} onPress={locate} />
         </View>
