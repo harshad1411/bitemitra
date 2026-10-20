@@ -26,7 +26,8 @@
         "APP_VARIANT": "preview",
         "EXPO_PUBLIC_API_URL": "https://api.jamzo.in"
       },
-      "extends": "base"
+      "extends": "base",
+      "environment": "preview"
     },
     "production": {
       "channel": "production",
@@ -35,7 +36,8 @@
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_API_URL": "https://api.jamzo.in"
       },
-      "extends": "base"
+      "extends": "base",
+      "environment": "production"
     }
   },
   "submit": {
