@@ -106,8 +106,8 @@ test('configuration: override a setting for one city, then see it in history', a
   await page.getByRole('option', { name: 'City: Unjha' }).click();
   const row = page.locator('li', { hasText: 'Order limits' });
   await row.getByRole('button', { name: 'Override' }).click();
-  await page.getByLabel('Min order (paise)').fill('9900');
-  await expect(page.getByText('currently ₹99.00')).toBeVisible();
+  await page.getByLabel('Min order (₹)').fill('99');
+  await expect(page.getByText('Currently ₹99').first()).toBeVisible();
   await page.getByRole('button', { name: 'Save' }).click();
   await expectToast(page, 'Order limits saved');
   await expect(row.getByText('Custom override')).toBeVisible();

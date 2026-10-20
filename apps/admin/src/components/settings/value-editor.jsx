@@ -1,34 +1,62 @@
 'use client';
 
 import { useState } from 'react';
-import { formatPaise } from '@jamzo/ui';
+import { formatPrice, parseRupeesToPaise } from '@jamzo/ui';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-/** "platformFee" → "Platform fee", "minOrderPaise" → "Min order (₹ in paise)": readable labels for the owner. */
+/**
+ * Stored units by naming convention (DATABASE.md §2): *Paise = money in paise, *Bps = basis points. The owner
+ * reads and types rupees and percentages; the value is stored in paise / basis points (both ×100).
+ */
+const UNIT = (key) => (/Paise$/.test(key) ? '₹' : /Bps$/.test(key) ? '%' : null);
+
+/** "platformFee" → "Platform fee", "minOrderPaise" → "Min order (₹)", "rateBps" → "Rate (%)". */
 export function humanize(key) {
-  const money = /Paise$/.test(key);
   const base = key.replace(/Paise$|Bps$/, '');
   const words = base.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
   const label = words.charAt(0).toUpperCase() + words.slice(1);
-  if (money) return `${label} (paise)`;
-  if (/Bps$/.test(key)) return `${label} (basis points)`;
-  return label;
+  return UNIT(key) ? `${label} (${UNIT(key)})` : label;
 }
 
-/** Field hint derived from naming conventions (DATABASE.md §2): *Paise = money, *Bps = basis points. */
+/** 100000 paise → "₹1,000"; 1800 bps → "18%". */
+function inUnits(key, v) {
+  if (!Number.isInteger(v)) return String(v);
+  if (UNIT(key) === '₹') return formatPrice(v);
+  if (UNIT(key) === '%') return `${Number((v / 100).toFixed(2))}%`;
+  return String(v);
+}
+
+/** Field hint for the other units. */
 function hint(key, value) {
-  if (/Paise$/.test(key) && Number.isInteger(value))
-    return `Paise — currently ${formatPaise(value)} (₹1 = 100 paise)`;
-  if (/Bps$/.test(key) && Number.isInteger(value))
-    return `Basis points — currently ${(value / 100).toFixed(2)}% (1% = 100)`;
+  if (UNIT(key) === '₹' && Number.isInteger(value)) return `Currently ${formatPrice(value)}`;
+  if (UNIT(key) === '%' && Number.isInteger(value)) return `Currently ${Number((value / 100).toFixed(2))}%`;
   if (/Sec$/.test(key)) return 'Seconds';
   if (/Minutes$/.test(key)) return 'Minutes';
   if (/M$/.test(key) && Number.isInteger(value)) return 'Metres';
   return null;
+}
+
+/** Rupees or percent typed by the owner, stored ×100 as an integer (paise / basis points). */
+function ScaledInput({ id, value, onChange, money }) {
+  const [text, setText] = useState(Number.isInteger(value) ? String(value / 100) : '');
+  return (
+    <Input
+      id={id}
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => {
+        const t = e.target.value.replace(/[₹%,\s]/g, '');
+        setText(t);
+        if (money) return onChange(parseRupeesToPaise(t) ?? ''); // exact paise, no floating point
+        const n = Number(t);
+        onChange(t === '' || !Number.isFinite(n) ? '' : Math.round(n * 100));
+      }}
+    />
+  );
 }
 
 function Field({ name, value, onChange, fieldErrors, path }) {
@@ -38,6 +66,8 @@ function Field({ name, value, onChange, fieldErrors, path }) {
   let control;
   if (typeof value === 'boolean') {
     control = <Switch id={id} checked={value} onCheckedChange={onChange} />;
+  } else if (typeof value === 'number' && UNIT(name)) {
+    control = <ScaledInput id={id} value={value} onChange={onChange} money={UNIT(name) === '₹'} />;
   } else if (typeof value === 'number') {
     control = (
       <Input
@@ -49,16 +79,19 @@ function Field({ name, value, onChange, fieldErrors, path }) {
     );
   } else if (Array.isArray(value)) {
     const numeric = value.length > 0 && value.every((v) => typeof v === 'number');
+    const money = numeric && UNIT(name) === '₹';
     control = (
       <Input
         id={id}
-        value={value.join(', ')}
+        defaultValue={money ? value.map((v) => v / 100).join(', ') : value.join(', ')}
         onChange={(e) => {
           const parts = e.target.value
             .split(',')
             .map((p) => p.trim())
             .filter(Boolean);
-          onChange(numeric ? parts.map(Number) : parts);
+          onChange(
+            money ? parts.map((p) => parseRupeesToPaise(p) ?? p) : numeric ? parts.map(Number) : parts,
+          );
         }}
       />
     );
@@ -151,14 +184,17 @@ export function ValueEditor({ value, onChange, fieldErrors = {} }) {
   );
 }
 
-/** One value in words: booleans as On/Off, nested groups as "UPI: 180 bps + 0 paise"-style lines. */
-function show(v) {
+/** One value in words: booleans as On/Off, money in rupees, rates in %, nested groups on one line. */
+function show(v, key = '') {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'boolean') return v ? 'On' : 'Off';
-  if (Array.isArray(v)) return v.map(show).join(', ') || '—';
+  if (typeof v === 'number') return inUnits(key, v);
+  if (Array.isArray(v)) return v.map((x) => show(x, key)).join(', ') || '—';
   if (typeof v === 'object')
     return Object.entries(v)
-      .map(([k, x]) => `${k}: ${typeof x === 'object' && x !== null ? `{ ${show(x)} }` : show(x)}`)
+      .map(
+        ([k, x]) => `${humanize(k)}: ${typeof x === 'object' && x !== null ? `{ ${show(x)} }` : show(x, k)}`,
+      )
       .join(' · ');
   return String(v);
 }
@@ -172,7 +208,7 @@ export function renderValue(value) {
       {Object.entries(value).map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-muted-foreground">{humanize(k)}</dt>
-          <dd className="break-all">{show(v)}</dd>
+          <dd className="break-all">{show(v, k)}</dd>
         </div>
       ))}
     </dl>

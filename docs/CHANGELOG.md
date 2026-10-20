@@ -3,6 +3,12 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Cash on delivery first; settings in rupees (2026-10-20) — OD-51
+
+### Changed
+- Checkout offers cash on delivery only for now (Admin setting "Payment methods" = COD); online payment returns when Razorpay is live.
+- Jamzo Admin → Configuration shows and edits money in rupees (₹1,000) and rates in percent (18%) instead of paise and basis points; values are still stored exactly in paise.
+
 ## Checkout and order tracking redesign (2026-10-19) — OD-50
 
 ### Changed
