@@ -1025,7 +1025,9 @@ Customers who refuse location could not add an address (the only spot was GPS). 
   Jamzo key. **Android store builds** need a separate *Maps SDK for Android* key, `GOOGLE_MAPS_ANDROID_KEY`, read at
   build time. Google requires this key inside the app; it is restricted to the Jamzo package and signing
   certificate and can only draw maps. All paid lookups stay on the server key.
-- Tested against fake Google endpoints; **not verified with Google** until the owner adds the key (Q-14).
+- Tested against fake Google endpoints, then **verified with Google on 2026-10-20** after the owner added the server key
+  (restricted to the Droplet IP and the three APIs) and set `maps.provider` to GOOGLE: search, place details and the
+  address of a spot return real Unjha streets and pincodes.
 
 ### D-115. The jamzo.in website (OD-49)
 Razorpay approves a business only after checking its website for **Terms, Privacy, Refund, Delivery and
