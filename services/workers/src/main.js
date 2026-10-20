@@ -42,7 +42,7 @@ const relay = createOutboxRelay({
     createPayments({ prisma, log, provider: createPaymentProvider(env) }).handlers,
     createLedgerJobs({ prisma, log }),
     settlements.handlers,
-    createAccountDeletionJobs({ prisma, log }),
+    createAccountDeletionJobs({ prisma, storage, log }),
   ),
 });
 

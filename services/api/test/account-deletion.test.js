@@ -32,11 +32,6 @@ describe('delete my account (D-117)', () => {
     expect(res.json().error.message).toMatch(/order on its way/);
   });
 
-  it('only from the customer app', async () => {
-    const rider = await f.activeRider();
-    expect((await as(rider, 'POST', '/v1/me/deletion', {}, 'RIDER')).statusCode).toBe(403);
-  });
-
   it('asking signs out everywhere, stops orders, and leaves 30 days to keep the account', async () => {
     const c = delivered.customer;
     // Things that must be erased later: a saved address, a favourite, a device, a review comment.
@@ -99,7 +94,9 @@ describe('delete my account (D-117)', () => {
       prisma: ctx.prisma,
       clock: { now: () => new Date(due.getTime() + DAY) },
     });
-    const ev = await ctx.prisma.outboxEvent.findFirstOrThrow({ where: { eventType: 'account.delete' } });
+    const ev = await ctx.prisma.outboxEvent.findFirstOrThrow({
+      where: { eventType: 'account.delete', aggregateId: userId() },
+    });
     expect(ev.availableAt.getTime()).toBe(due.getTime());
     await jobs['account.delete'](ev);
     expect((await ctx.prisma.user.findUniqueOrThrow({ where: { id: userId() } })).phone).toBe(phone);
@@ -168,5 +165,128 @@ describe('delete my account (D-117)', () => {
     expect(fresh.me.user.id).not.toBe(userId());
     const orders = await as(fresh, 'GET', '/v1/customer/orders');
     expect(orders.json().items).toEqual([]);
+  });
+});
+
+describe('partner apps (D-120)', () => {
+  let seq = 0;
+  async function staff(role, restaurantId) {
+    const phone = `+9197711${String(++seq).padStart(5, '0')}`;
+    const user = await ctx.prisma.user.create({
+      data: { phone, identities: { create: { provider: 'PHONE_OTP', subject: phone } } },
+    });
+    await ctx.prisma.restaurantUser.create({ data: { restaurantId, userId: user.id, role } });
+    return { ...(await mobileLogin(ctx, 'RESTAURANT', phone)), userId: user.id };
+  }
+
+  it('delivery partner: not with cash held or unpaid earnings; then offline at once, erased on day 30', async () => {
+    const rider = delivered.rider; // delivered one cash order: holds the cash and is owed the trip pay
+    const ask = () => as(rider, 'POST', '/v1/me/deletion', {}, 'RIDER');
+    const r = await ctx.prisma.rider.findUniqueOrThrow({ where: { userId: rider.me.user.id } });
+    // Balances are posted by the worker's ledger jobs; set them as they would be after a cash delivery.
+    const ledger = (data) =>
+      ctx.prisma.riderLedger.upsert({
+        where: { riderId: r.id },
+        create: { riderId: r.id, ...data },
+        update: data,
+      });
+    await ledger({ codHeldPaise: 31_900, earningsBalancePaise: 4_500 });
+    expect((await ask()).json().error.message).toMatch(/holding cash/);
+    await ledger({ codHeldPaise: 0 });
+    expect((await ask()).json().error.message).toMatch(/still owes you earnings/);
+    await ledger({ earningsBalancePaise: 0 });
+
+    // Bank details, an ID document with its file, and an open shift to be cleared.
+    const file = await ctx.prisma.media.create({
+      data: {
+        kind: 'DOCUMENT',
+        storageKey: `private/test/${r.id}-pan.pdf`,
+        mimeType: 'application/pdf',
+        sizeBytes: 3,
+        status: 'READY',
+      },
+    });
+    await ctx.storage.put(file.storageKey, Buffer.from('pdf'));
+    expect(await ctx.storage.get(file.storageKey)).not.toBeNull();
+    await ctx.prisma.riderDocument.create({
+      data: { riderId: r.id, kind: 'PAN', number: 'enc', numberLast4: '234F', mediaId: file.id },
+    });
+    await ctx.prisma.rider.update({
+      where: { id: r.id },
+      data: { upiId: 'mohan@upi', bankAccountLast4: '1234', addressLine: '5 Station Road' },
+    });
+
+    const res = await ask();
+    expect(res.statusCode, res.body).toBe(200);
+    expect(
+      (await ctx.prisma.riderAvailability.findUniqueOrThrow({ where: { riderId: r.id } })).isOnline,
+    ).toBe(false);
+    expect(await ctx.prisma.riderShift.count({ where: { riderId: r.id, endedAt: null } })).toBe(0);
+
+    ctx.clock.advance(60_000);
+    const again = await mobileLogin(ctx, 'RIDER', rider.me.user.phone);
+    const online = await as(again, 'POST', '/v1/rider/status', { online: true }, 'RIDER');
+    expect(online.statusCode).toBe(409);
+    expect(online.json().error.message).toMatch(/Keep my account/);
+
+    const ev = (
+      await ctx.prisma.outboxEvent.findMany({
+        where: { eventType: 'account.delete', aggregateId: rider.me.user.id },
+      })
+    ).at(-1);
+    await createAccountDeletionJobs({
+      prisma: ctx.prisma,
+      storage: ctx.storage,
+      clock: { now: () => ev.availableAt },
+    })['account.delete'](ev);
+    expect(await ctx.prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).toMatchObject({
+      onboardingStatus: 'SUSPENDED',
+      upiId: null,
+      bankAccountLast4: null,
+      addressLine: null,
+    });
+    expect(await ctx.prisma.riderDocument.findFirstOrThrow({ where: { riderId: r.id } })).toMatchObject({
+      number: null,
+      numberLast4: null,
+      mediaId: null,
+    });
+    expect(await ctx.storage.get(file.storageKey)).toBeNull(); // the file itself is gone
+    expect(await ctx.prisma.riderEarning.count({ where: { riderId: r.id } })).toBeGreaterThan(0); // accounts stay
+    expect((await ctx.prisma.user.findUniqueOrThrow({ where: { id: rider.me.user.id } })).phone).toBeNull();
+  });
+
+  it('restaurant: the only owner cannot; other staff can and leave the restaurant', async () => {
+    const shop = await ctx.prisma.restaurant.findUniqueOrThrow({ where: { slug: 'pizza-point-unjha' } });
+    const owners = await ctx.prisma.restaurantUser.findMany({
+      where: { restaurantId: shop.id, role: 'OWNER', isActive: true },
+    });
+    expect(owners).toHaveLength(1);
+    const ownerUser = await ctx.prisma.user.findUniqueOrThrow({ where: { id: owners[0].userId } });
+    ctx.clock.advance(60_000);
+    const owner = await mobileLogin(ctx, 'RESTAURANT', ownerUser.phone);
+    const no = await as(owner, 'POST', '/v1/me/deletion', {}, 'RESTAURANT');
+    expect(no.statusCode).toBe(409);
+    expect(no.json().error.message).toMatch(/only owner of Pizza Point/);
+
+    // With a second owner, the first may go.
+    await staff('OWNER', shop.id);
+    expect((await as(owner, 'POST', '/v1/me/deletion', {}, 'RESTAURANT')).statusCode).toBe(200);
+
+    const manager = await staff('MANAGER', shop.id);
+    expect((await as(manager, 'POST', '/v1/me/deletion', {}, 'RESTAURANT')).statusCode).toBe(200);
+    const ev = (
+      await ctx.prisma.outboxEvent.findMany({
+        where: { eventType: 'account.delete', aggregateId: manager.userId },
+      })
+    ).at(-1);
+    await createAccountDeletionJobs({ prisma: ctx.prisma, clock: { now: () => ev.availableAt } })[
+      'account.delete'
+    ](ev);
+    expect(
+      await ctx.prisma.restaurantUser.findFirstOrThrow({ where: { userId: manager.userId } }),
+    ).toMatchObject({ isActive: false });
+    expect(await ctx.prisma.restaurant.findUniqueOrThrow({ where: { id: shop.id } })).toMatchObject({
+      name: 'Pizza Point',
+    }); // the business stays
   });
 });

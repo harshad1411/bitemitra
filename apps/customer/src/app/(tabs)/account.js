@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { registerForPush, useJamzo, useNetwork } from '@jamzo/mobile-foundation';
+import { DeletionPending, registerForPush, useJamzo, useNetwork } from '@jamzo/mobile-foundation';
 import { Button, Card, ListRow, SectionTitle, Screen, Text, ToggleRow, useTheme } from '@jamzo/mobile-ui';
 
 function Favorites() {
@@ -77,39 +77,6 @@ function OffersSwitch() {
   );
 }
 
-/** Shown while a deletion the customer asked for is waiting (D-117). */
-function DeletionPending() {
-  const { api, session } = useJamzo();
-  const [busy, setBusy] = useState(false);
-  const at = session.me?.user?.deletionScheduledFor;
-  if (!at) return null;
-  const date = new Date(at).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Kolkata',
-  });
-  return (
-    <Card>
-      <Text variant="heading">{`Your account will be deleted on ${date}`}</Text>
-      <Text variant="muted">You cannot order until you keep it.</Text>
-      <Button
-        title="Keep my account"
-        busy={busy}
-        onPress={async () => {
-          setBusy(true);
-          try {
-            await api.delete('/v1/me/deletion');
-            await session.reloadMe();
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
-    </Card>
-  );
-}
-
 function Profile() {
   const t = useTheme();
   const { session } = useJamzo();
@@ -166,7 +133,7 @@ export default function Account() {
       {signedIn ? (
         <>
           <Profile />
-          <DeletionPending />
+          <DeletionPending blocked="You cannot order until you keep it." />
           <Card>
             <SectionTitle>Food delivery</SectionTitle>
             <ListRow icon="receipt-outline" label="Your orders" onPress={() => router.navigate('/orders')} />

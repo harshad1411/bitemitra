@@ -75,8 +75,10 @@ wording under the DPDP Act.]]
 Under the DPDP Act you can:
 - **access** a summary of the personal data we hold about you;
 - **correct or update** it (most details can be changed in the app);
-- **delete your account** in the app (Account → Delete my account): you are signed out at once and the data
-  above is erased after 30 days, unless you sign in and keep the account before then;
+- **delete your account** in the app (customers: Account → Delete my account; partners: at the bottom of the
+  home screen): you are signed out at once and the data above is erased after 30 days, unless you sign in and
+  keep the account before then. Delivery partners first need no cash in hand and no unpaid earnings; the only
+  owner of a restaurant first asks Jamzo to add another owner or close the restaurant;
 - **withdraw consent** (for example, location in your phone's settings, or notifications);
 - **nominate** someone to exercise these rights if you die or cannot act;
 - **complain** to our Grievance Officer, and then to the Data Protection Board of India.

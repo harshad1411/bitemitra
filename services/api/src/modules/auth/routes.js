@@ -14,7 +14,7 @@ import { parse } from '../../core/validate.js';
 import { withIdempotency } from '../../core/idempotency.js';
 import { audit } from '../../core/audit.js';
 import { enqueueEvent } from '../../core/outbox.js';
-import { GRACE_DAYS, activeOrderCount } from './deletion.js';
+import { GRACE_DAYS, deletionBlocker } from './deletion.js';
 
 const MOBILE = ['CUSTOMER', 'RESTAURANT', 'RIDER'];
 export const ADMIN_REFRESH_COOKIE = 'jz_admin_rt';
@@ -177,20 +177,23 @@ export default async function authRoutes(app) {
   // ── Delete my account (D-117): customer app; 30 days to change one's mind, then the data is erased ──
   app.post(
     '/v1/me/deletion',
-    { config: { apps: ['CUSTOMER'] } },
+    { config: { apps: MOBILE } },
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
       const userId = request.auth.userId;
-      if (await activeOrderCount(app.prisma, userId))
-        throw new AppError(
-          'CONFLICT',
-          'You have an order on its way. Delete your account after it is delivered.',
-        );
+      const blocker = await deletionBlocker(app.prisma, userId, request.auth.appId);
+      if (blocker) throw new AppError('CONFLICT', blocker);
       const now = app.clock.now();
       const scheduledFor = new Date(now.getTime() + GRACE_DAYS * 86_400_000);
       await app.prisma.$transaction(async (tx) => {
         await tx.user.update({ where: { id: userId }, data: { deletionScheduledFor: scheduledFor } });
         // Signed out everywhere; no more notifications.
         await tx.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
+        // A delivery partner stops getting requests at once, and their shift ends.
+        await tx.riderAvailability.updateMany({ where: { rider: { userId } }, data: { isOnline: false } });
+        await tx.riderShift.updateMany({
+          where: { rider: { userId }, endedAt: null },
+          data: { endedAt: now },
+        });
         await tx.device.updateMany({ where: { userId, disabledAt: null }, data: { disabledAt: now } });
         await enqueueEvent(tx, {
           aggregateType: 'user',
@@ -212,7 +215,7 @@ export default async function authRoutes(app) {
 
   app.delete(
     '/v1/me/deletion',
-    { config: { apps: ['CUSTOMER'] } },
+    { config: { apps: MOBILE } },
     async (/** @type {import('../../core/types.js').JamzoRequest} */ request) => {
       const userId = request.auth.userId;
       await app.prisma.$transaction(async (tx) => {

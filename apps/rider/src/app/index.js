@@ -5,7 +5,14 @@ import { Pressable, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { registerForPush, useJamzo, useNetwork, useRealtime, userMessage } from '@jamzo/mobile-foundation';
+import {
+  DeletionPending,
+  registerForPush,
+  useJamzo,
+  useNetwork,
+  useRealtime,
+  userMessage,
+} from '@jamzo/mobile-foundation';
 import {
   Banner,
   Button,
@@ -202,6 +209,7 @@ export default function Home() {
     <Screen>
       <Text variant="title">{MOBILE_APPS.RIDER.displayName}</Text>
       <Text variant="muted">{`Signed in as ${session.me?.user.phone ?? ''}`}</Text>
+      <DeletionPending blocked="You cannot go online until you keep it." />
       {q.isPending ? (
         <LoadingState label="Loading" />
       ) : q.isError ? (
@@ -250,6 +258,7 @@ export default function Home() {
         <Text variant="small">{`Version ${env.appVersion} (${env.variant}) · ${env.platform} · ${network.online ? 'online' : 'offline'}`}</Text>
       </Card>
       <Button title="Sign out" variant="secondary" onPress={() => session.signOut()} />
+      <Button title="Delete my account" variant="ghost" onPress={() => router.push('/delete-account')} />
     </Screen>
   );
 }

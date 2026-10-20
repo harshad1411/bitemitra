@@ -69,6 +69,7 @@ Last updated: 2026-10-16 (partner performance — OD-48).
 | OD-50 | **Finish the developer's pending work** (owner, 2026-10-19: "finish your work why pending"). Taken as permission to build the remaining items that need nothing from the owner one after another, each documented, tested, committed and deployed, with a report at the end: (1) "Order again" and favourite restaurants (OD-48 #3), (2) in-app account deletion (store requirement, Q-12), (3) daily database backups and an uptime alert, (4) redesign of checkout, order tracking and the partner apps. Still waiting on the owner: Expo account (Android build), Google Maps key, approvals (DLT, Razorpay). |
 | OD-51 | **Start with cash on delivery only** (owner, 2026-10-20: "we will start with COD"). Razorpay asks for an address document in the owner's or JAMZO's name before activating online payments (Shop & Establishment registration or a utility bill), which takes time. No code change: Jamzo Admin → Configuration → "Payment methods" is set to `COD` only, so checkout offers cash alone; online payment (already built and tested in Razorpay test mode) is switched back on in the same setting once Razorpay is live. |
 | OD-52 | **Android test builds through Expo** (owner, 2026-10-20: "yes do it"; answers Q-18). The owner created the Expo organization **`jamzo-in`** (account admin@jamzo.in, the owner's Gmail as a second admin). Projects `@jamzo-in/jamzo-customer`, `jamzo-restaurant` and `jamzo-rider` were created by the developer; their ids live in `packages/config/src/apps.js` (not secret). The **preview** profile builds installable **APK** files pointed at https://api.jamzo.in, on Expo's free plan. Until the owner adds the *Maps SDK for Android* key, the Android customer app shows the address search and the current location without a map picture, because Google's map SDK stops an app that has no key (D-114). |
+| OD-53 | **Finish what the developer can do without the owner** (owner, 2026-10-20: "why you dont complete your pending things which you can do now"). Built: account deletion in the Restaurant Partner and Delivery Partner apps (D-120, needed before the Play Store) and the Play Store listing texts. Still waiting on the owner or others: phone testing, Shop & Establishment, prices, DLT, Razorpay, Play / Apple developer accounts. |
 
 
 ## 2. Engineering decisions
@@ -1104,6 +1105,22 @@ designed with the partner agreements.
   Menu & sold-out items, Ratings, Sales, Payouts. The orders screen was already in this style and is unchanged.
 - **Delivery Partner home:** a large Online / Offline card (green when taking requests) with the switch, then
   "Cash in hand" and "Earnings" as two tiles.
+
+### D-120. Delete my account in the partner apps (OD-53; Play Store requirement)
+Same flow as customers (D-117: asked twice, signed out everywhere, **30 days** to sign in and keep the account,
+then erased by the worker), with money and duty checks first, each explained in the app:
+- **Delivery partner:** not while a trip is in progress, while **cash is held** (deposit it first) or while
+  **earnings are unpaid** (wait for the final payout). The partner goes offline and stops getting requests at
+  once. On the day: name, phone, sign-in methods, sessions and devices go as for customers; the partner record
+  keeps its trips, earnings and payouts (accounts) but loses its address, photo, UPI and bank details, and the
+  identity documents are **deleted from storage** (their numbers too); status becomes SUSPENDED so the person
+  cannot be offered work again.
+- **Restaurant staff / owner:** the account leaves its restaurants (memberships switched off). The **restaurant
+  itself is a business record and is not deleted**: the **only active owner** of a restaurant that is live or
+  being set up cannot delete their account — Jamzo partner support first adds another owner or closes the
+  restaurant (the agreement's notice period applies). Other staff can delete freely.
+- Restaurant and delivery partners' legal pages and agreements already say accounts can be ended; the Privacy
+  Policy section on deletion now applies to all three apps.
 
 ## 3. Changes from MASTER_SPEC (OD-30)
 

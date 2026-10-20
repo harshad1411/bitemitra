@@ -298,8 +298,8 @@ _Generated from the route definitions by `pnpm docs:api` (249 endpoints). Do not
 | `GET` | `/v1/geo/serviceability` | optional | any | — | 60/min |
 | `GET` | `/v1/me` | required | any | — |  |
 | `PATCH` | `/v1/me` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
-| `DELETE` | `/v1/me/deletion` | required | CUSTOMER | — |  |
-| `POST` | `/v1/me/deletion` | required | CUSTOMER | — |  |
+| `DELETE` | `/v1/me/deletion` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
+| `POST` | `/v1/me/deletion` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
 | `POST` | `/v1/me/devices` | required | CUSTOMER, RESTAURANT, RIDER | — |  |
 | `GET` | `/v1/me/notifications` | required | any | — |  |
 | `GET` | `/v1/media/files/*` | none | browser (no headers) | — |  |

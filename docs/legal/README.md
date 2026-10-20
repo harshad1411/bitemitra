@@ -37,5 +37,5 @@ then rebuild; the build stops while any `[[…]]` is unresolved.
    restricted; confirm.
 
 ## Must be built before store submission
-- **In-app account deletion** (Apple 5.1.1(v), Google Play account deletion policy): **built for the customer
-  app** (D-117). The partner apps still need it before they are published.
+- **In-app account deletion** (Apple 5.1.1(v), Google Play account deletion policy): **built in all three apps**
+  (customer D-117, partners D-120).

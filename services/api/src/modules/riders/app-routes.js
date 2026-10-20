@@ -291,6 +291,11 @@ export default async function riderAppRoutes(app) {
       const { online } = parse(riderStatusBody, request.body);
       const rider = await riderOf(prisma, request);
       assertActive(rider);
+      if (online) {
+        const user = await prisma.user.findUnique({ where: { id: request.auth.userId } });
+        if (user?.deletionScheduledFor)
+          throw conflict('Your account is set to be deleted. Tap “Keep my account” to deliver again.');
+      }
       const now = app.clock.now();
       await prisma.$transaction(async (tx) => {
         const av = await tx.riderAvailability.upsert({

@@ -9,4 +9,5 @@ export { useAppLifecycle } from './lifecycle.js';
 export { ErrorBoundary } from './error-boundary.jsx';
 export { getAppEnv } from './env.js';
 export { useRealtime } from './realtime.js';
+export { AccountDeletion, DeletionPending } from './account-deletion.jsx';
 export { newIdempotencyKey } from '@jamzo/api-client';

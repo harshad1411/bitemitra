@@ -10,6 +10,7 @@ import Ratings from '../src/app/ratings';
 import ORDERS from './order-fixtures.json';
 import { Vibration } from 'react-native';
 import NotFound from '../src/app/+not-found';
+import DeleteAccount from '../src/app/delete-account';
 import { installFakeApi } from './fake-api';
 
 jest.mock('expo-constants', () => ({
@@ -37,6 +38,7 @@ const routes = {
   payouts: Payouts,
   sales: Sales,
   ratings: Ratings,
+  'delete-account': DeleteAccount,
   '+not-found': NotFound,
 };
 // Shape of GET /v1/restaurant/reviews (tested against the real API in services/api/test/reviews.test.js).
@@ -427,5 +429,30 @@ describe('restaurant partner app', () => {
       await fireEvent.press(await screen.findByLabelText('Accept · 15 min'));
       expect(await screen.findByText('This order just changed. The list has been refreshed.')).toBeTruthy();
     });
+  });
+
+  it('delete my account: the only owner is told to contact partner support first (D-120)', async () => {
+    const owner = partnerApi('OWNER');
+    const calls = await signIn(OWNER_ME, (path, body, url) =>
+      path === '/v1/me/deletion'
+        ? {
+            status: 409,
+            body: {
+              error: {
+                code: 'CONFLICT',
+                message:
+                  'You are the only owner of Pizza Point. Ask Jamzo partner support to add another owner or close the restaurant first.',
+                requestId: 'r',
+              },
+            },
+          }
+        : owner(path, body, url),
+    );
+    await fireEvent.press(await screen.findByLabelText('Delete my account'));
+    expect(await screen.findByText(/The restaurant itself, its menu, orders and payouts stay/)).toBeTruthy();
+    await fireEvent.press((await screen.findAllByLabelText('Delete my account')).at(-1));
+    await fireEvent.press(await screen.findByLabelText('Yes, delete my account'));
+    expect(await screen.findByText(/only owner of Pizza Point/)).toBeTruthy();
+    expect(calls.some((c) => c.path === '/v1/auth/logout')).toBe(false); // nothing happened; still signed in
   });
 });

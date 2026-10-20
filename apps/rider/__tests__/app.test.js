@@ -8,6 +8,7 @@ import Home from '../src/app/index';
 import Apply from '../src/app/apply';
 import Earnings from '../src/app/earnings';
 import NotFound from '../src/app/+not-found';
+import DeleteAccount from '../src/app/delete-account';
 import F from './fixtures.json';
 import { installFakeApi } from './fake-api';
 
@@ -27,7 +28,14 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
-const routes = { _layout: RootLayout, index: Home, apply: Apply, earnings: Earnings, '+not-found': NotFound };
+const routes = {
+  _layout: RootLayout,
+  index: Home,
+  apply: Apply,
+  earnings: Earnings,
+  'delete-account': DeleteAccount,
+  '+not-found': NotFound,
+};
 const AsyncStorage = require('@react-native-async-storage/async-storage');
 
 /** Fake rider API walking through the captured states; records what the app sends. */
@@ -275,5 +283,41 @@ describe('delivery partner app', () => {
     await signIn(api);
     expect(await screen.findByText('Your account is paused. Please contact partner support.')).toBeTruthy();
     expect(screen.queryByLabelText(/You are o/)).toBeNull();
+  });
+
+  it('delete my account: the server says to deposit cash first; then asked twice, and signed out on "Done" (D-120)', async () => {
+    const api = riderApi({ me: F.meActive, work: F.workIdle });
+    let tries = 0;
+    const base = api.handler;
+    api.handler = (path, body, init = {}) => {
+      if (path === '/v1/me/deletion' && (init.method ?? 'GET') === 'POST') {
+        tries += 1;
+        return tries === 1
+          ? {
+              status: 409,
+              body: {
+                error: {
+                  code: 'CONFLICT',
+                  message:
+                    'You are holding cash from orders. Deposit it with Jamzo first (Earnings → I deposited cash).',
+                  requestId: 'r',
+                },
+              },
+            }
+          : { body: { scheduledFor: '2026-11-19T07:30:00.000Z' } };
+      }
+      return base(path, body, init);
+    };
+    const calls = await signIn(api);
+    await fireEvent.press(await screen.findByLabelText('Delete my account'));
+    expect(await screen.findByText(/You need no cash in hand and no unpaid earnings first/)).toBeTruthy();
+    await fireEvent.press((await screen.findAllByLabelText('Delete my account')).at(-1));
+    await fireEvent.press(await screen.findByLabelText('Yes, delete my account'));
+    expect(await screen.findByText(/You are holding cash from orders/)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Yes, delete my account'));
+    expect(await screen.findByText('Your account will be deleted on 19 November 2026')).toBeTruthy();
+    expect(calls.some((c) => c.path === '/v1/auth/logout')).toBe(false); // the date stays readable…
+    await fireEvent.press(screen.getByLabelText('Done'));
+    await waitFor(() => expect(calls.some((c) => c.path === '/v1/auth/logout')).toBe(true)); // …then signed out
   });
 });

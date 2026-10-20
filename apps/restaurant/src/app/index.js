@@ -4,7 +4,13 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MOBILE_APPS } from '@jamzo/config/apps';
-import { registerForPush, useJamzo, useNetwork, userMessage } from '@jamzo/mobile-foundation';
+import {
+  DeletionPending,
+  registerForPush,
+  useJamzo,
+  useNetwork,
+  userMessage,
+} from '@jamzo/mobile-foundation';
 import {
   Badge,
   Banner,
@@ -277,6 +283,7 @@ function Store({ restaurantId }) {
 }
 
 export default function Home() {
+  const router = useRouter();
   const { session, env, config, api } = useJamzo();
   const network = useNetwork();
   const [push, setPush] = useState(null);
@@ -288,6 +295,7 @@ export default function Home() {
     <Screen>
       <Text variant="title">{MOBILE_APPS.RESTAURANT.displayName}</Text>
       <Text variant="muted">Signed in as {me?.user.phone}</Text>
+      <DeletionPending blocked="Your account leaves your restaurants on that date." />
       {me?.access.status === 'OK' && restaurantId ? (
         <>
           {approved.length > 1 ? (
@@ -344,6 +352,7 @@ export default function Home() {
         <Text variant="small">API {env.apiUrl}</Text>
       </Card>
       <Button title="Sign out" variant="secondary" onPress={() => session.signOut()} />
+      <Button title="Delete my account" variant="ghost" onPress={() => router.push('/delete-account')} />
     </Screen>
   );
 }

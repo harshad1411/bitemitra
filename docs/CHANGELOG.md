@@ -3,6 +3,13 @@
 All notable changes to the Jamzo platform. Each mobile app, the admin and the API also keep
 release notes per version tag (`customer@x.y.z`, `restaurant@x.y.z`, `rider@x.y.z`, `admin@x.y.z`, `api@x.y.z`).
 
+## Delete my account in the partner apps; Android apps (2026-10-20) — OD-52, OD-53
+
+### Added
+- Restaurant Partner and Delivery Partner apps → **Delete my account** (D-120), same 30-day flow as customers. Delivery partners must first have no trip, no cash in hand and no unpaid earnings; their identity documents are deleted from storage on the day. The only owner of a restaurant is asked to contact partner support first; the restaurant itself stays.
+- Android test builds of all three apps through Expo (organization `jamzo-in`), pointed at api.jamzo.in (OD-52).
+- Google Maps verified live: real search, street names and pincodes (D-114).
+
 ## Cash on delivery first; settings in rupees (2026-10-20) — OD-51
 
 ### Changed
